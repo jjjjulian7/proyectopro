@@ -1,2 +1,1 @@
-# proyectopro
-mualencitos  BIGBOOS
+Sistema de gestión de catálogo e inventario desarrollado en Python.
