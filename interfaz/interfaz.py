@@ -1,5 +1,5 @@
 import tkinter as tk
-import estilo_boton
+import interfaz.estilo_boton as estilo_boton
 
 ventana = tk.Tk()
 ventana.title("MaulencitosMarket")
