@@ -1,4 +1,5 @@
 from datos.bd import bd
+from datos.bd import eliminar_producto
 
 
 class Inventario:
@@ -26,7 +27,9 @@ def buscar_producto(self, nombre, id):
             if nombre_search.lower() in p.nombre.lower():
                 productos_buscados.append(p)
         return productos_buscados
-    
-                
+#SEBASTIAN LEON 
+def quitar_producto():
+    id_producto = int(input("Ingrese el ID del producto a eliminar"))
+    eliminar_producto(id_producto)
             
 

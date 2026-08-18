@@ -42,6 +42,15 @@ def insertar_producto(producto):
     VALUES (?, ?, ?, ?, ?)''', (producto.id , producto.nombre, producto.precio, producto.stock, producto.categoria ))
     conexion.commit()
     conexion.close()
+#SEBASTIAN LEON 
+def eliminar_producto(id.producto):
+    conexion= conectar()
+    cursor = conexion.cursor()
+    cursor.execute('''DELETE FROM productos WHERE id = ?''',(id.producto))
+    conexion.commit()
+    conexion.close()
+
+
 
 productos = mostrar_productos()
 print(productos)
