@@ -26,8 +26,15 @@ def ventana_de_admin():
         ventana3.geometry("350x350")
         BarraBusqueda=tk.Frame(ventana3, bg="#8ADEFF", height=50)
         BarraBusqueda.pack(fill="x")
+<<<<<<< HEAD
         ventana.iconify()
         
+=======
+        buscador=tk.Entry(ventana3,text="Ingrese nombre producto")
+        buscador.grid(row=1,column=2,padx=(10,40),pady=(10,0))
+        ventana.iconify()
+
+>>>>>>> d0414bce06a64c402ac5f413510444fcc07b0b3c
 def simular_registro():
     print("El boton Registrar funciona correctamente")
 
@@ -39,8 +46,11 @@ boton_ingresar = estilo_boton.crear_boton_verde(ventana, "Ingresar", ventana_de_
 boton_ingresar.grid(row=4, column=3, padx=(10, 40), pady=(20, 0))
 
 
+<<<<<<< HEAD
 cambiar_admin= tk.Label(ventana, text="¿Eres administrador? Haz click aqui")
 cambiar_admin.grid(row=5, column=2, padx=(0,0), pady=(170, 0))
 cambiar_admin=tk.Toplevel(ventana)
+=======
+>>>>>>> d0414bce06a64c402ac5f413510444fcc07b0b3c
 
 ventana.mainloop()

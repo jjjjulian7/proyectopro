@@ -1,5 +1,8 @@
 import sqlite3
 
+class bd:
+    pass
+
 def conectar():
     conexion = sqlite3.connect('productos.db') # Se conecta a la bd si no existe se crea sola
     return conexion
@@ -29,6 +32,14 @@ def mostrar_productos():
     # productos2 = cursor.fetchone() # Devuelve la primera fila encontrada
     conexion.close()
     return productos
+
+def insertar_producto(producto):
+    conexion = conectar()
+    cursor = conexion.cursor()
+    cursor.execute('''INSERT INTO productos (id , nombre, precio, stock, categoria)
+    VALUES (p.id, p.nombre, p.precio, p.stock, p.categoria)''' )
+    conexion.commit()
+    conexion.close()
 
 productos = mostrar_productos()
 print(productos)
