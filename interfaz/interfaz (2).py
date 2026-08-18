@@ -6,7 +6,7 @@ ventana = tk.Tk()
 ventana.title("MaulencitosMarket")
 ventana.geometry("350x350")
 
-
+# Codigo realizado por Jose Cofre
 texto = tk.Label(ventana, text="Nombre Usuario")
 texto.grid(row=2, column=2, padx=(40, 0), pady=(40, 0))
 
@@ -19,6 +19,8 @@ texto.grid(row=3, column=2, padx=(40, 0), pady=(10, 0))
 IngresoClave = tk.Entry(ventana, show="*")
 IngresoClave.grid(row=3, column=3, padx=(10, 40), pady=(10, 0))
 
+# Codigo realizado por Cristobal Maulen
+
 #funciones a completar despues con sqlite3
 def ventana_de_admin():
         #falta agregar modo de confirmacion
@@ -30,7 +32,7 @@ def ventana_de_admin():
         
 def simular_registro():
     print("El boton Registrar funciona correctamente")
-
+# Codigo realizado por Jose Cofre
 #botones,llamamos al archivo estilo_boton
 boton_registrar = estilo_boton.crear_boton_verde(ventana, "Registrar", simular_registro) 
 boton_registrar.grid(row=4, column=2, padx=(40, 10), pady=(20, 0))
