@@ -26,6 +26,8 @@ def ventana_de_admin():
         ventana3.geometry("350x350")
         BarraBusqueda=tk.Frame(ventana3, bg="#8ADEFF", height=50)
         BarraBusqueda.pack(fill="x")
+        buscador=tk.Entry(ventana3,text="Ingrese nombre producto")
+        buscador.grid(row=1,column=2,padx=(10,40),pady=(10,0))
         ventana.iconify()
 
 def simular_registro():
