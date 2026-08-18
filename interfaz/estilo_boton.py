@@ -1,5 +1,5 @@
 import tkinter as tk
-
+# Codigo realizado por Jose Cofre
 def crear_boton_verde(ventana_padre, texto_boton, funcion_comando):
     """
     funcion solo de estetica del boton
