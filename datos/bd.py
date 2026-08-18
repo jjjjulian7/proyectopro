@@ -6,7 +6,7 @@ class bd:
 def conectar():
     conexion = sqlite3.connect('productos.db') # Se conecta a la bd si no existe se crea sola
     return conexion
-
+#JULIAN CORREA FUNCION CREAR TABLA
 def crear_tabla():
     conexion = conectar() 
     cursor = conexion.cursor()   # Herramienta para hacer las consultas sql                   
@@ -24,6 +24,8 @@ def crear_tabla():
     conexion.close() # Cierra la conexion a la base de datos
     # conexion.rollback() # Deshace un cambio en la base de datos
 
+
+#JULIAN CORREA FUNCION MOSTRAR_PRODUCTOS
 def mostrar_productos():
     conexion = conectar()
     cursor = conexion.cursor()
@@ -32,12 +34,12 @@ def mostrar_productos():
     # productos2 = cursor.fetchone() # Devuelve la primera fila encontrada
     conexion.close()
     return productos
-
+#JULIAN CORREA FUNCION INSERTAR_PRODUCTO
 def insertar_producto(producto):
     conexion = conectar()
     cursor = conexion.cursor()
     cursor.execute('''INSERT INTO productos (id , nombre, precio, stock, categoria)
-    VALUES (p.id, p.nombre, p.precio, p.stock, p.categoria)''' )
+    VALUES (?, ?, ?, ?, ?)''', (producto.id , producto.nombre, producto.precio, producto.stock, producto.categoria ))
     conexion.commit()
     conexion.close()
 

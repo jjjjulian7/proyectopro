@@ -5,12 +5,12 @@ class Inventario:
     def __init__(self):
         self.productos = []
 
-
+#JULIAN CORREA FUNCION AGREGAR_PRODUCTO
 def agregar_producto(self, p):
     nuevo_producto = (p.id , p.nombre, p.nombre, p.precio, p.stock, p.categoria)
     self.productos.append(nuevo_producto)
     bd.insertar_producto()
-
+#JULIAN CORREA FUNCION BUSCAR_PRODUCTO
 def buscar_producto(self, nombre, id):
     print("Seleccione una opción de busqueda")    
     A = int(input("1 | Busqueda por id       2 | Busqueda por nombre"))
