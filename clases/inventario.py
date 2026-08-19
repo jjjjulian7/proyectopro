@@ -24,8 +24,12 @@ def buscar_producto(self, opcion, valor):
         return productos_buscados
     
 #SEBASTIAN LEON 
-def quitar_producto():
-    id_producto = int(input("Ingrese el ID del producto a eliminar"))
-    bd.eliminar_producto(id_producto)
+def quitar_producto(self, id_producto):
+    #id_producto = int(input("Ingrese el ID del producto a eliminar")) ##mandarlo al main los inputs
+    for p in self.productos:
+        if p.id == id_producto:
+            self.productos.remove(p)
+            bd.eliminar_producto(id_producto)
+            return
             
 
