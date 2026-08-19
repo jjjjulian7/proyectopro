@@ -1,6 +1,4 @@
-from datos.bd import bd
-from datos.bd import eliminar_producto
-
+import datos.bd as bd
 
 class Inventario:
     def __init__(self):
@@ -8,28 +6,26 @@ class Inventario:
 
 #JULIAN CORREA FUNCION AGREGAR_PRODUCTO
 def agregar_producto(self, p):
-    nuevo_producto = (p.id , p.nombre, p.nombre, p.precio, p.stock, p.categoria)
-    self.productos.append(nuevo_producto)
+    self.productos.append(p)
     bd.insertar_producto()
+    
 #JULIAN CORREA FUNCION BUSCAR_PRODUCTO
-def buscar_producto(self, nombre, id):
-    print("Seleccione una opción de busqueda")    
-    A = int(input("1 | Busqueda por id       2 | Busqueda por nombre"))
-    if A == 1:
-        id_search = int(input("Ingrese el id del producto"))
+def buscar_producto(self, opcion, valor):
+    
+    if opcion == 1:
         for p in self.productos:
-            if id_search == p.id:
+            if p.id == valor:
                 return p
-    if A == 2:
+    elif opcion == 2:
         productos_buscados = []
-        nombre_search = input("Ingrese el nombre del producto")
         for p in self.productos:
-            if nombre_search.lower() in p.nombre.lower():
+            if valor.lower() in p.nombre.lower():
                 productos_buscados.append(p)
         return productos_buscados
+    
 #SEBASTIAN LEON 
 def quitar_producto():
     id_producto = int(input("Ingrese el ID del producto a eliminar"))
-    eliminar_producto(id_producto)
+    bd.eliminar_producto(id_producto)
             
 

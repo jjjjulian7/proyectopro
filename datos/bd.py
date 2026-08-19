@@ -34,6 +34,7 @@ def mostrar_productos():
     # productos2 = cursor.fetchone() # Devuelve la primera fila encontrada
     conexion.close()
     return productos
+
 #JULIAN CORREA FUNCION INSERTAR_PRODUCTO
 def insertar_producto(producto):
     conexion = conectar()
@@ -42,11 +43,12 @@ def insertar_producto(producto):
     VALUES (?, ?, ?, ?, ?)''', (producto.id , producto.nombre, producto.precio, producto.stock, producto.categoria ))
     conexion.commit()
     conexion.close()
+    
 #SEBASTIAN LEON 
-def eliminar_producto(id.producto):
+def eliminar_producto(id_producto):
     conexion= conectar()
     cursor = conexion.cursor()
-    cursor.execute('''DELETE FROM productos WHERE id = ?''',(id.producto))
+    cursor.execute('''DELETE FROM productos WHERE id = ?''',(id_producto))
     conexion.commit()
     conexion.close()
 
