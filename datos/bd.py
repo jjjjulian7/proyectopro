@@ -43,13 +43,20 @@ def insertar_producto(producto):
     
 #SEBASTIAN LEON 
 def eliminar_producto(id_producto):
-    conexion= conectar()
+    conexion = conectar()
     cursor = conexion.cursor()
     cursor.execute('''DELETE FROM productos WHERE id = ?''',(id_producto,))
     conexion.commit()
     conexion.close()
     ##cursor.lastrowid() ##recuperar id recien creada
 
+#SEBASTIAN LEON
+def calcular_total_inventario():
+    conexion = conectar()
+    cursor = conexion.cursor(conexion)
+    cursor.execute("SELECT SUM(precio * cantidad) FROM productos")
+    total = cursor.fetchone()[0] # Devuelve el unico resultado, que es el total
+    conexion.close
 
 productos = mostrar_productos()
 print(productos)
