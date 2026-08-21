@@ -35,6 +35,6 @@ def quitar_producto(self, id_producto):
         if p.id == id_producto:
             self.productos.remove(p)
             bd.eliminar_producto(id_producto)
-            return
+            return True
             
 
