@@ -6,8 +6,13 @@ class Inventario:
 
 #JULIAN CORREA FUNCION AGREGAR_PRODUCTO
 def agregar_producto(self, p):
+    for producto in self.productos:
+        if producto.id == p.id:
+            return False
+    
     self.productos.append(p)
     bd.insertar_producto()
+    return True
     
 #JULIAN CORREA FUNCION BUSCAR_PRODUCTO
 def buscar_producto(self, opcion, valor):

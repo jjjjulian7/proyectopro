@@ -1,8 +1,5 @@
 import sqlite3
 
-class bd:
-    pass
-
 def conectar():
     conexion = sqlite3.connect('productos.db') # Se conecta a la bd si no existe se crea sola
     return conexion
@@ -48,10 +45,10 @@ def insertar_producto(producto):
 def eliminar_producto(id_producto):
     conexion= conectar()
     cursor = conexion.cursor()
-    cursor.execute('''DELETE FROM productos WHERE id = ?''',(id_producto))
+    cursor.execute('''DELETE FROM productos WHERE id = ?''',(id_producto,))
     conexion.commit()
     conexion.close()
-
+    ##cursor.lastrowid() ##recuperar id recien creada
 
 
 productos = mostrar_productos()
