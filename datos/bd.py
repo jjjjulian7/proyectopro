@@ -1,7 +1,7 @@
 import sqlite3
 
 def conectar():
-    conexion = sqlite3.connect('productos.db') # Se conecta a la bd si no existe se crea sola
+    conexion = sqlite3.connect('productos_prueba.db') # Se conecta a la bd si no existe se crea sola
     return conexion
 #JULIAN CORREA FUNCION CREAR TABLA
 def crear_tabla():
@@ -36,8 +36,9 @@ def mostrar_productos():
 def insertar_producto(producto):
     conexion = conectar()
     cursor = conexion.cursor()
-    cursor.execute('''INSERT INTO productos (id , nombre, precio, stock, categoria)
-    VALUES (?, ?, ?, ?, ?)''', (producto.id , producto.nombre, producto.precio, producto.stock, producto.categoria ))
+    cursor.execute('''INSERT INTO productos (nombre, precio, stock, categoria)
+    VALUES (?, ?, ?, ?, ?)''', (producto.nombre, producto.precio, producto.stock, producto.categoria ))
+    producto.id = cursor.lastrowid
     conexion.commit()
     conexion.close()
     
