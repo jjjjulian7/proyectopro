@@ -26,7 +26,7 @@ def buscar_producto(self, opcion, valor):
     
 
     
-#SEBASTIAN LEON 
+#SEBASTIAN LEON QUITAR_PRODUCTO
 def quitar_producto(self, id_producto):
     #id_producto = int(input("Ingrese el ID del producto a eliminar")) ##mandarlo al main los inputs
     for p in self.productos:
@@ -35,4 +35,11 @@ def quitar_producto(self, id_producto):
             bd.eliminar_producto(id_producto)
             return True
             
+def filtrar_categoria(self, categoria):
+    productos_filtrados = []
+    for p in self.productos :
+        if p.categoria.lower == categoria.lower:
+            productos_filtrados.append(p)
+    return productos_filtrados
+
 
