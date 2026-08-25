@@ -38,9 +38,19 @@ def insertar_producto(producto):
     cursor = conexion.cursor()
     cursor.execute('''INSERT INTO productos (nombre, precio, stock, categoria)
     VALUES (?, ?, ?, ?)''', (producto.nombre, producto.precio, producto.stock, producto.categoria ))
-    producto.id = cursor.lastrowid
+    producto.id = cursor.lastrowid #Te devuelve el id de el prud¿ducto agregado
     conexion.commit()
     conexion.close()
+
+#JULIAN CORREA ACTUALIZAR PRODUCTO
+def actualizar_producto(producto):
+    conexion = conectar()
+    cursor = conexion.cursor()
+    cursor.execute('''UPDATE productos SET nombre = ?, precio = ?, stock = ?, categoria = ? WHERE id = ?''',
+                   (producto.nombre, producto.precio, producto.stock, producto.categoria, producto.id))
+    conexion.commit()
+    conexion.close()
+    
     
 #SEBASTIAN LEON ELIMINAR PRODUCTO
 def eliminar_producto(id_producto):
@@ -55,7 +65,7 @@ def eliminar_producto(id_producto):
 def calcular_total_inventario():
     conexion = conectar()
     cursor = conexion.cursor()
-    cursor.execute("SELECT SUM(precio * cantidad) FROM productos")
+    cursor.execute("SELECT SUM(precio * stock) FROM productos")
     total = cursor.fetchone()[0] # Devuelve el unico resultado, que es el total
     conexion.close
 
