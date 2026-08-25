@@ -23,9 +23,29 @@ def buscar_producto(self, opcion, valor):
             if valor.lower() in p.nombre.lower():
                 productos_buscados.append(p)
         return productos_buscados
-    
+    return None
 
-    
+#JULIAN CORREA VALIDAR STOCK
+def validar_stock(self, stock):
+    return stock >= 0
+
+#JULIAN CORREA ACTUALIZAR PRODUCTO
+def actualizar_producto(self, id_producto, nombre, precio, stock, categoria):
+
+    if not self.validar_stock(stock):
+        return False
+
+    for p in self.productos:
+        if p.id == id_producto:
+            p.nombre = nombre
+            p.precio = precio
+            p.stock = stock
+            p.categoria = categoria
+
+            bd.actualizar_producto(p)
+            return True
+    return False
+
 #SEBASTIAN LEON QUITAR_PRODUCTO
 def quitar_producto(self, id_producto):
     #id_producto = int(input("Ingrese el ID del producto a eliminar")) ##mandarlo al main los inputs
