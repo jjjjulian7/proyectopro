@@ -3,6 +3,7 @@ import sqlite3
 import tkinter as tk
 from clases.usuario import usuario
 from datos import bd_usuarios as BD
+from clases import inventario as IN
 from . import Interfaz_pagina
 # Codigo realizado por Cristobal Maulen
 def ventana_admin(ventana):
@@ -41,5 +42,7 @@ def registro(texto,IngresoClave,ventana):
          texto=tk.Label(ventanaAdvertencia,text="EL usuario ya existe")
          texto.pack()
          ventanaAdvertencia.after(3000,ventanaAdvertencia.destroy)
-
+def buscarr_producto(opcion, buscar):
+    nombre=buscar.get()
+    Lista=IN.buscar_producto(opcion,nombre)
     
