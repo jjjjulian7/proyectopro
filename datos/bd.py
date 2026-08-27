@@ -1,7 +1,7 @@
 import sqlite3
 
 def conectar():
-    conexion = sqlite3.connect('productos_prueba.db') # Se conecta a la bd si no existe se crea sola
+    conexion = sqlite3.connect('productos_nuevo.db') # Se conecta a la bd si no existe se crea sola
     return conexion
 
 #JULIAN CORREA FUNCION CREAR TABLA
