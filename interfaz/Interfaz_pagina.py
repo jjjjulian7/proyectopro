@@ -1,21 +1,22 @@
 import tkinter as tk
-import FuncionBotones as F
+from . import FuncionBotones as F
+from datos import bd as bd
 def ejecutar(ventana_log):
     #CODIGO CREADO ´POR JOSE COFRE 25/08
     ventana = tk.Tk()
     ventana.title("Pagina principal")
     ventana.geometry("1280x720")
 
-    
-
-    #creamos un Frame principal que contendrá el Canvas y el Scrollbar
+    # BARRA SUPERIOR
+    barra = tk.Frame(ventana, background="#7422A8")
+    barra.pack(side="top", fill="x")
+    buscador = tk.Entry(barra)
+    buscador.pack(side="left", padx=10, pady=10)
+    botonB = tk.Button(barra,text="buscar",command=lambda: F.buscarr_producto(2, buscador))
+    botonB.pack(side="left", padx=10)
+#creamos un Frame principal que contendrá el Canvas y el Scrollbar
     contenedor_principal = tk.Frame(ventana)
     contenedor_principal.pack(fill="both", expand=True)
-     #frame 
-    barra=tk.Frame(ventana,background='#7422A8')
-    buscador=tk.Entry(barra)
-    botonB=tk.Button(text='buscar',lambda:F.buscarr_producto(2,buscador))
-    tk.
     #Crear el Canvas
     canvas = tk.Canvas(contenedor_principal)
     canvas.pack(side="left", fill="both", expand=True)
@@ -36,7 +37,14 @@ def ejecutar(ventana_log):
     def actualizar_scroll(event):
         canvas.configure(scrollregion=canvas.bbox("all"))
     frame_interior.bind("<Configure>", actualizar_scroll)
-#para poder bajar (40)
-    for i in range(50):
-        etiqueta = tk.Label(frame_interior)
-        etiqueta.grid(row=i, column=0, pady=10, padx=20)
+#frame donde se iran guardando los productos
+    productos=bd.mostrar_productos()
+    for i, producto in enumerate(productos):
+        fila = i // 3
+        columna = i % 3
+        frameProducto = tk.Frame(frame_interior,borderwidth=1,relief="solid")
+        frameProducto.grid(row=fila,column=columna,padx=15,pady=15)
+        tk.Label(frameProducto,text=producto[1]).pack()
+        tk.Label(frameProducto,text=f"Precio: ${producto[2]}").pack()
+        tk.Label(frameProducto,text=f"Stock: {producto[3]}").pack()
+        tk.Label(frameProducto,text=f"Categoría: {producto[4]}").pack() 

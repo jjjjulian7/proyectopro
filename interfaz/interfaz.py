@@ -1,6 +1,6 @@
 import tkinter as tk
-from . import estilo_boton
 from . import FuncionBotones as F
+from . import estilo_boton
 from .ventana_admin import abrir_ventana_funcionario
 
 # Codigo realizado por Jose Cofre
@@ -30,10 +30,10 @@ IngresoClave.grid(row=4, column=3, padx=(10, 300), pady=(20, 0))
 
 # Codigo realizado por Jose Cofre
 #botones,llamamos al archivo estilo_boton
-boton_registrar = estilo_boton.crear_boton_verde(ventana, "Registrar",lambda:F.simular_registro(IngresoNombre,IngresoClave,ventana)) 
+boton_registrar = estilo_boton.crear_boton_verde(ventana, "Registrar",lambda:F.registro(IngresoNombre,IngresoClave,ventana)) 
 boton_registrar.grid(row=5, column=2, padx=(300, 10), pady=(50, 0))
 
-boton_ingresar = estilo_boton.crear_boton_verde(ventana, "Ingresar",lambda: F.ventana_usuario(ventana)) 
+boton_ingresar = estilo_boton.crear_boton_verde(ventana, "Ingresar",lambda: F.ventana_usuario(ventana,IngresoNombre,IngresoClave)) 
 boton_ingresar.grid(row=5, column=3, padx=(10, 300), pady=(50, 0))
 
 

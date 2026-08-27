@@ -16,16 +16,16 @@ def ventana_usuario(ventana,texto,IngresoClave):
         resultado=BD.buscar_usuario(Nombre)
         if resultado==None:
             ventanaAdvertencia=tk.Toplevel(ventana)
-            ventanaAdvertencia.geometry("100x60")
+            ventanaAdvertencia.geometry("200x60")
             texto=tk.Label(ventanaAdvertencia,text="EL usuario no existe")
             texto.pack()
             ventanaAdvertencia.after(3000,ventanaAdvertencia.destroy)
         elif contraseña!=resultado[2]:
             ventanaAdvertencia=tk.Toplevel(ventana)
-            ventanaAdvertencia.geometry("100x60")
+            ventanaAdvertencia.geometry("200x60")
             texto=tk.Label(ventanaAdvertencia,text="la contraseña es incorrecta")
             texto.pack()
-            ventanaAdvertencia.after(3000,ventanaAdvertencia.destroy)
+            ventanaAdvertencia.after(2000,ventanaAdvertencia.destroy)
         else:
             Interfaz_pagina.ejecutar(ventana)
         
@@ -41,8 +41,6 @@ def registro(texto,IngresoClave,ventana):
          ventanaAdvertencia.geometry("50x50")
          texto=tk.Label(ventanaAdvertencia,text="EL usuario ya existe")
          texto.pack()
-         ventanaAdvertencia.after(3000,ventanaAdvertencia.destroy)
-def buscarr_producto(opcion, buscar):
-    nombre=buscar.get()
-    Lista=IN.buscar_producto(opcion,nombre)
+         ventanaAdvertencia.after(2000,ventanaAdvertencia.destroy)
+
     
