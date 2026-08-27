@@ -3,6 +3,7 @@ import sqlite3
 def conectar():
     conexion = sqlite3.connect('productos_prueba.db') # Se conecta a la bd si no existe se crea sola
     return conexion
+
 #JULIAN CORREA FUNCION CREAR TABLA
 def crear_tabla():
     conexion = conectar() 
@@ -38,26 +39,16 @@ def insertar_producto(producto):
     cursor = conexion.cursor()
     cursor.execute('''INSERT INTO productos (nombre, precio, stock, categoria)
     VALUES (?, ?, ?, ?)''', (producto.nombre, producto.precio, producto.stock, producto.categoria ))
-    producto.id = cursor.lastrowid
+    producto.id = cursor.lastrowid #Te devuelve el id de el prud¿ducto agregado
     conexion.commit()
     conexion.close()
-    
+
+#JULIAN CORREA ACTUALIZAR PRODUCTO
 def actualizar_producto(producto):
     conexion = conectar()
     cursor = conexion.cursor()
-
-    cursor.execute('''
-        UPDATE productos
-        SET nombre = ?, precio = ?, stock = ?, categoria = ?
-        WHERE id = ?
-    ''', (
-        producto.nombre,
-        producto.precio,
-        producto.stock,
-        producto.categoria,
-        producto.id
-    ))
-
+    cursor.execute('''UPDATE productos SET nombre = ?, precio = ?, stock = ?, categoria = ? WHERE id = ?''',
+                   (producto.nombre, producto.precio, producto.stock, producto.categoria, producto.id))
     conexion.commit()
     conexion.close()
     
@@ -70,13 +61,22 @@ def eliminar_producto(id_producto):
     conexion.close()
     ##cursor.lastrowid() ##recuperar id recien creada
 
-#SEBASTIAN LEON
+#SEBASTIAN LEON TOTAL INVENTARIO
 def calcular_total_inventario():
     conexion = conectar()
-    cursor = conexion.cursor(conexion)
+    cursor = conexion.cursor()
     cursor.execute("SELECT SUM(precio * stock) FROM productos")
     total = cursor.fetchone()[0] # Devuelve el unico resultado, que es el total
     conexion.close
+
+#SEBASTIAN LEON FILTRAR POR RANGO DE PRECIOS
+def filtrar_rango_precios(min, max):
+    conexion = conectar()
+    cursor = conexion.cursor()
+    cursor.execute("SELECT * FROM productos WHERE precio BETWEEN ? AND ?", (min, max))
+    productos = cursor.fetchall()
+    conexion.close()
+    return productos
 
 productos = mostrar_productos()
 print(productos)
