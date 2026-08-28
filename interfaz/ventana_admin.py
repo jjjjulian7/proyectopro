@@ -1,45 +1,52 @@
 import tkinter as tk
-from . import estilo_boton
 from . import FuncionBotones as F
-
-def abrir_ventana_funcionario():
-    #ventana de ingreso
-    ventana = tk.Tk() 
-    ventana.title("MaulencitosMarket")
+from datos import bd
+def ejecutar():
+    ventana = tk.Tk()
+    ventana.title("MaulencitosMarketADMIN")
     ventana.geometry("1280x720")
-    
-    #   AJUSTES DE LA VENTANA Y POSICIONAMENTO DE LOS ELEMENTOSSSSSSSSSSSSSSSSSSSSSSSSSS
-    # Codigo realizado por Jose Cofre
-    texto = tk.Label(ventana, text="RUT Funcionario")
-    texto.grid(row=3, column=2, padx=(250, 0), pady=(210, 0))
-    
-    texto = tk.Label(ventana, text="Clave Funcionario")
-    texto.grid(row=4, column=2, padx=(250, 0), pady=(20, 0))
-    
-    IngresoNombre = tk.Entry(ventana)
-    IngresoNombre.grid(row=3, column=3, padx=(10, 300), pady=(210, 0))
-    
-    IngresoClave = tk.Entry(ventana, show="*")
-    IngresoClave.grid(row=4, column=3, padx=(10, 300), pady=(20, 0))
-    
-    
-    # Codigo realizado por Jose Cofre
-    #botones,llamamos al archivo estilo_boton
-    boton_registrar = estilo_boton.crear_boton_verde(ventana, "ENROLAR?",lambda:F.simular_registro(IngresoNombre,IngresoClave,ventana)) 
-    boton_registrar.grid(row=5, column=2, padx=(250, 10), pady=(50, 0))
-    
-    boton_ingresar = estilo_boton.crear_boton_verde(ventana, "Ingresar",lambda: F.ventana_usuario(ventana)) 
-    boton_ingresar.grid(row=5, column=3, padx=(10, 250), pady=(50, 0))
-    
-    
-    cambiar_admin= tk.Label(ventana, text="¿Volver a la ventana de Usuario? Haz click aqui")
-    cambiar_admin.grid(row=12, column=0, padx=(0,0), pady=(320, 0))
-    
-    def volver_interfaz(event):
-        ventana.destroy() #Destruimos la ventana de administrador
-        from . import interfaz
-        interfaz.ventana.deiconify() #Hacemos reaparecer la ventana principal de usuario
 
-    cambiar_admin.bind("<Button-1>", volver_interfaz)
-    
-    ventana.mainloop()
+    #frames padres
+    Frame_botones=tk.Frame(ventana)
+    Frame_contenido=tk.Frame(ventana)
+    Frame_botones.pack()
+    Frame_contenido.pack(fill="both", expand=True)
+    Frame_producto=tk.Frame(ventana)
+    Frame_producto.pack(fill="both", expand=True)
+
+    #Frae hijos de Frame contenido
+    Frame_ingreso=tk.Frame(Frame_contenido)
+    Frame_borrar=tk.Frame(Frame_contenido)
+    lista_F=[Frame_ingreso,Frame_borrar]#esto es para que le pasemos los frame a la funcion mostrar frame asi los va a poder ocultar y mostrar el contenido que elija el usuario
+
+    #botones
+    boton_ingreso=tk.Button(Frame_botones,text="ingresar producto",command=lambda:F.mostrar_frame(Frame_ingreso,lista_F))
+    boton_borrar=tk.Button(Frame_botones,text="Eliminar producto",command=lambda:F.mostrar_frame(Frame_borrar,lista_F))
+    boton_ingreso.grid(column=1,row=1)
+    boton_borrar.grid(column=2,row=1)
+
+    #frame_ingreso
+    tk.Label(Frame_ingreso,text="ingrese nombre").grid(row=1,column=1)
+    tk.Label(Frame_ingreso,text="precio").grid(row=2,column=1)
+    tk.Label(Frame_ingreso,text="stock").grid(row=3,column=1)
+    tk.Label(Frame_ingreso,text="categoria").grid(row=4,column=1)
+    nombre=tk.Entry(Frame_ingreso)
+    precio=tk.Entry(Frame_ingreso)
+    stock=tk.Entry(Frame_ingreso)
+    categoria=tk.Entry(Frame_ingreso)
+    boton=tk.Button(Frame_ingreso,text="ingresar",command=lambda:F.ingresar_producto(nombre,precio,stock,categoria,Frame_producto))
+    nombre.grid(row=1,column=2)
+    precio.grid(row=2,column=2)
+    stock.grid(row=3,column=2)
+    categoria.grid(row=4,column=2)
+    boton.grid(row=5,column=1)
+
+    #frame borrar
+    tk.Label(Frame_borrar,text="ingrese id del producto a borrar").grid(row=1,column=1)
+    id_producto=tk.Entry(Frame_borrar)
+    botonB=tk.Button(Frame_borrar,text="BORRAR",command=lambda:F.borrar(id_producto,Frame_producto))
+    id_producto.grid(row=1,column=2)
+    botonB.grid(row=2,column=1)
+
+    #frame de los productos
+    F.mostrar_productos(Frame_producto)

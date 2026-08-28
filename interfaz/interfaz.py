@@ -1,7 +1,7 @@
 import tkinter as tk
 from . import FuncionBotones as F
 from . import estilo_boton
-from .ventana_admin import abrir_ventana_funcionario
+from .ventana_Ingreso_admin import abrir_ventana_funcionario
 
 # Codigo realizado por Jose Cofre
 def ir_a_admin(event):
@@ -12,7 +12,7 @@ def ir_a_admin(event):
 #ventana de ingreso
 ventana = tk.Tk()
 ventana.title("MaulencitosMarket")
-ventana.geometry("1280x720")
+ventana.geometry("1280x700")
 #   AJUSTES DE LA VENTANA Y POSICIONAMENTO DE LOS ELEMENTOSSSSSSSSSSSSSSSSSSSSSSSSSS
 # Codigo realizado por Jose Cofre
 texto = tk.Label(ventana, text="Nombre Usuario")

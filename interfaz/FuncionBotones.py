@@ -2,13 +2,17 @@
 import sqlite3
 import tkinter as tk
 from clases.usuario import usuario
+from clases.producto import Producto
+from clases.inventario import Inventario as I
 from datos import bd_usuarios as BD
-from clases import inventario as IN
+from datos import bd 
 from . import Interfaz_pagina
+from . import Ventana_admin
 # Codigo realizado por Cristobal Maulen
-def ventana_admin(ventana):
-    ventana3=tk.Toplevel(ventana)
-    ventana3.geometry("350x350")
+
+inventario=I()
+def ventana_a(ventana):
+    Ventana_admin.ejecutar()
     ventana.iconify()
 def ventana_usuario(ventana,texto,IngresoClave):
         Nombre=texto.get()
@@ -43,4 +47,30 @@ def registro(texto,IngresoClave,ventana):
          texto.pack()
          ventanaAdvertencia.after(2000,ventanaAdvertencia.destroy)
 
-    
+def mostrar_frame(frame, frames):
+    for f in frames:
+        f.pack_forget()
+    frame.pack(fill="both", expand=True)
+
+def mostrar_productos(Frame_productos):
+    for widget in Frame_productos.winfo_children():
+        widget.destroy()
+    productos = bd.mostrar_productos()
+    # Muestra los productos en la bd
+    for producto in productos:
+        tk.Label(Frame_productos,text=f"ID: {producto[0]} | Nombre: {producto[1]} | Precio: ${producto[2]} | Stock: {producto[3]} | Categoría: {producto[4]}").pack(anchor="w")
+
+def ingresar_producto(nombre,precio,stock,categoria,Frame_productos):
+    n=nombre.get()
+    p=precio.get()
+    s=stock.get()
+    c=categoria.get()
+    producto=Producto(n,p,s,c)
+    inventario.agregar_producto(producto)
+    mostrar_productos(Frame_productos)
+
+def borrar(id_producto,Frame_productos):
+    i=int(id_producto.get())
+    inventario.quitar_producto(i)    
+    mostrar_productos(Frame_productos)
+
