@@ -74,3 +74,12 @@ def borrar(id_producto,Frame_productos):
     inventario.quitar_producto(i)    
     mostrar_productos(Frame_productos)
 
+def actualizar_producto(id_N,Nombre,Precio,Stock,Categoria,Frame_productos):
+    i=int(id_N.get())
+    nombre=Nombre.get()
+    precio=Precio.get()
+    stock=Stock.get()
+    categoria=Categoria.get()
+    p=Producto(i,nombre,precio,stock,categoria)
+    inventario.actualizar_producto(p)
+    mostrar_productos(Frame_productos)

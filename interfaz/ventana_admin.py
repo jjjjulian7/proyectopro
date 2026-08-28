@@ -17,13 +17,16 @@ def ejecutar():
     #Frae hijos de Frame contenido
     Frame_ingreso=tk.Frame(Frame_contenido)
     Frame_borrar=tk.Frame(Frame_contenido)
-    lista_F=[Frame_ingreso,Frame_borrar]#esto es para que le pasemos los frame a la funcion mostrar frame asi los va a poder ocultar y mostrar el contenido que elija el usuario
+    Frame_actualizar=tk.Frame(Frame_contenido)
+    lista_F=[Frame_ingreso,Frame_borrar,Frame_actualizar]#esto es para que le pasemos los frame a la funcion mostrar frame asi los va a poder ocultar y mostrar el contenido que elija el usuario
 
     #botones
     boton_ingreso=tk.Button(Frame_botones,text="ingresar producto",command=lambda:F.mostrar_frame(Frame_ingreso,lista_F))
     boton_borrar=tk.Button(Frame_botones,text="Eliminar producto",command=lambda:F.mostrar_frame(Frame_borrar,lista_F))
+    boton_actualizar=tk.Button(Frame_botones,text="modificar producto",command=lambda:F.mostrar_frame(Frame_actualizar,lista_F))
     boton_ingreso.grid(column=1,row=1)
     boton_borrar.grid(column=2,row=1)
+    boton_actualizar.grid(column=3,row=1)
 
     #frame_ingreso
     tk.Label(Frame_ingreso,text="ingrese nombre").grid(row=1,column=1)
@@ -47,6 +50,25 @@ def ejecutar():
     botonB=tk.Button(Frame_borrar,text="BORRAR",command=lambda:F.borrar(id_producto,Frame_producto))
     id_producto.grid(row=1,column=2)
     botonB.grid(row=2,column=1)
+
+    #frame actualizar producto
+    tk.Label(Frame_actualizar,text="ingrese id").grid(row=1,column=1)
+    tk.Label(Frame_actualizar,text="ingrese nombre").grid(row=2,column=1)
+    tk.Label(Frame_actualizar,text="stock").grid(row=3,column=1)
+    tk.Label(Frame_actualizar,text="categoria").grid(row=4,column=1)
+    tk.Label(Frame_actualizar,text="precio").grid(row=5,column=1)
+    id_N=tk.Entry(Frame_actualizar)
+    Nombre=tk.Entry(Frame_actualizar)
+    Precio=tk.Entry(Frame_actualizar)
+    Stock=tk.Entry(Frame_actualizar)
+    Categoria=tk.Entry(Frame_actualizar)
+    Boton=tk.Button(Frame_actualizar,text="ingresar",command=lambda:F.actualizar_producto(id_N,Nombre,Precio,Stock,Categoria,Frame_producto))
+    id_N.grid(row=1,column=2)
+    Nombre.grid(row=2,column=2)
+    Precio.grid(row=3,column=2)
+    Stock.grid(row=4,column=2)
+    Categoria.grid(row=5,column=2)
+    Boton.grid(row=6,column=1)
 
     #frame de los productos
     F.mostrar_productos(Frame_producto)
