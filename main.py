@@ -8,7 +8,8 @@ inventario = Inventario()
 
 p = Producto("Mouse", 15000, 10, "Perifericos")
 
-resultado = inventario.agregar_producto(p)
+resultado = inventario.actualizar_producto(28, "Mouse editado" , 15000, 15, "Mouse")
+
 
 print("Resultado:", resultado)
 print("ID asignado:", p.id)
