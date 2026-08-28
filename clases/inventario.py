@@ -18,6 +18,9 @@ class Inventario:
         self.productos.append(p)
         return True
     
+    def validar_stock(self, stock):
+        return stock >= 0
+    
 #JULIAN CORREA FUNCION BUSCAR_PRODUCTO
     def buscar_producto(self, opcion, valor):
     
@@ -31,8 +34,13 @@ class Inventario:
                 if valor.lower() in p.nombre.lower():
                     productos_buscados.append(p)
             return productos_buscados
+        return None
     
     def actualizar_producto(self, id_producto, nombre, precio, stock, categoria):
+        
+        if not self.validar_stock(stock):
+                    return False
+        
         for p in self.productos:
             if p.id == id_producto:
                 p.nombre = nombre

@@ -7,12 +7,12 @@ from clases.inventario import Inventario as I
 from datos import bd_usuarios as BD
 from datos import bd 
 from . import Interfaz_pagina
-from . import Ventana_admin
+from . import ventana_admin
 # Codigo realizado por Cristobal Maulen
 
 inventario=I()
 def ventana_a(ventana):
-    Ventana_admin.ejecutar()
+    ventana_admin.ejecutar()
     ventana.iconify()
 def ventana_usuario(ventana,texto,IngresoClave):
         Nombre=texto.get()
