@@ -11,9 +11,11 @@ def ejecutar(ventana_log):
     barra = tk.Frame(ventana, background="#7422A8")
     barra.pack(side="top", fill="x")
     buscador = tk.Entry(barra)
-    buscador.pack(side="left", padx=10, pady=10)
+    buscador.pack(side="left", padx=200, pady=10)
     botonB = tk.Button(barra,text="buscar",command=lambda: F.buscarr_producto(2, buscador))
     botonB.pack(side="left", padx=10)
+        
+    
 #creamos un Frame principal que contendrá el Canvas y el Scrollbar
     contenedor_principal = tk.Frame(ventana)
     contenedor_principal.pack(fill="both", expand=True)
