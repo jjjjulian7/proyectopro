@@ -2,6 +2,11 @@ import tkinter as tk
 from . import FuncionBotones as F
 from datos import bd as bd
 from . import estilo_boton as et
+
+#colores
+gris="#E0E0E0"
+blanco="#FFFFFF"
+morado="#7422A8"
 def ejecutar(ventana_log):
     #CODIGO CREADO ´POR JOSE COFRE 25/08
     ventana = tk.Tk()
@@ -19,19 +24,19 @@ def ejecutar(ventana_log):
     botonB.pack(side="left")
 
     #frame general
-    contenido=tk.Frame(ventana)
+    contenido=tk.Frame(ventana,bg="#F7F7F7")
     contenido.pack(fill="both", expand=True)
 
     #frame filrar
-    frame_filtrar=tk.Frame(contenido,width=180)
+    frame_filtrar=tk.Frame(contenido,width=180,bg="#E0E0E0")
     frame_filtrar.pack(side="left",fill="y",padx=15,pady=15)
     frame_filtrar.pack_propagate(False)#para que no se reduzca
     et.titulo(frame_filtrar,"categorias").grid(row=1,column=1)
-    Mouse=tk.Label(frame_filtrar,text="Mouses")
-    Monitores=tk.Label(frame_filtrar,text="Monitores")
-    teclados=tk.Label(frame_filtrar,text="teclados")
-    Ram=tk.Label(frame_filtrar,text="Ram")
-    procesadores=tk.Label(frame_filtrar,text="procesadores")
+    Mouse=tk.Label(frame_filtrar,text="Mouses",cursor="hand2")
+    Monitores=tk.Label(frame_filtrar,text="Monitores",cursor="hand2")
+    teclados=tk.Label(frame_filtrar,text="teclados",cursor="hand2")
+    Ram=tk.Label(frame_filtrar,text="Ram",cursor="hand2")
+    procesadores=tk.Label(frame_filtrar,text="procesadores",cursor="hand2")
 
     #cuando se haga click se ejecutara la opcion de filtrado
     Mouse.bind("<Button-1>",lambda event:F.filtrar_categoria("Mouse"))
@@ -48,7 +53,7 @@ def ejecutar(ventana_log):
     procesadores.grid(row=6,column=1,sticky="w", pady=5, padx=10)
 
 #creamos un Frame principal que contendrá el Canvas y el Scrollbar
-    contenedor_principal = tk.Frame(contenido)
+    contenedor_principal = tk.Frame(contenido,bg="#E0E0E0")
     contenedor_principal.pack(side="left", fill="both", expand=True)
     #Crear el Canvas
     canvas = tk.Canvas(contenedor_principal)
@@ -70,6 +75,8 @@ def ejecutar(ventana_log):
     def actualizar_scroll(event):
         canvas.configure(scrollregion=canvas.bbox("all"))
     frame_interior.bind("<Configure>", actualizar_scroll)
+#frame
+
 #frame donde se iran guardando los productos
     productos=bd.mostrar_productos()
     for i, producto in enumerate(productos):
