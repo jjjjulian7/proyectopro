@@ -1,7 +1,7 @@
 import sqlite3
 
 def conectar():
-    conexion = sqlite3.connect('productos_nuevo.db') # Se conecta a la bd si no existe se crea sola
+    conexion = sqlite3.connect('MaulenMarket_Productos.db') # Se conecta a la bd si no existe se crea sola
     return conexion
 
 #JULIAN CORREA FUNCION CREAR TABLA
@@ -77,6 +77,14 @@ def filtrar_rango_precios(min, max):
     productos = cursor.fetchall()
     conexion.close()
     return productos
+
+def filtrar_categoria(categoria):
+    conexion = conectar()
+    cursor = conexion.cursor()
+    cursor.execute("SELECT * FROM productos Where categoria = ?", (categoria,))
+    productos = cursor.fetchall()
+    conexion.close()
+    return productos 
 
 productos = mostrar_productos()
 print(productos)
