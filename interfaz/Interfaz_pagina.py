@@ -2,6 +2,8 @@ import tkinter as tk
 from . import FuncionBotones as F
 from datos import bd as bd
 from . import estilo_boton as et
+from . import procesador_categoria
+
 def ejecutar(ventana_log):
     #CODIGO CREADO ´POR JOSE COFRE 25/08
     ventana = tk.Tk()
@@ -15,7 +17,7 @@ def ejecutar(ventana_log):
     buscador.pack(side="left", padx=200, pady=10)
     botonB = tk.Button(barra,text="buscar",command=lambda: F.buscarr_producto(2, buscador))
     botonB.pack(side="left", padx=10)
-
+    
     #frame general
     contenido=tk.Frame(ventana)
     contenido.pack(fill="both", expand=True)
@@ -35,7 +37,7 @@ def ejecutar(ventana_log):
     Monitores.bind("<Button-1>", lambda event:F.filtrar_categoria("Monitores"))
     teclados.bind("<Button-1>", lambda event:F.filtrar_categoria("teclados"))
     Ram.bind("<Button-1>", lambda event:F.filtrar_categoria("Ram"))
-    procesadores.bind("<Button-1>", lambda event:F.filtrar_categoria("procesadores"))
+    procesadores.bind("<Button-1>", lambda event: procesador_categoria.ejecutar())
 
     #posicionamiento
     Mouse.grid(row=2,column=1)
