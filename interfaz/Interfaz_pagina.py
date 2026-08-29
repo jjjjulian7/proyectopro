@@ -9,20 +9,23 @@ def ejecutar(ventana_log):
     ventana.geometry("1280x720")
 
     # BARRA SUPERIOR
-    barra = tk.Frame(ventana, background="#7422A8")
-    barra.pack(side="top", fill="x")
-    buscador = tk.Entry(barra)
-    buscador.pack(side="left", padx=200, pady=10)
+    barra = tk.Frame(ventana,bg="#7422A8", height=60)
+    barra.pack(fill="x")
+    logo = tk.Label(barra,text="MAULENMARKET",bg="#7422A8",fg="white")   
+    logo.pack(side="left", padx=20)
+    buscador = tk.Entry(barra,width=40)
+    buscador.pack(side="left", padx=40, pady=15)
     botonB = tk.Button(barra,text="buscar",command=lambda: F.buscarr_producto(2, buscador))
-    botonB.pack(side="left", padx=10)
+    botonB.pack(side="left")
 
     #frame general
     contenido=tk.Frame(ventana)
     contenido.pack(fill="both", expand=True)
 
     #frame filrar
-    frame_filtrar=tk.Frame(contenido)
-    frame_filtrar.pack(side="left",fill="y")
+    frame_filtrar=tk.Frame(contenido,width=180)
+    frame_filtrar.pack(side="left",fill="y",padx=15,pady=15)
+    frame_filtrar.pack_propagate(False)#para que no se reduzca
     et.titulo(frame_filtrar,"categorias").grid(row=1,column=1)
     Mouse=tk.Label(frame_filtrar,text="Mouses")
     Monitores=tk.Label(frame_filtrar,text="Monitores")
@@ -38,11 +41,11 @@ def ejecutar(ventana_log):
     procesadores.bind("<Button-1>", lambda event:F.filtrar_categoria("procesadores"))
 
     #posicionamiento
-    Mouse.grid(row=2,column=1)
-    Monitores.grid(row=3,column=1)
-    teclados.grid(row=4,column=1)
-    Ram.grid(row=5,column=1)
-    procesadores.grid(row=6,column=1)
+    Mouse.grid(row=2,column=1,sticky="w", pady=5, padx=10)
+    Monitores.grid(row=3,column=1,sticky="w", pady=5, padx=10)
+    teclados.grid(row=4,column=1,sticky="w", pady=5, padx=10)
+    Ram.grid(row=5,column=1,sticky="w", pady=5, padx=10)
+    procesadores.grid(row=6,column=1,sticky="w", pady=5, padx=10)
 
 #creamos un Frame principal que contendrá el Canvas y el Scrollbar
     contenedor_principal = tk.Frame(contenido)
@@ -70,10 +73,10 @@ def ejecutar(ventana_log):
 #frame donde se iran guardando los productos
     productos=bd.mostrar_productos()
     for i, producto in enumerate(productos):
-        fila = i // 3
-        columna = i % 3
-        frameProducto = tk.Frame(frame_interior,borderwidth=1,relief="solid")
-        frameProducto.grid(row=fila,column=columna,padx=15,pady=15)
+        fila = i // 4
+        columna = i % 4
+        frameProducto = tk.Frame(frame_interior,width=180,height=220,borderwidth=1,relief="solid")
+        frameProducto.grid(row=fila,column=columna,padx=5,pady=10)
         tk.Label(frameProducto,text=producto[1]).pack()
         tk.Label(frameProducto,text=f"Precio: ${producto[2]}").pack()
         tk.Label(frameProducto,text=f"Stock: {producto[3]}").pack()
