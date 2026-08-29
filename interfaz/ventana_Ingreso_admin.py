@@ -8,7 +8,7 @@ def abrir_ventana_funcionario():
     ventana.title("MaulencitosMarketLoginADMIN")
     ventana.geometry("1280x700")
     
-    #   AJUSTES DE LA VENTANA Y POSICIONAMENTO DE LOS ELEMENTOSSSSSSSSSSSSSSSSSSSSSSSSSS
+    #AJUSTES DE LA VENTANA Y POSICIONAMENTO DE LOS ELEMENTOSSSSSSSSSSSSSSSSSSSSSSSSSS
     # Codigo realizado por Jose Cofre
     texto = tk.Label(ventana, text="RUT Funcionario")
     texto.grid(row=3, column=2, padx=(250, 0), pady=(210, 0))

@@ -27,3 +27,6 @@ def crear_boton_verde(ventana_padre, texto_boton, funcion_comando):
     
     # Devolvemos el botón ya listo para llamarlo en la iunterfaz
     return boton
+def titulo(ventana,titulo):
+    Titulo=tk.Label(ventana,text=titulo,fg="#DD2BED")
+    return Titulo
