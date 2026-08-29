@@ -32,7 +32,7 @@ def abrir_ventana_funcionario():
     
     
     cambiar_admin= tk.Label(ventana, text="¿Volver a la ventana de Usuario? Haz click aqui")
-    cambiar_admin.grid(row=12, column=0, padx=(0,0), pady=(320, 0))
+    cambiar_admin.grid(row=12, column=0, padx=(0,0), pady=(300, 0))
     
     def volver_interfaz(event):
         ventana.destroy() #Destruimos la ventana de administrador

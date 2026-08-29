@@ -20,3 +20,5 @@ inventario = Inventario()
 
 for p in inventario.productos:
     print(p.id, p.nombre, p.precio, p.stock, p.categoria,)
+    
+print(inventario.validar_producto("Mouse editado" , 15000, 15, "Mouse"))

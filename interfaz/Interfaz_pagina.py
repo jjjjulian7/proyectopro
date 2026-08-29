@@ -2,6 +2,7 @@ import tkinter as tk
 from . import FuncionBotones as F
 from datos import bd as bd
 from . import estilo_boton as et
+from . import procesador_categoria
 
 #colores
 gris="#E0E0E0"
@@ -43,7 +44,7 @@ def ejecutar(ventana_log):
     Monitores.bind("<Button-1>", lambda event:F.filtrar_categoria("Monitores"))
     teclados.bind("<Button-1>", lambda event:F.filtrar_categoria("teclados"))
     Ram.bind("<Button-1>", lambda event:F.filtrar_categoria("Ram"))
-    procesadores.bind("<Button-1>", lambda event:F.filtrar_categoria("procesadores"))
+    procesadores.bind("<Button-1>", lambda event: procesador_categoria.ejecutar())
 
     #posicionamiento
     Mouse.grid(row=2,column=1,sticky="w", pady=5, padx=10)
