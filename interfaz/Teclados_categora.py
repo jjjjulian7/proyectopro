@@ -1,26 +1,26 @@
 import tkinter as tk
-from . import FuncionBotones as F
-from datos import bd as bd
-from . import estilo_boton as et
-from . import procesador_categoria
 from . import gestor_imagenes 
-from clases import inventario 
+from . import estilo_boton as et
+from . import FuncionBotones as F
+from datos import bd
+from clases import inventario
 
-#colores
-gris="#E0E0E0"
-blanco="#FFFFFF"
-morado="#7422A8"
-
-def ejecutar(ventana_log):
-    #CODIGO CREADO ´POR JOSE COFRE 25/08
+def ejecutar():
+    # 1. Usar Toplevel() porque es una ventana secundaria
     ventana = tk.Toplevel()
-    ventana.title("Pagina principal")
-    ventana.geometry("1280x720")
+    ventana.title("Procesadores - MaulencitosMarket")
+    ventana.geometry("1280x700")
 
-    # BARRA SUPERIOR
-    barra = tk.Frame(ventana,bg="#7422A8", height=60)
-    barra.pack(fill="x")
+    # Configuración de las ventanas
+    ventana.grid_columnconfigure(0, weight=1)
+    ventana.grid_rowconfigure(1, weight=1)
 
+    # BARRA SUPERIOR (Fila 0)
+    barra = tk.Frame(ventana, background="#7422A8", height=80)
+    barra.grid(row=0, column=0, sticky="ew")
+    barra.grid_propagate(False)
+
+    # Configuración de las 3 columnas DENTRO de la barra
     barra.grid_columnconfigure(0, weight=0, minsize=300) 
     barra.grid_columnconfigure(1, weight=1)              
     barra.grid_columnconfigure(2, weight=0, minsize=300) 
@@ -35,46 +35,50 @@ def ejecutar(ventana_log):
     buscador = tk.Entry(barra, font=("Arial", 12))
     buscador.grid(row=0, column=1, sticky="ew", ipady=10, pady=18)
 
-    frame_derecho = tk.Frame(barra, bg="#7422A8")
-    frame_derecho.grid(row=0, column=2, sticky="e", padx=(0, 100))
+    # Contenedor Derecho (Usuario y Carrito)
+    frame_derecho = tk.Frame(barra, background="#7422A8")
+    frame_derecho.grid(row=0, column=2, padx=(0, 100), pady=20, sticky="e")
 
     # Icono Usuario (CORREGIDO: Padre es frame_derecho)
     img_usuario = gestor_imagenes.cargar_foto("usuario_icono")
     lbl_usuario = tk.Label(frame_derecho, image=img_usuario, background="#7422A8")
     lbl_usuario.image = img_usuario
     lbl_usuario.grid(row=0, column=0, padx=10)
-    
+
     separador = tk.Frame(frame_derecho, bg="white", width=1, height=30)
     separador.grid(row=0, column=1, padx=15)
-    
+
     # Icono Carrito (CORREGIDO: Padre es frame_derecho)
     img_carrito = gestor_imagenes.cargar_foto("carrito_icono")
     lbl_carrito = tk.Label(frame_derecho, image=img_carrito, background="#7422A8")
     lbl_carrito.image = img_carrito
     lbl_carrito.grid(row=0, column=2, padx=10)
 
-    #frame general
-    contenido=tk.Frame(ventana,bg="#F7F7F7")
-    contenido.pack(fill="both", expand=True)
+
+    # CONTENEDOR PRINCIPAL (Fila 1)
+    contenido = tk.Frame(ventana, bg="#F7F7F7")
+    contenido.grid(row=1, column=0, sticky="nsew")
 
     #frame filrar
     frame_filtrar=tk.Frame(contenido,width=180,bg="#E0E0E0")
     frame_filtrar.pack(side="left",fill="y",padx=15,pady=15)
     frame_filtrar.pack_propagate(False)#para que no se reduzca
+
     et.titulo(frame_filtrar,"categorias").grid(row=1,column=1)
+
     Mouse=tk.Label(frame_filtrar,text="Mouses",cursor="hand2")
     Monitores=tk.Label(frame_filtrar,text="Monitores",cursor="hand2")
     teclados=tk.Label(frame_filtrar,text="teclados",cursor="hand2")
     Ram=tk.Label(frame_filtrar,text="Ram",cursor="hand2")
     procesadores=tk.Label(frame_filtrar,text="procesadores",cursor="hand2")
-
+    
     #cuando se haga click se ejecutara la opcion de filtrado
-    Mouse.bind("<Button-1>",lambda event:F.filtrar_categoria("Mouse"))
-    Monitores.bind("<Button-1>", lambda event:F.filtrar_categoria("Monitores"))
-    teclados.bind("<Button-1>", lambda event:F.filtrar_categoria("teclados"))
-    Ram.bind("<Button-1>", lambda event:F.filtrar_categoria("Ram"))
-    procesadores.bind("<Button-1>", lambda event: F.categoria_procesadores())
-
+    Mouse.bind("<Button-1>",lambda event:F.categoria_Mouses())
+    Monitores.bind("<Button-1>", lambda event:F.categoria_Monitores())
+    teclados.bind("<Button-1>", lambda event:F.categoria_Teclados())
+    Ram.bind("<Button-1>", lambda event:F.categoria_Ram())
+    procesadores.bind("<Button-1>", lambda event: F.categoria_procesadores)
+    
     #posicionamiento
     Mouse.grid(row=2,column=1,sticky="w", pady=5, padx=10)
     Monitores.grid(row=3,column=1,sticky="w", pady=5, padx=10)
@@ -82,49 +86,39 @@ def ejecutar(ventana_log):
     Ram.grid(row=5,column=1,sticky="w", pady=5, padx=10)
     procesadores.grid(row=6,column=1,sticky="w", pady=5, padx=10)
 
-#creamos un Frame principal que contendrá el Canvas y el Scrollbar
-    contenedor_principal = tk.Frame(contenido,bg="#E0E0E0")
-    contenedor_principal.pack(side="left", fill="both", expand=True, padx=(0,15), pady=15)
 
-    #frame del banner
-    Frame_banner=tk.Frame(contenedor_principal,bg="#E0E0E0")
-    Frame_banner.pack(side="top", fill="x")
+    # CONTENEDOR DE LOS PRODUCTOS
+    contenedor_principal = tk.Frame(contenido, bg="#F7F7F7")
+    contenedor_principal.pack(side="left",fill="both",expand=True,padx=(0, 15),pady=15)
+    contenedor_principal.grid_rowconfigure(0, weight=1)
+    contenedor_principal.grid_columnconfigure(0, weight=1)
 
-    banner1=gestor_imagenes.cargar_foto("banner_principal")
-    lbl_banner = tk.Label(Frame_banner, image=banner1, bg="#E0E0E0")
-    lbl_banner.image = banner1
-    lbl_banner.pack(fill="x")
+    # Crear el Canvas
+    canvas = tk.Canvas(contenedor_principal,bg="#f4f4f4",highlightthickness=0)
+    canvas.grid(row=0, column=0, sticky="nsew")
 
-    #frame que contendrá el Canvas y el Scrollbar
-    frame_scroll = tk.Frame(contenedor_principal,bg="#E0E0E0")
-    frame_scroll.pack(fill="both", expand=True)
-
-    #Crear el Canvas
-    canvas = tk.Canvas(frame_scroll,bg="#F7F7F7", highlightthickness=0)
-    canvas.pack(side="left", fill="both", expand=True)
-
-#Crear el Scrollbar y conectarlo al Canvas
-    scrollbar = tk.Scrollbar(frame_scroll, orient="vertical", command=canvas.yview)
-    scrollbar.pack(side="right", fill="y")
-
+    # Crear el Scrollbar
+    scrollbar = tk.Scrollbar(
+    contenedor_principal,orient="vertical",command=canvas.yview)
+    scrollbar.grid(row=0, column=1, sticky="ns")
     canvas.configure(yscrollcommand=scrollbar.set)
 
-    #Crear el Frame interior que realmente contendrá tus widgets
-    frame_interior = tk.Frame(canvas,bg="#F7F7F7")
+    # Frame interior donde irán tus productos
+    frame_interior = tk.Frame(canvas, bg="#f4f4f4")
 
-# Colocar el frame_interior dentro del Canvas
-    ventana_frame = canvas.create_window((0, 0), window=frame_interior, anchor="nw")
+    id_ventana = canvas.create_window((0, 0),window=frame_interior,anchor="nw")
 
-    #le dice al Canvas cuánto puede bajar basándose en el tamaño del frame_interior
-    def actualizar_scroll(event):
+    # Funciones clave para el Scroll y el Ancho
+    def configurar_scroll(event):
         canvas.configure(scrollregion=canvas.bbox("all"))
+        
+    def ajustar_ancho_frame(event):
+        canvas.itemconfig(id_ventana, width=event.width)
 
-    frame_interior.bind("<Configure>", actualizar_scroll)
+    # Conectar los eventos
+    frame_interior.bind("<Configure>", configurar_scroll)
+    canvas.bind("<Configure>", ajustar_ancho_frame)
 
-    def ajustar_ancho(event):
-        canvas.itemconfig(ventana_frame, width=event.width)
-
-    canvas.bind("<Configure>", ajustar_ancho)
 
 #frame donde se iran guardando los productos
 
@@ -139,12 +133,12 @@ def ejecutar(ventana_log):
             frame_interior.grid_columnconfigure(columna, weight=1)
 
         if productos_buscados is None:
-            productos=bd.mostrar_productos()
+            productos=bd.filtrar_categoria("Teclados")
+
             for i, producto in enumerate(productos):
                 fila = i // 4
                 columna = i % 4
-                frameProducto = tk.Frame(
-                frame_interior,width=180,height=220,borderwidth=1,relief="solid")
+                frameProducto = tk.Frame(frame_interior,width=180,height=220,borderwidth=1,relief="solid")
                 frameProducto.grid(row=fila,column=columna,padx=10,pady=10,sticky="nsew")
                 tk.Label(frameProducto,text=producto[1]).pack()
                 tk.Label(frameProducto,text=f"Precio: ${producto[2]}").pack()
@@ -153,6 +147,7 @@ def ejecutar(ventana_log):
 
         else:
             productos=productos_buscados
+
             for i, producto in enumerate(productos):
                 fila = i // 4
                 columna = i % 4

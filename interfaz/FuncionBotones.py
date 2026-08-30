@@ -8,6 +8,11 @@ from datos import bd_usuarios as BD
 from datos import bd 
 from . import Interfaz_pagina
 from . import ventana_admin
+from . import procesador_categoria
+from . import Mouses_categoria
+from . import Ram_categoria
+from . import Monitores_categoria
+from . import Teclados_categora
 # Codigo realizado por Cristobal Maulen
 
 inventario=I()
@@ -87,3 +92,15 @@ def actualizar_producto(id_N,Nombre,Precio,Stock,Categoria,Frame_productos):
 def buscar(buscador, inventario_productos):
     valor = buscador.get()
     return inventario_productos.buscar_producto(2, valor)
+
+
+def categoria_procesadores():
+    procesador_categoria.ejecutar()
+def categoria_Mouses():
+    Mouses_categoria.ejecutar()
+def categoria_Ram():
+    Ram_categoria.ejecutar()
+def categoria_Monitores():
+    Monitores_categoria.ejecutar()
+def categoria_Teclados():
+    Teclados_categora.ejecutar()
