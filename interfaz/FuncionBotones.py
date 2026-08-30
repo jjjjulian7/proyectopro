@@ -83,3 +83,7 @@ def actualizar_producto(id_N,Nombre,Precio,Stock,Categoria,Frame_productos):
     p=Producto(i,nombre,precio,stock,categoria)
     inventario.actualizar_producto(p)
     mostrar_productos(Frame_productos)
+
+def buscar(buscador, inventario_productos):
+    valor = buscador.get()
+    return inventario_productos.buscar_producto(2, valor)
