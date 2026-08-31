@@ -1,8 +1,10 @@
 from clases.producto import Producto
 from clases.inventario import Inventario
 import datos.bd as bd
+from datos.bd_usuarios import crear_admin_por_defecto
 
 bd.crear_tabla()
+crear_admin_por_defecto()
 
 inventario = Inventario()
 

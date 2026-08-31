@@ -57,6 +57,18 @@ def mostrar_frame(frame, frames):
         f.pack_forget()
     frame.pack(fill="both", expand=True)
 
+def hacer_admin(nombre, rut):
+    nombre = nombre.strip()
+    rut = rut.strip()
+
+    if not nombre or not rut:
+        tk.messagebox.showwarning("Falta información", "Debes completar nombre y RUT.")
+        return False
+
+    BD.convertir_en_admin(nombre, rut)
+    tk.messagebox.showinfo("Éxito", f"El usuario {nombre} fue convertido a admin.")
+    return True
+
 def mostrar_productos(Frame_productos):
     for widget in Frame_productos.winfo_children():
         widget.destroy()
