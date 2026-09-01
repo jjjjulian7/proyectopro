@@ -12,6 +12,7 @@ blanco="#FFFFFF"
 morado="#7422A8"
 
 def ejecutar(ventana_log):
+
     #CODIGO CREADO ´POR JOSE COFRE 25/08
     ventana = tk.Toplevel()
     ventana.title("Pagina principal")
@@ -69,10 +70,10 @@ def ejecutar(ventana_log):
     procesadores=tk.Label(frame_filtrar,text="procesadores",cursor="hand2")
 
     #cuando se haga click se ejecutara la opcion de filtrado
-    Mouse.bind("<Button-1>",lambda event:F.filtrar_categoria("Mouse"))
-    Monitores.bind("<Button-1>", lambda event:F.filtrar_categoria("Monitores"))
-    teclados.bind("<Button-1>", lambda event:F.filtrar_categoria("teclados"))
-    Ram.bind("<Button-1>", lambda event:F.filtrar_categoria("Ram"))
+    Mouse.bind("<Button-1>",lambda event:F.categoria_Mouses())
+    Monitores.bind("<Button-1>", lambda event:F.categoria_Monitores())
+    teclados.bind("<Button-1>", lambda event:F.categoria_Teclados())
+    Ram.bind("<Button-1>", lambda event:F.categoria_Ram())
     procesadores.bind("<Button-1>", lambda event: F.categoria_procesadores())
 
     #posicionamiento
