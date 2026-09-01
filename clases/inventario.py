@@ -34,6 +34,8 @@ class Inventario:
         
         return True
 
+
+
 #JULIAN CORREA FUNCION AGREGAR_PRODUCTO
     def agregar_producto(self, p):
         if not self.validar_producto(p.nombre, p.precio, p.stock, p.categoria):
@@ -52,10 +54,9 @@ class Inventario:
         elif opcion == 2:
             productos_buscados = []
             for p in self.productos:
-                if valor.lower() in p.nombre.lower():
+                if valor.lower() in p.nombre.lower() or valor.lower() in p.categoria.lower():
                     productos_buscados.append(p)
             return productos_buscados
-        
         return None
     
     def actualizar_producto(self, id_producto, nombre, precio, stock, categoria):     

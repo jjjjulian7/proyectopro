@@ -58,7 +58,7 @@ def ejecutar(ventana_log):
     contenido=tk.Frame(ventana,bg="#F7F7F7")
     contenido.pack(fill="both", expand=True)
 
-    #frame filrar
+    #frame filtrar
     frame_filtrar=tk.Frame(contenido,width=180,bg="#E0E0E0")
     frame_filtrar.pack(side="left",fill="y",padx=15,pady=15)
     frame_filtrar.pack_propagate(False)#para que no se reduzca
@@ -70,11 +70,18 @@ def ejecutar(ventana_log):
     procesadores=tk.Label(frame_filtrar,text="procesadores",cursor="hand2")
 
     #cuando se haga click se ejecutara la opcion de filtrado
-    Mouse.bind("<Button-1>",lambda event:F.categoria_Mouses())
-    Monitores.bind("<Button-1>", lambda event:F.categoria_Monitores())
-    teclados.bind("<Button-1>", lambda event:F.categoria_Teclados())
-    Ram.bind("<Button-1>", lambda event:F.categoria_Ram())
-    procesadores.bind("<Button-1>", lambda event: F.categoria_procesadores())
+    def filtrar_por_categoria(categoria):
+        nonlocal productos_buscados
+        buscador.delete(0, tk.END)
+        buscador.insert(0, categoria)
+        productos_buscados = F.buscar(buscador, inventario_productos)
+        mostrar_productos()
+
+    Mouse.bind("<Button-1>", lambda event: filtrar_por_categoria("Mouses"))
+    Monitores.bind("<Button-1>", lambda event: filtrar_por_categoria("Monitores"))
+    teclados.bind("<Button-1>", lambda event: filtrar_por_categoria("Teclados"))
+    Ram.bind("<Button-1>", lambda event: filtrar_por_categoria("Ram"))
+    procesadores.bind("<Button-1>", lambda event: filtrar_por_categoria("Procesadores"))
 
     #posicionamiento
     Mouse.grid(row=2,column=1,sticky="w", pady=5, padx=10)
