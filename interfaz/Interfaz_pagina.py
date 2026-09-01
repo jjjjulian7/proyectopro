@@ -147,29 +147,54 @@ def ejecutar(ventana_log):
             frame_interior.grid_columnconfigure(columna, weight=1)
 
         if productos_buscados is None:
-            productos=bd.mostrar_productos()
+            productos = bd.mostrar_productos()
             for i, producto in enumerate(productos):
                 fila = i // 4
                 columna = i % 4
-                frameProducto = tk.Frame(
-                frame_interior,width=180,height=220,borderwidth=1,relief="solid")
-                frameProducto.grid(row=fila,column=columna,padx=10,pady=10,sticky="nsew")
-                tk.Label(frameProducto,text=producto[1]).pack()
-                tk.Label(frameProducto,text=f"Precio: ${producto[2]}").pack()
-                tk.Label(frameProducto,text=f"Stock: {producto[3]}").pack()
-                tk.Label(frameProducto,text=f"Categoría: {producto[4]}").pack()
+                
+                # Extraer datos de la tupla (ajusta los índices si tu BD es diferente)
+                nombre = producto[1]
+                precio = producto[2]
+                categoria = producto[4]
+                
+                # Si tu BD tiene una columna para la imagen, úsala. 
+                # Si no, puedes poner el nombre de una imagen por defecto.
+                ruta_imagen = producto[5] if len(producto) > 5 else "imagen_por_defecto"
+
+                # Llamar a la función del archivo pruebacuadro
+                frameProducto = pruebacuadro.crear_cuadradito(
+                    contenedor_padre=frame_interior, 
+                    gestor=gestor_imagenes, 
+                    ruta_imagen=ruta_imagen, 
+                    nombre=nombre, 
+                    categoria=categoria, 
+                    precio=precio
+                )
+                frameProducto.grid(row=fila, column=columna, padx=10, pady=10, sticky="nsew")
 
         else:
-            productos=productos_buscados
+            productos = productos_buscados
             for i, producto in enumerate(productos):
                 fila = i // 4
                 columna = i % 4
-                frameProducto = tk.Frame(frame_interior,width=180,height=220,borderwidth=1,relief="solid")
-                frameProducto.grid(row=fila,column=columna,padx=10,pady=10,sticky="nsew")
-                tk.Label(frameProducto,text=producto.nombre).pack()
-                tk.Label(frameProducto,text=f"Precio: ${producto.precio}").pack()
-                tk.Label(frameProducto,text=f"Stock: {producto.stock}").pack()
-                tk.Label(frameProducto,text=f"Categoría: {producto.categoria}").pack()
+                
+                nombre = producto.nombre
+                precio = producto.precio
+                categoria = producto.categoria
+                
+                # Si la clase producto no tiene atributo imagen, usamos uno por defecto
+                ruta_imagen = getattr(producto, 'imagen', 'imagen_por_defecto')
+
+                # Llamar a la función del archivo pruebacuadro
+                frameProducto = pruebacuadro.crear_cuadradito(
+                    contenedor_padre=frame_interior, 
+                    gestor=gestor_imagenes, 
+                    ruta_imagen=ruta_imagen, 
+                    nombre=nombre, 
+                    categoria=categoria, 
+                    precio=precio
+                )
+                frameProducto.grid(row=fila, column=columna, padx=10, pady=10, sticky="nsew")
 
     def buscar_enter(event):
         nonlocal productos_buscados
