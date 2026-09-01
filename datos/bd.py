@@ -81,10 +81,27 @@ def filtrar_rango_precios(min, max):
 def filtrar_categoria(categoria):
     conexion = conectar()
     cursor = conexion.cursor()
-    cursor.execute("SELECT * FROM productos Where categoria = ?", (categoria,))
+    cursor.execute("SELECT * FROM productos WHERE categoria = ?", (categoria,))
     productos = cursor.fetchall()
     conexion.close()
     return productos 
+
+def promedio_precio_categoria(categoria):
+    conexion = conectar()
+    cursor = conexion.cursor()
+    cursor.execute("SELECT AVG(precio) FROM productos WHERE categoria = ?", (categoria,))
+    promedio = cursor.fetchone()[0] # promedio = none 
+    conexion.close()
+    return promedio
+
+def menor_stock(categoria):
+    conexion = conectar()
+    cursor = conexion.cursor()
+    cursor.execute("SELECT * FROM productos WHERE categoria = ? ORDER BY stock ASC LIMIT 1", (categoria,))
+    productos = cursor.fetchone()
+    conexion.close()
+    return productos 
+
 
 productos = mostrar_productos()
 print(productos)

@@ -55,6 +55,7 @@ class Inventario:
                 if valor.lower() in p.nombre.lower():
                     productos_buscados.append(p)
             return productos_buscados
+        
         return None
     
     def actualizar_producto(self, id_producto, nombre, precio, stock, categoria):     
