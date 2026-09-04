@@ -6,6 +6,8 @@ from . import procesador_categoria
 from . import gestor_imagenes 
 from . import pruebacuadro
 from clases import inventario 
+from . import abrir_carrito
+
 
 #colores
 gris="#E0E0E0"
@@ -54,6 +56,7 @@ def ejecutar(ventana_log):
     lbl_carrito = tk.Label(frame_derecho, image=img_carrito, background="#7422A8")
     lbl_carrito.image = img_carrito
     lbl_carrito.grid(row=0, column=2, padx=10)
+    lbl_carrito.bind("<Button-1>", lambda event: abrir_carrito.abrir_carrito())
 
     #frame general
     contenido=tk.Frame(ventana,bg="#F7F7F7")

@@ -1,1 +1,1 @@
-from interfaz import interfaz 
+from interfaz import interfaz
