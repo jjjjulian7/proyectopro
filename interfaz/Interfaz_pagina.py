@@ -4,6 +4,7 @@ from datos import bd as bd
 from . import estilo_boton as et
 from . import procesador_categoria
 from . import gestor_imagenes 
+from . import pruebacuadro
 from clases import inventario 
 
 #colores
@@ -63,9 +64,9 @@ def ejecutar(ventana_log):
     frame_filtrar.pack(side="left",fill="y",padx=15,pady=15)
     frame_filtrar.pack_propagate(False)#para que no se reduzca
     et.titulo(frame_filtrar,"categorias").grid(row=1,column=1)
-    Mouse=tk.Label(frame_filtrar,text="Mouses",cursor="hand2")
+    Mouse=tk.Label(frame_filtrar,text="Mouse",cursor="hand2")
     Monitores=tk.Label(frame_filtrar,text="Monitores",cursor="hand2")
-    teclados=tk.Label(frame_filtrar,text="teclados",cursor="hand2")
+    teclados=tk.Label(frame_filtrar,text="Teclados",cursor="hand2")
     Ram=tk.Label(frame_filtrar,text="Ram",cursor="hand2")
     procesadores=tk.Label(frame_filtrar,text="procesadores",cursor="hand2")
 
@@ -77,7 +78,7 @@ def ejecutar(ventana_log):
         productos_buscados = F.buscar(buscador, inventario_productos)
         mostrar_productos()
 
-    Mouse.bind("<Button-1>", lambda event: filtrar_por_categoria("Mouses"))
+    Mouse.bind("<Button-1>", lambda event: filtrar_por_categoria("Mouse"))
     Monitores.bind("<Button-1>", lambda event: filtrar_por_categoria("Monitores"))
     teclados.bind("<Button-1>", lambda event: filtrar_por_categoria("Teclados"))
     Ram.bind("<Button-1>", lambda event: filtrar_por_categoria("Ram"))
@@ -139,6 +140,18 @@ def ejecutar(ventana_log):
     productos_buscados = None
     inventario_productos = inventario.Inventario()
 
+    imagenes_por_categoria = {
+        "mouse": "perifericos_categoria",
+        "monitores": "monitor_categoria",
+        "teclados": "perifericos_categoria",
+        "ram": "ram_categoria",
+        "procesadores": "procesadores_categoria",
+    }
+
+    def obtener_imagen_producto(categoria):
+        categoria_normalizada = str(categoria).strip().lower()
+        return imagenes_por_categoria.get(categoria_normalizada, "gaming_categoria")
+
     def mostrar_productos():
         for widget in frame_interior.winfo_children():
             widget.destroy()
@@ -152,16 +165,11 @@ def ejecutar(ventana_log):
                 fila = i // 4
                 columna = i % 4
                 
-                # Extraer datos de la tupla (ajusta los índices si tu BD es diferente)
                 nombre = producto[1]
                 precio = producto[2]
                 categoria = producto[4]
-                
-                # Si tu BD tiene una columna para la imagen, úsala. 
-                # Si no, puedes poner el nombre de una imagen por defecto.
-                ruta_imagen = producto[5] if len(producto) > 5 else "imagen_por_defecto"
+                ruta_imagen = obtener_imagen_producto(categoria)
 
-                # Llamar a la función del archivo pruebacuadro
                 frameProducto = pruebacuadro.crear_cuadradito(
                     contenedor_padre=frame_interior, 
                     gestor=gestor_imagenes, 
@@ -182,10 +190,8 @@ def ejecutar(ventana_log):
                 precio = producto.precio
                 categoria = producto.categoria
                 
-                # Si la clase producto no tiene atributo imagen, usamos uno por defecto
-                ruta_imagen = getattr(producto, 'imagen', 'imagen_por_defecto')
+                ruta_imagen = obtener_imagen_producto(categoria)
 
-                # Llamar a la función del archivo pruebacuadro
                 frameProducto = pruebacuadro.crear_cuadradito(
                     contenedor_padre=frame_interior, 
                     gestor=gestor_imagenes, 

@@ -3,8 +3,9 @@ import tkinter as tk
 def crear_cuadradito(contenedor_padre, gestor, ruta_imagen, nombre, categoria, precio):
     marco = tk.Frame(contenedor_padre, bg="white", bd=1, relief="solid", padx=15, pady=15)
     
-    img = gestor.obtener_imagen(ruta_imagen)
+    img = gestor.cargar_foto(ruta_imagen)
     lbl_imagen = tk.Label(marco, image=img, bg="white")
+    lbl_imagen.image = img
     lbl_imagen.pack(pady=(0, 10))
     
     lbl_nombre = tk.Label(marco, text=nombre, font=("Arial", 12, "bold"), bg="white", fg="#1a1a1a")
