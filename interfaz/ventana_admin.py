@@ -24,9 +24,9 @@ def ejecutar():
     lista_F=[Frame_ingreso,Frame_borrar,Frame_actualizar]#esto es para que le pasemos los frame a la funcion mostrar frame asi los va a poder ocultar y mostrar el contenido que elija el usuario
 
     #botones
-    boton_ingreso=tk.Button(Frame_botones,text="ingresar producto",command=lambda:F.mostrar_frame(Frame_ingreso,lista_F))
-    boton_borrar=tk.Button(Frame_botones,text="Eliminar producto",command=lambda:F.mostrar_frame(Frame_borrar,lista_F))
-    boton_actualizar=tk.Button(Frame_botones,text="modificar producto",command=lambda:F.mostrar_frame(Frame_actualizar,lista_F))
+    boton_ingreso=tk.Button(Frame_botones,text="ingresar producto",command=lambda:mostrar_seccion(Frame_ingreso))
+    boton_borrar=tk.Button(Frame_botones,text="Eliminar producto",command=lambda:mostrar_seccion(Frame_borrar))
+    boton_actualizar=tk.Button(Frame_botones,text="modificar producto",command=lambda:mostrar_seccion(Frame_actualizar))
     boton_ingreso.grid(column=1,row=1)
     boton_borrar.grid(column=2,row=1)
     boton_actualizar.grid(column=3,row=1)
@@ -38,6 +38,10 @@ def ejecutar():
 
     def mostrar_admin_fields():
         frame_admin.grid()
+
+    def mostrar_seccion(frame):
+        frame_admin.grid_remove()
+        F.mostrar_frame(frame, lista_F)
 
     boton_admin = tk.Button(Frame_botones, text="Hacer admin", command=mostrar_admin_fields)
     boton_admin.grid(row=1, column=4, padx=(40, 0), pady=10, sticky="w")
@@ -79,10 +83,16 @@ def ejecutar():
     Boton=tk.Button(Frame_actualizar,text="ingresar",command=lambda:F.actualizar_producto(id_N,Nombre,Precio,Stock,Categoria,Frame_producto))
     id_N.grid(row=1,column=2)
     Nombre.grid(row=2,column=2)
-    Precio.grid(row=3,column=2)
-    Stock.grid(row=4,column=2)
-    Categoria.grid(row=5,column=2)
+    Stock.grid(row=3,column=2)
+    Categoria.grid(row=4,column=2)
+    Precio.grid(row=5,column=2)
     Boton.grid(row=6,column=1)
+
+    cargar_datos = lambda event=None: F.cargar_producto(
+        id_N, Nombre, Precio, Stock, Categoria
+    )
+    id_N.bind("<Return>", cargar_datos)
+    id_N.bind("<FocusOut>", cargar_datos)
 
     # Frame para asignar permisos de administrador
     tk.Label(frame_admin,text="Nombre del usuario a convertir en admin").grid(row=1,column=1)

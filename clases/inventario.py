@@ -54,8 +54,10 @@ class Inventario:
                     return p
         elif opcion == 2:
             productos_buscados = []
+            terminos = valor.lower().split()
             for p in self.productos:
-                if valor.lower() in p.nombre.lower() or valor.lower() in p.categoria.lower(): # busca en nombre y categoria, ignorando mayusculas/minusculas
+                texto_producto = f"{p.nombre} {p.categoria}".lower()
+                if all(termino in texto_producto for termino in terminos):
                     productos_buscados.append(p)
             return productos_buscados
         return None
