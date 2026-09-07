@@ -57,7 +57,7 @@ class Inventario:
             terminos = valor.lower().split()
             for p in self.productos:
                 texto_producto = f"{p.nombre} {p.categoria}".lower()
-                if all(termino in texto_producto for termino in terminos):
+                if all(termino in texto_producto for termino in terminos): #all verifica que todos los términos de búsqueda estén presentes en el nombre o categoría del producto
                     productos_buscados.append(p)
             return productos_buscados
         return None
