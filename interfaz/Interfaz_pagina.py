@@ -2,7 +2,6 @@ import tkinter as tk
 from . import FuncionBotones as F
 from datos import bd as bd
 from . import estilo_boton as et
-from . import procesador_categoria
 from . import gestor_imagenes 
 from . import pruebacuadro
 from clases import inventario 

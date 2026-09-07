@@ -8,11 +8,6 @@ from datos import bd_usuarios as BD
 from datos import bd 
 from . import Interfaz_pagina
 from . import ventana_admin
-from . import procesador_categoria
-from . import Mouses_categoria
-from . import Ram_categoria
-from . import Monitores_categoria
-from . import Teclados_categora
 # Codigo realizado por Cristobal Maulen
 
 inventario=I()
@@ -92,27 +87,47 @@ def borrar(id_producto,Frame_productos):
     mostrar_productos(Frame_productos)
 
 def actualizar_producto(id_N,Nombre,Precio,Stock,Categoria,Frame_productos):
-    i=int(id_N.get())
-    nombre=Nombre.get()
-    precio=Precio.get()
-    stock=Stock.get()
-    categoria=Categoria.get()
-    p=Producto(i,nombre,precio,stock,categoria)
-    inventario.actualizar_producto(p)
+    try:
+        i = int(id_N.get())
+        precio = float(Precio.get())
+        stock = int(Stock.get())
+    except ValueError:
+        tk.messagebox.showwarning("Datos inválidos", "ID, precio y stock deben ser numéricos.")
+        return
+
+    actualizado = inventario.actualizar_producto(
+        i, Nombre.get(), precio, stock, Categoria.get()
+    )
+    if not actualizado:
+        tk.messagebox.showwarning("Producto no encontrado", "No existe un producto con ese ID.")
+        return
+
     mostrar_productos(Frame_productos)
+
+
+def cargar_producto(id_N, Nombre, Precio, Stock, Categoria):
+    """Carga los datos del producto cuyo ID está escrito en el formulario."""
+    try:
+        id_producto = int(id_N.get())
+    except ValueError:
+        return
+
+    producto = inventario.buscar_producto(1, id_producto)
+    if producto is None:
+        return
+
+    campos = (
+        (Nombre, producto.nombre),
+        (Precio, producto.precio),
+        (Stock, producto.stock),
+        (Categoria, producto.categoria),
+    )
+    for campo, valor in campos:
+        campo.delete(0, tk.END)
+        campo.insert(0, str(valor))
 
 def buscar(buscador, inventario_productos):
     valor = buscador.get()
     return inventario_productos.buscar_producto(2, valor)
 
 
-def categoria_procesadores():
-    procesador_categoria.ejecutar()
-def categoria_Mouses():
-    Mouses_categoria.ejecutar()
-def categoria_Ram():
-    Ram_categoria.ejecutar()
-def categoria_Monitores():
-    Monitores_categoria.ejecutar()
-def categoria_Teclados():
-    Teclados_categora.ejecutar()
