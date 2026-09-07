@@ -35,8 +35,10 @@ def ejecutar(ventana_log):
     logo.grid(row=0, column=0, padx=(100, 0), pady=20, sticky="w")
 
     # Buscador
-    buscador = tk.Entry(barra, font=("Arial", 12))
+    buscador = tk.Entry(barra, font=("Segoe UI", 12))
     buscador.grid(row=0, column=1, sticky="ew", ipady=10, pady=18)
+    
+
 
     frame_derecho = tk.Frame(barra, bg="#7422A8")
     frame_derecho.grid(row=0, column=2, sticky="e", padx=(0, 100))
@@ -62,29 +64,109 @@ def ejecutar(ventana_log):
     contenido.pack(fill="both", expand=True)
 
     #frame filtrar
-    frame_filtrar=tk.Frame(contenido,width=180,bg="#E0E0E0")
+    frame_filtrar=tk.Frame(contenido,width=180,bg="#dddddd")
     frame_filtrar.pack(side="left",fill="y",padx=15,pady=15)
     frame_filtrar.pack_propagate(False)#para que no se reduzca
-    et.titulo(frame_filtrar,"categorias").grid(row=1,column=1)
-    Mouse=tk.Label(frame_filtrar,text="Mouse",cursor="hand2")
-    Monitores=tk.Label(frame_filtrar,text="Monitores",cursor="hand2")
-    teclados=tk.Label(frame_filtrar,text="Teclados",cursor="hand2")
-    Ram=tk.Label(frame_filtrar,text="Ram",cursor="hand2")
-    procesadores=tk.Label(frame_filtrar,text="procesadores",cursor="hand2")
+    et.titulo(frame_filtrar,"CATEGORÍAS",font=("Segoe UI", 13, "bold")).grid(row=1,column=1, pady = (5, 5))
+    # Elementos de filtrado
+    Mouse=tk.Label(frame_filtrar,text="Mouse",font=("Segoe UI", 10, "bold"),cursor="hand2", bg="#dddddd")
+    Monitores=tk.Label(frame_filtrar,text="Monitores",font=("Segoe UI", 10, "bold"),cursor="hand2", bg="#dddddd")
+    teclados=tk.Label(frame_filtrar,text="Teclados",font=("Segoe UI", 10, "bold"),cursor="hand2", bg="#dddddd")
+    Ram=tk.Label(frame_filtrar,text="RAM",font=("Segoe UI", 10, "bold"),cursor="hand2", bg="#dddddd")
+    procesadores=tk.Label(frame_filtrar,text="Procesadores",font=("Segoe UI", 10, "bold"),cursor="hand2", bg="#dddddd")
 
     #cuando se haga click se ejecutara la opcion de filtrado
-    def filtrar_por_categoria(categoria):
+    # Filtrar por precio
+    tk.Label(
+        frame_filtrar,
+        text="PRECIO",
+        font=("Segoe UI", 11, "bold"),
+        bg="#dddddd",
+    ).grid(row=8, column=1, pady=(20, 5), padx=(0,30))
+
+    tk.Label(
+        frame_filtrar,
+        text="Mínimo",
+        bg="#dddddd",
+    ).grid(row=9, column=1)
+
+    entry_min = tk.Entry(frame_filtrar, width=12)
+    entry_min.grid(row=10, column=1, pady=(0, 8))
+
+    tk.Label(
+        frame_filtrar,
+        text="Máximo",
+        bg="#dddddd",
+    ).grid(row=11, column=1)
+
+    entry_max = tk.Entry(frame_filtrar, width=12)
+    entry_max.grid(row=12, column=1, pady=(0, 8))
+
+    def aplicar_filtro_precio():
         nonlocal productos_buscados
+        min_precio = entry_min.get()
+        max_precio = entry_max.get()
+
+        if min_precio and max_precio:
+            try:
+                min_precio = float(min_precio)
+                max_precio = float(max_precio)
+                
+                filas = bd.filtrar_rango_precios(min_precio, max_precio)
+                productos_buscados = []
+                for fila in filas:
+                    producto = inventario.Producto(fila[1], fila[2], fila[3], fila[4])
+                    producto.id = fila[0]
+                    productos_buscados.append(producto)
+                mostrar_productos()
+                                        
+            except ValueError:
+                tk.messagebox.showerror("Error", "Por favor, ingresa valores numéricos válidos para el precio.")
+        else:
+            tk.messagebox.showerror("Error", "Por favor, completa ambos campos de precio.")
+
+
+    boton_filtrar_precio = tk.Button(
+        frame_filtrar,
+        text="Filtrar precio",
+        command=aplicar_filtro_precio
+    )
+
+    boton_filtrar_precio.grid(
+        row=13,
+        column=1,
+        pady=5
+    )
+    
+    
+    categorias_labels = [Mouse, Monitores, teclados, Ram ,procesadores]
+
+
+    def filtrar_por_categoria(categoria, label_seleccionado):
+        nonlocal productos_buscados
+
+        for label in categorias_labels:
+            label.config(
+                fg="black",
+                font=("Segoe UI", 10, "bold")
+        )
+
+        label_seleccionado.config(
+        fg="#7422A8"
+        )
+
         buscador.delete(0, tk.END)
         buscador.insert(0, categoria)
+        buscador.config(font=("Segoe UI", 10, "bold"))
         productos_buscados = F.buscar(buscador, inventario_productos)
         mostrar_productos()
-
-    Mouse.bind("<Button-1>", lambda event: filtrar_por_categoria("Mouse"))
-    Monitores.bind("<Button-1>", lambda event: filtrar_por_categoria("Monitores"))
-    teclados.bind("<Button-1>", lambda event: filtrar_por_categoria("Teclados"))
-    Ram.bind("<Button-1>", lambda event: filtrar_por_categoria("Ram"))
-    procesadores.bind("<Button-1>", lambda event: filtrar_por_categoria("Procesadores"))
+        
+        
+    Mouse.bind("<Button-1>", lambda event: filtrar_por_categoria("Mouse", Mouse))
+    Monitores.bind("<Button-1>", lambda event: filtrar_por_categoria("Monitores", Monitores))
+    teclados.bind("<Button-1>", lambda event: filtrar_por_categoria("Teclados", teclados))
+    Ram.bind("<Button-1>", lambda event: filtrar_por_categoria("Ram", Ram))
+    procesadores.bind("<Button-1>", lambda event: filtrar_por_categoria("Procesadores", procesadores))
 
     #posicionamiento
     Mouse.grid(row=2,column=1,sticky="w", pady=5, padx=10)

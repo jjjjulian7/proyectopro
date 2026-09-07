@@ -1,7 +1,13 @@
 import sqlite3
+import os 
+
+ruta_bd = os.path.join(
+    os.path.dirname(os.path.dirname(__file__)), # busca una ruta especifica para la base de datos de productos no importa donde se ejecute el programa, la base de datos se crea en la carpeta raiz del proyecto
+    "MaulenMarket_Productos.db"
+)
 
 def conectar():
-    conexion = sqlite3.connect('MaulenMarket_Productos.db') # Se conecta a la bd si no existe se crea sola
+    conexion = sqlite3.connect(ruta_bd) # Se conecta a la bd si no existe se crea sola
     return conexion
 
 #JULIAN CORREA FUNCION CREAR TABLA

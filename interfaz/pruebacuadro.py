@@ -14,7 +14,7 @@ def crear_cuadradito(contenedor_padre, gestor, ruta_imagen, nombre, categoria, p
     lbl_categoria = tk.Label(marco, text=categoria, font=("Arial", 10), bg="white", fg="#7a7a7a")
     lbl_categoria.pack(pady=(0, 10))
     
-    lbl_precio = tk.Label(marco, text=f"$ {precio}", font=("Arial", 14, "bold"), bg="white", fg="#4a2a85")
+    lbl_precio = tk.Label(marco, text=f"${precio:,.0f}".replace(",", "."), font=("Arial", 14, "bold"), bg="white", fg="#4a2a85")
     lbl_precio.pack(pady=(5, 5))
     
     lbl_stock = tk.Label(marco, text="En stock", font=("Arial", 10), bg="white", fg="#2a8c4a")
