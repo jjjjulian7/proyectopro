@@ -64,10 +64,12 @@ def eliminar_producto(id_producto):
 #SEBASTIAN LEON TOTAL INVENTARIO
 def calcular_total_inventario():
     conexion = conectar()
+    # Suma el valor de todos los productos disponibles en el inventario.
     cursor = conexion.cursor()
     cursor.execute("SELECT SUM(precio * stock) FROM productos")
     total = cursor.fetchone()[0] # Devuelve el unico resultado, que es el total
-    conexion.close
+    conexion.close()
+    return total
 
 #SEBASTIAN LEON FILTRAR POR RANGO DE PRECIOS
 def filtrar_rango_precios(min, max):
@@ -88,20 +90,42 @@ def filtrar_categoria(categoria):
 
 def promedio_precio_categoria(categoria):
     conexion = conectar()
-    cursor = conexion.cursor()
-    cursor.execute("SELECT AVG(precio) FROM productos WHERE categoria = ?", (categoria,))
-    promedio = cursor.fetchone()[0] # promedio = none 
-    conexion.close()
-    return promedio
+    try:
+        # AVG calcula el precio promedio de los productos de la categoría.
+        # TRIM elimina espacios y COLLATE NOCASE ignora diferencias entre mayúsculas y minúsculas.
+        cursor = conexion.cursor()
+        cursor.execute(
+            """
+            SELECT AVG(precio)
+            FROM productos
+            WHERE TRIM(categoria) COLLATE NOCASE = TRIM(?) COLLATE NOCASE
+            """,
+            (categoria,)
+        )
+        promedio = cursor.fetchone()[0]
+        return promedio
+    finally:
+        # La conexión se cierra aunque la consulta produzca un error.
+        conexion.close()
 
 def menor_stock(categoria):
     conexion = conectar()
-    cursor = conexion.cursor()
-    cursor.execute("SELECT * FROM productos WHERE categoria = ? ORDER BY stock ASC LIMIT 1", (categoria,))
-    productos = cursor.fetchone()
-    conexion.close()
-    return productos 
+    try:
+        # Ordenar por stock permite encontrar primero el producto con menos unidades.
+        # TRIM elimina espacios y COLLATE NOCASE ignora diferencias entre mayúsculas y minúsculas.
+        cursor = conexion.cursor()
+        cursor.execute(
+            """
+            SELECT * FROM productos
+            WHERE TRIM(categoria) COLLATE NOCASE = TRIM(?) COLLATE NOCASE
+            ORDER BY stock ASC, id ASC
+            LIMIT 1
+            """,
+            (categoria,)
+        )
+        producto = cursor.fetchone()
+        return producto
+    finally:
+        # La conexión se libera después de obtener el resultado.
+        conexion.close()
 
-
-productos = mostrar_productos()
-print(productos)

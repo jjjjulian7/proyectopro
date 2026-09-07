@@ -95,6 +95,13 @@ def actualizar_producto(id_N,Nombre,Precio,Stock,Categoria,Frame_productos):
         tk.messagebox.showwarning("Datos inválidos", "ID, precio y stock deben ser numéricos.")
         return
 
+    if stock < 0:       # Validacion para que el stock no sea negativo
+        tk.messagebox.showwarning(
+            "Stock inválido",
+            "El stock no puede ser negativo."
+        )
+        return
+
     actualizado = inventario.actualizar_producto(
         i, Nombre.get(), precio, stock, Categoria.get()
     )
@@ -125,6 +132,36 @@ def cargar_producto(id_N, Nombre, Precio, Stock, Categoria):
     for campo, valor in campos:
         campo.delete(0, tk.END)
         campo.insert(0, str(valor))
+
+def mostrar_estadisticas(selector_categoria, etiqueta_resultado):
+    categoria = selector_categoria.get().strip()
+
+    if not categoria:
+        etiqueta_resultado.config(text="Selecciona una categoría.")
+        return
+
+    promedio = bd.promedio_precio_categoria(categoria)
+    producto = bd.menor_stock(categoria)
+
+    if promedio is None or producto is None:
+        etiqueta_resultado.config(
+            text="No hay productos registrados en esta categoría."
+        )
+        return
+
+    etiqueta_resultado.config(
+        text=(
+            f"Precio promedio: ${promedio:,.0f}\n"
+            f"Producto con menor stock: {producto[1]}\n"
+            f"Stock disponible: {producto[3]} unidades"
+        )
+    )
+
+def mostrar_total_inventario(etiqueta_resultado):
+    total = bd.calcular_total_inventario()
+    etiqueta_resultado.config(
+        text=f"Valor total del inventario: ${total:,.0f}"
+    )
 
 def buscar(buscador, inventario_productos):
     valor = buscador.get()

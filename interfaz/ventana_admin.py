@@ -1,5 +1,6 @@
 import tkinter as tk
 import tkinter.messagebox as messagebox
+from tkinter import ttk
 from . import FuncionBotones as F
 from datos import bd
 from datos import bd_usuarios as BD
@@ -21,15 +22,18 @@ def ejecutar():
     Frame_ingreso=tk.Frame(Frame_contenido)
     Frame_borrar=tk.Frame(Frame_contenido)
     Frame_actualizar=tk.Frame(Frame_contenido)
-    lista_F=[Frame_ingreso,Frame_borrar,Frame_actualizar]#esto es para que le pasemos los frame a la funcion mostrar frame asi los va a poder ocultar y mostrar el contenido que elija el usuario
+    Frame_estadisticas=tk.Frame(Frame_contenido)
+    lista_F=[Frame_ingreso,Frame_borrar,Frame_actualizar,Frame_estadisticas]#esto es para que le pasemos los frame a la funcion mostrar frame asi los va a poder ocultar y mostrar el contenido que elija el usuario
 
     #botones
     boton_ingreso=tk.Button(Frame_botones,text="ingresar producto",command=lambda:mostrar_seccion(Frame_ingreso))
     boton_borrar=tk.Button(Frame_botones,text="Eliminar producto",command=lambda:mostrar_seccion(Frame_borrar))
     boton_actualizar=tk.Button(Frame_botones,text="modificar producto",command=lambda:mostrar_seccion(Frame_actualizar))
+    boton_estadisticas=tk.Button(Frame_botones,text="estadísticas",command=lambda:mostrar_seccion(Frame_estadisticas))
     boton_ingreso.grid(column=1,row=1)
     boton_borrar.grid(column=2,row=1)
     boton_actualizar.grid(column=3,row=1)
+    boton_estadisticas.grid(column=4,row=1)
 
     #boton para asignar permisos de admin
     frame_admin = tk.Frame(Frame_botones)
@@ -44,7 +48,7 @@ def ejecutar():
         F.mostrar_frame(frame, lista_F)
 
     boton_admin = tk.Button(Frame_botones, text="Hacer admin", command=mostrar_admin_fields)
-    boton_admin.grid(row=1, column=4, padx=(40, 0), pady=10, sticky="w")
+    boton_admin.grid(row=1, column=5, padx=(40, 0), pady=10, sticky="w")
 
     #frame_ingreso
     tk.Label(Frame_ingreso,text="ingrese nombre").grid(row=1,column=1)
@@ -116,6 +120,37 @@ def ejecutar():
 
     boton_hacer_admin = tk.Button(frame_admin, text="Hacer admin", command=hacer_admin)
     boton_hacer_admin.grid(row=5,column=1)
+
+    # Frame de estadísticas por categoría
+    tk.Label(Frame_estadisticas, text="Categoría").grid(row=1, column=1, padx=5, pady=5)
+    categorias = sorted({producto[4] for producto in bd.mostrar_productos()})
+    categoria_estadisticas = tk.StringVar()
+    selector_categoria = ttk.Combobox(
+        Frame_estadisticas,
+        textvariable=categoria_estadisticas,
+        values=categorias,
+        state="readonly"
+    )
+    selector_categoria.grid(row=1, column=2, padx=5, pady=5)
+    if categorias:
+        selector_categoria.current(0)
+
+    resultado_estadisticas = tk.Label(Frame_estadisticas, justify="left")
+    resultado_estadisticas.grid(row=3, column=1, columnspan=2, padx=5, pady=10)
+    boton_calcular = tk.Button(
+        Frame_estadisticas,
+        text="Calcular",
+        command=lambda: F.mostrar_estadisticas(
+            selector_categoria, resultado_estadisticas
+        )
+    )
+    boton_calcular.grid(row=2, column=1, columnspan=2, pady=5)
+    boton_total = tk.Button(
+        Frame_estadisticas,
+        text="Calcular total del inventario",
+        command=lambda: F.mostrar_total_inventario(resultado_estadisticas)
+    )
+    boton_total.grid(row=2, column=3, padx=5, pady=5)
 
     #frame de los productos
     F.mostrar_productos(Frame_producto)
