@@ -1,6 +1,9 @@
 import tkinter as tk
-
-def crear_cuadradito(contenedor_padre, gestor, ruta_imagen, nombre, categoria, precio):
+from . import FuncionBotones as F
+from clases.inventario import Inventario
+from clases.producto import Producto
+from datos import bd
+def crear_cuadradito(contenedor_padre, gestor, ruta_imagen, nombre, categoria, precio,stock,id_producto):
     marco = tk.Frame(contenedor_padre, bg="white", bd=1, relief="solid", padx=15, pady=15)
     
     img = gestor.cargar_foto(ruta_imagen)
@@ -19,9 +22,39 @@ def crear_cuadradito(contenedor_padre, gestor, ruta_imagen, nombre, categoria, p
     
     lbl_stock = tk.Label(marco, text="En stock", font=("Arial", 10), bg="white", fg="#2a8c4a")
     lbl_stock.pack(pady=(0, 15))
-    
-    btn_ver = tk.Button(marco, text="Ver producto", font=("Arial", 10, "bold"), 
-                        bg="white", fg="#4a2a85", bd=1, relief="solid", cursor="hand2")
-    btn_ver.pack(fill="x", padx=10) 
-    
+
+    stok = tk.Entry(marco, width=5, justify="center")
+    stok.insert(0, "1")
+    stok.pack(pady=(0, 10))
+
+    stock_actual = stock
+
+    def agregar_carrito():
+        nonlocal stock_actual
+        cantidad_texto = stok.get()
+
+        if not cantidad_texto.isdigit() or int(cantidad_texto) <= 0:
+            tk.messagebox.showerror("Error", "Ingresa una cantidad válida")
+            return
+
+        cantidad = int(cantidad_texto)
+        nuevo_stock = stock_actual - cantidad
+
+        if not Inventario().validar_stock(nuevo_stock):
+            tk.messagebox.showerror("Error", "No hay stock suficiente")
+            return
+
+        producto_actualizado = Producto(nombre, precio, nuevo_stock, categoria)
+        producto_actualizado.id = id_producto
+        bd.actualizar_producto(producto_actualizado)
+
+        F.agregar_producto_carrito(nombre, categoria, precio, cantidad)
+
+        stock_actual = nuevo_stock
+        lbl_stock.config(text=f"Stock: {stock_actual}")
+
+    boton_agregar = tk.Button(marco, text="agregar al carrito", font=("Arial", 10, "bold"), 
+                        bg="white", fg="#4a2a85", bd=1, relief="solid", cursor="hand2",
+                        command=agregar_carrito)
+    boton_agregar.pack(fill="x", padx=10) 
     return marco

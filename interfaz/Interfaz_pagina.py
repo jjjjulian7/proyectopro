@@ -243,33 +243,36 @@ def ejecutar(ventana_log):
         for columna in range(4):
             frame_interior.grid_columnconfigure(columna, weight=1)
 
-        if productos_buscados is None:
-            productos = bd.mostrar_productos()
-            for i, producto in enumerate(productos):
-                fila = i // 4
-                columna = i % 4
-                
+        if productos_buscados is None:#si la variable de productos_buscados esta vacia va a mostrar todos los productos
+            productos = bd.mostrar_productos()#guarda todos los productos en la variable productos, la funcnion bd.mostrar_productos te devuelve una lista de tupla y cada tupla es un producto
+            for i, producto in enumerate(productos):# esto recorre la lista  productos y nos entrega i(posicion) y el producto
+                fila = i // 4 #es una division entera, no nos va a dar un numero decimal
+                columna = i % 4# nos devuelve el resto
+                id_producto = producto[0]
                 nombre = producto[1]
                 precio = producto[2]
-                categoria = producto[4]
+                stock = producto[3]
+                categoria = producto[4]                
                 ruta_imagen = obtener_imagen_producto(categoria)
-
                 frameProducto = pruebacuadro.crear_cuadradito(
-                    contenedor_padre=frame_interior, 
-                    gestor=gestor_imagenes, 
-                    ruta_imagen=ruta_imagen, 
-                    nombre=nombre, 
-                    categoria=categoria, 
-                    precio=precio
-                )
-                frameProducto.grid(row=fila, column=columna, padx=10, pady=10, sticky="nsew")
+                contenedor_padre=frame_interior, 
+                                    gestor=gestor_imagenes, 
+                                    ruta_imagen=ruta_imagen, 
+                                    nombre=nombre, 
+                                    categoria=categoria, 
+                                    precio=precio,
+                                    stock=stock,
+                                    id_producto=id_producto
+                                )
+                frameProducto.grid(row=fila, column=columna, padx=10, pady=10, sticky="nsew")#se agrega el frame del producto al frame interior
 
         else:
             productos = productos_buscados
             for i, producto in enumerate(productos):
                 fila = i // 4
                 columna = i % 4
-                
+                id_producto=producto.id
+                stock=producto.stock
                 nombre = producto.nombre
                 precio = producto.precio
                 categoria = producto.categoria
@@ -282,7 +285,9 @@ def ejecutar(ventana_log):
                     ruta_imagen=ruta_imagen, 
                     nombre=nombre, 
                     categoria=categoria, 
-                    precio=precio
+                    precio=precio,
+                    stock=stock,
+                    id_producto=id_producto
                 )
                 frameProducto.grid(row=fila, column=columna, padx=10, pady=10, sticky="nsew")
 

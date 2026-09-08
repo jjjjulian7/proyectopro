@@ -9,7 +9,7 @@ from datos import bd
 from . import Interfaz_pagina
 from . import ventana_admin
 # Codigo realizado por Cristobal Maulen
-
+carrito = []
 inventario=I()
 def ventana_a(ventana):
     ventana_admin.ejecutar()
@@ -168,3 +168,21 @@ def buscar(buscador, inventario_productos):
     return inventario_productos.buscar_producto(2, valor)
 
 
+
+def ingresar_log(usuario):
+    if usuario==None:
+        interfaz.ejecutar()
+    else:
+        
+        return usuario
+
+
+
+def agregar_producto_carrito(nombre, categoria, precio, cantidad):
+    carrito.append({"nombre": nombre, "categoria": categoria, "precio": precio, "cantidad": cantidad})
+
+def calcular_total():
+    total = 0
+    for item in carrito:
+        total += item["precio"] * item["cantidad"]
+    return total
