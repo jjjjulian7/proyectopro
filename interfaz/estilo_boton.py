@@ -17,16 +17,18 @@ def crear_boton_verde(ventana_padre, texto_boton, funcion_comando):
                       command=funcion_comando) #conecta la acción
     
     def al_entrar(e):
-        boton.config(bg="#27ae60")
+        boton.config(bg="#27ae60") #Cambia a verde oscuro al pasar el mouse por encima
 
     def al_salir(e):
         boton.config(bg="#2ecc71") #Vuelve al verde claro
 
-    boton.bind("<Enter>", al_entrar)
-    boton.bind("<Leave>", al_salir)
+    boton.bind("<Enter>", al_entrar) #Al mover el mouse sobre el boton, se activa la funcion al_entrar
+    boton.bind("<Leave>", al_salir) #Al mover el mouse fuera del boton, se activa la funcion al_salir
     
     # Devolvemos el botón ya listo para llamarlo en la iunterfaz
     return boton
+
+#Funcion para crear titulo en la interfaz, con un color y fuente especifica
 def titulo(ventana,titulo,font= None):
     Titulo=tk.Label(ventana,text=titulo,fg="#7422a8",bg="#dddddd")
     if font:

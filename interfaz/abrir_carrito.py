@@ -3,7 +3,7 @@ from tkinter import messagebox
 from . import FuncionBotones as F
 
 def abrir_carrito():
-
+# Validacion de datos (Fecha vencimiento , numero de tarjeta y cvv)
     def validar_datos(): 
         tarjeta = nroTarjeta.get() 
         cvv = IngresoCvv.get() 
@@ -29,9 +29,10 @@ def abrir_carrito():
     ventana.geometry("700x600") 
     ventana.resizable(False, False) 
 
+#Posicionamiento de los frames y elementos en la ventana (Dos partes: izquierda y derecha)
     parte_izquierda = tk.Frame(ventana, bg="#f0f0f0") 
     parte_izquierda.place(x=0, y=0, width=250, height=600) 
-
+# Linea divisora
     linea = tk.Frame(ventana, bg="black") 
     linea.place(x=250, y=0, width=2, height=600) 
 
@@ -40,17 +41,21 @@ def abrir_carrito():
 
     frame_lista_carrito = tk.Frame(parte_izquierda, bg="#d9d9d9")
     frame_lista_carrito.place(x=10, y=10, width=428, height=190)
-
+#Si el carrito esta vacio
     if not F.carrito:
         tk.Label(frame_lista_carrito, text="El carrito está vacío", bg="#d9d9d9").pack(anchor="w", pady=5)
+
+        #Si el carrito tiene productos, se muestran en la parte izquierda de la ventana
     else:
         for item in F.carrito:
             subtotal = item["precio"] * item["cantidad"]#se calcula
             texto = f"{item['nombre']} x{item['cantidad']} - $ {subtotal}"
             tk.Label(frame_lista_carrito, text=texto, bg="#d9d9d9", anchor="w").pack(fill="x", pady=2)
-
+#Calculamos el total de la compra
         total = F.calcular_total()
         tk.Label(frame_lista_carrito, text=f"Total: $ {total}", bg="#d9d9d9", font=("Arial", 10, "bold")).pack(anchor="w", pady=(10, 0))
+
+#Parte derecha de la ventana, donde se ingresan los datos de la tarjeta
 
     lbl_tarjeta = tk.Label(parte_derecha, text="Número Tarjeta", bg="#d9d9d9") 
     lbl_tarjeta.grid(row=0, column=0, padx=(20, 10), pady=(210, 10), sticky="e") 
