@@ -6,6 +6,7 @@ from . import gestor_imagenes
 from . import pruebacuadro
 from clases import inventario 
 from . import abrir_carrito
+from . import interfaz
 
 
 #colores
@@ -13,18 +14,18 @@ gris="#E0E0E0"
 blanco="#FFFFFF"
 morado="#7422A8"
 
-def ejecutar(ventana_log):
+def ejecutar():
 
     #CODIGO CREADO ´POR JOSE COFRE 25/08
-    ventana = tk.Toplevel()
+    ventana = tk.Tk()#crea la ventana
     ventana.title("Pagina principal")
     ventana.geometry("1280x720")
 
     # BARRA SUPERIOR
-    barra = tk.Frame(ventana,bg="#7422A8", height=60)
-    barra.pack(fill="x")
+    barra = tk.Frame(ventana,bg="#7422A8", height=60)#crea un frame
+    barra.pack(fill="x")#lo coloca en la ventana creada y hace que abarque todo el ancho de la ventana
 
-    barra.grid_columnconfigure(0, weight=0, minsize=300) 
+    barra.grid_columnconfigure(0, weight=0, minsize=300)#configura como el tamaño de la columna 0,minsize es para el tamaño minimo y weight
     barra.grid_columnconfigure(1, weight=1)              
     barra.grid_columnconfigure(2, weight=0, minsize=300) 
 
@@ -35,19 +36,21 @@ def ejecutar(ventana_log):
     logo.grid(row=0, column=0, padx=(100, 0), pady=20, sticky="w")
 
     # Buscador
-    buscador = tk.Entry(barra, font=("Segoe UI", 12))
+    buscador = tk.Entry(barra, font=("Arial", 12))
     buscador.grid(row=0, column=1, sticky="ew", ipady=10, pady=18)
-    
-
 
     frame_derecho = tk.Frame(barra, bg="#7422A8")
     frame_derecho.grid(row=0, column=2, sticky="e", padx=(0, 100))
 
+    usuario=None
+
     # Icono Usuario (CORREGIDO: Padre es frame_derecho)
     img_usuario = gestor_imagenes.cargar_foto("usuario_icono")
-    lbl_usuario = tk.Label(frame_derecho, image=img_usuario, background="#7422A8")
+    lbl_usuario = tk.Label(frame_derecho, image=img_usuario, background="#7422A8",cursor="hand2")
     lbl_usuario.image = img_usuario
     lbl_usuario.grid(row=0, column=0, padx=10)
+
+    lbl_usuario.bind("<Button-1>",lambda event:F.ingresar_log(None))
     
     separador = tk.Frame(frame_derecho, bg="white", width=1, height=30)
     separador.grid(row=0, column=1, padx=15)
@@ -68,6 +71,7 @@ def ejecutar(ventana_log):
     frame_filtrar.pack(side="left",fill="y",padx=15,pady=15)
     frame_filtrar.pack_propagate(False)#para que no se reduzca
     et.titulo(frame_filtrar,"CATEGORÍAS",font=("Segoe UI", 13, "bold")).grid(row=1,column=1, pady = (5, 5))
+
     # Elementos de filtrado
     Mouse=tk.Label(frame_filtrar,text="Mouse",font=("Segoe UI", 10, "bold"),cursor="hand2", bg="#dddddd")
     Monitores=tk.Label(frame_filtrar,text="Monitores",font=("Segoe UI", 10, "bold"),cursor="hand2", bg="#dddddd")
@@ -75,7 +79,7 @@ def ejecutar(ventana_log):
     Ram=tk.Label(frame_filtrar,text="RAM",font=("Segoe UI", 10, "bold"),cursor="hand2", bg="#dddddd")
     procesadores=tk.Label(frame_filtrar,text="Procesadores",font=("Segoe UI", 10, "bold"),cursor="hand2", bg="#dddddd")
 
-    #cuando se haga click se ejecutara la opcion de filtrado
+ #cuando se haga click se ejecutara la opcion de filtrado
     # Filtrar por precio
     tk.Label(
         frame_filtrar,
@@ -138,7 +142,6 @@ def ejecutar(ventana_log):
         pady=5
     )
     
-    
     categorias_labels = [Mouse, Monitores, teclados, Ram ,procesadores]
 
 
@@ -160,9 +163,8 @@ def ejecutar(ventana_log):
         buscador.config(font=("Segoe UI", 10, "bold"))
         productos_buscados = F.buscar(buscador, inventario_productos)
         mostrar_productos()
-        
-        
-    Mouse.bind("<Button-1>", lambda event: filtrar_por_categoria("Mouse", Mouse))
+
+    Mouse.bind("<Button-1>", lambda event: filtrar_por_categoria("Mouse", Mouse))#.bind le dice que tiene que ejecutar la funcion cuando le hacen click
     Monitores.bind("<Button-1>", lambda event: filtrar_por_categoria("Monitores", Monitores))
     teclados.bind("<Button-1>", lambda event: filtrar_por_categoria("Teclados", teclados))
     Ram.bind("<Button-1>", lambda event: filtrar_por_categoria("Ram", Ram))
@@ -237,10 +239,10 @@ def ejecutar(ventana_log):
         return imagenes_por_categoria.get(categoria_normalizada, "gaming_categoria")
 
     def mostrar_productos():
-        for widget in frame_interior.winfo_children():
-            widget.destroy()
+        for widget in frame_interior.winfo_children():#junta todos los elementos en frame interior
+            widget.destroy()#los va borrando para luego mostrar los demas productos
 
-        for columna in range(4):
+        for columna in range(4):#este for configura las columnas
             frame_interior.grid_columnconfigure(columna, weight=1)
 
         if productos_buscados is None:#si la variable de productos_buscados esta vacia va a mostrar todos los productos
@@ -248,33 +250,36 @@ def ejecutar(ventana_log):
             for i, producto in enumerate(productos):# esto recorre la lista  productos y nos entrega i(posicion) y el producto
                 fila = i // 4 #es una division entera, no nos va a dar un numero decimal
                 columna = i % 4# nos devuelve el resto
+                
                 id_producto = producto[0]
                 nombre = producto[1]
                 precio = producto[2]
                 stock = producto[3]
-                categoria = producto[4]                
+                categoria = producto[4]
                 ruta_imagen = obtener_imagen_producto(categoria)
-                frameProducto = pruebacuadro.crear_cuadradito(
-                contenedor_padre=frame_interior, 
-                                    gestor=gestor_imagenes, 
-                                    ruta_imagen=ruta_imagen, 
-                                    nombre=nombre, 
-                                    categoria=categoria, 
-                                    precio=precio,
-                                    stock=stock,
-                                    id_producto=id_producto
-                                )
+
+                frameProducto = pruebacuadro.crear_cuadradito( #se llama a al funcion que crea el frame donde se muestra el producto
+                    contenedor_padre=frame_interior, 
+                    gestor=gestor_imagenes, 
+                    ruta_imagen=ruta_imagen, 
+                    nombre=nombre, 
+                    categoria=categoria, 
+                    precio=precio,
+                    stock=stock,
+                    id_producto=id_producto
+                )
                 frameProducto.grid(row=fila, column=columna, padx=10, pady=10, sticky="nsew")#se agrega el frame del producto al frame interior
 
-        else:
+        else:#este es el caso en que si se este buscando un producto
             productos = productos_buscados
             for i, producto in enumerate(productos):
                 fila = i // 4
                 columna = i % 4
-                id_producto=producto.id
-                stock=producto.stock
+                
+                id_producto = producto.id
                 nombre = producto.nombre
                 precio = producto.precio
+                stock = producto.stock
                 categoria = producto.categoria
                 
                 ruta_imagen = obtener_imagen_producto(categoria)
@@ -292,10 +297,12 @@ def ejecutar(ventana_log):
                 frameProducto.grid(row=fila, column=columna, padx=10, pady=10, sticky="nsew")
 
     def buscar_enter(event):
-        nonlocal productos_buscados
+        nonlocal productos_buscados#se modifica la variable que esta afuera  de buscar_enter
         productos_buscados = F.buscar(buscador, inventario_productos)
         mostrar_productos()
 
     buscador.bind("<Return>", buscar_enter)
 
     mostrar_productos()
+
+    ventana.mainloop()

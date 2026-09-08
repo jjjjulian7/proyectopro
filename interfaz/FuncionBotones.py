@@ -8,6 +8,7 @@ from datos import bd_usuarios as BD
 from datos import bd 
 from . import Interfaz_pagina
 from . import ventana_admin
+from . import interfaz
 # Codigo realizado por Cristobal Maulen
 carrito = []
 inventario=I()

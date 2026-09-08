@@ -1,1 +1,2 @@
-from interfaz import interfaz
+from interfaz import Interfaz_pagina
+Interfaz_pagina.ejecutar()
