@@ -22,13 +22,13 @@ def ventana_usuario(ventana,texto,IngresoClave):
         if resultado==None:
             ventanaAdvertencia=tk.Toplevel(ventana)
             ventanaAdvertencia.geometry("200x60")
-            texto=tk.Label(ventanaAdvertencia,text="EL usuario no existe")
+            texto=tk.Label(ventanaAdvertencia,text="El usuario no existe")
             texto.pack()
             ventanaAdvertencia.after(3000,ventanaAdvertencia.destroy)
         elif contraseña!=resultado[2]:
             ventanaAdvertencia=tk.Toplevel(ventana)
             ventanaAdvertencia.geometry("200x60")
-            texto=tk.Label(ventanaAdvertencia,text="la contraseña es incorrecta")
+            texto=tk.Label(ventanaAdvertencia,text="El usuario y/o la contraseña es incorrecta")
             texto.pack()
             ventanaAdvertencia.after(2000,ventanaAdvertencia.destroy)
         else:
@@ -44,7 +44,7 @@ def registro(texto,IngresoClave,ventana):
     else:
          ventanaAdvertencia=tk.Toplevel(ventana)
          ventanaAdvertencia.geometry("50x50")
-         texto=tk.Label(ventanaAdvertencia,text="EL usuario ya existe")
+         texto=tk.Label(ventanaAdvertencia,text="El usuario ya existe")
          texto.pack()
          ventanaAdvertencia.after(2000,ventanaAdvertencia.destroy)
 

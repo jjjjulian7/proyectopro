@@ -2,6 +2,8 @@ import tkinter as tk
 from . import FuncionBotones as F
 from . import estilo_boton
 from .ventana_Ingreso_admin import abrir_ventana_funcionario
+import tkinter.messagebox as messagebox
+from clases import usuario 
 
 def ejecutar():
     def ir_a_admin(event):
@@ -38,8 +40,4 @@ def ejecutar():
 
     cambiar_admin= tk.Label(ventana, text="¿Eres administrador? Haz click aqui")
     cambiar_admin.grid(row=12, column=0, padx=(0,0), pady=(300, 0))
-    # Ya estaba bien, llama a la función que importamos arriba
     cambiar_admin.bind("<Button-1>",ir_a_admin,lambda event: abrir_ventana_funcionario())
-
-    
-
