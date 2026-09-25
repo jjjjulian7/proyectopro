@@ -31,6 +31,9 @@ def crear_cuadradito(contenedor_padre, gestor, ruta_imagen, nombre, categoria, p
 
     def agregar_carrito():
         nonlocal stock_actual
+        if not F.validar_sesion():      #Si no hay sesion iniciada, no permite agregar cosas al carrito
+            return
+
         cantidad_texto = stok.get()
 
         if not cantidad_texto.isdigit() or int(cantidad_texto) <= 0:

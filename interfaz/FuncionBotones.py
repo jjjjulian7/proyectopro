@@ -1,6 +1,7 @@
 #funciones a completar despues con sqlite3
 import sqlite3
 import tkinter as tk
+from tkinter import messagebox
 from clases.usuario import usuario
 from clases.producto import Producto
 from clases.inventario import Inventario as I
@@ -12,10 +13,12 @@ from . import interfaz
 # Codigo realizado por Cristobal Maulen
 carrito = []
 inventario=I()
+usuario_actual = None
 def ventana_a(ventana):
     ventana_admin.ejecutar()
     ventana.iconify()
 def ventana_usuario(ventana,texto,IngresoClave):
+        global usuario_actual   # Usamos global para que la variable cambie fuera de la funcion
         Nombre=texto.get()
         contraseña=IngresoClave.get()
         resultado=BD.buscar_usuario(Nombre)
@@ -32,7 +35,25 @@ def ventana_usuario(ventana,texto,IngresoClave):
             texto.pack()
             ventanaAdvertencia.after(2000,ventanaAdvertencia.destroy)
         else:
-            Interfaz_pagina.ejecutar(ventana)
+            usuario_actual = resultado[1]   # Si se inicia sesion, a usuario_actual se le asignara el nombre
+            ventana.destroy()
+
+def hay_usuario_autenticado():
+    return usuario_actual is not None      
+
+def validar_sesion():
+    if not hay_usuario_autenticado():       # Si no se ha iniciado sesion, imprimira el mensaje y bloqueara la funcion de añadir al carrito 
+        messagebox.showwarning(
+            "Inicio de sesión requerido",
+            "Debes iniciar sesión antes de agregar artículos al carrito."
+        )
+        return False
+    return True
+
+def cerrar_sesion():        # AVISO: Falta implementar la funcion. Aun hay q agregar boton de cerrar sesion!
+    global usuario_actual
+    usuario_actual = None
+        
         
 def registro(texto,IngresoClave,ventana):
     Texto=texto.get()
