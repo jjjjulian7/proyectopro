@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import messagebox
 from . import FuncionBotones as F
 
-def abrir_carrito():
+def abrir_carrito(event=None):
 # Validacion de datos (Fecha vencimiento , numero de tarjeta y cvv)
     def validar_datos(): 
         tarjeta = nroTarjeta.get() 
@@ -47,13 +47,18 @@ def abrir_carrito():
 
         #Si el carrito tiene productos, se muestran en la parte izquierda de la ventana
     else:
-        for item in F.carrito:
-            subtotal = item["precio"] * item["cantidad"]#se calcula
-            texto = f"{item['nombre']} x{item['cantidad']} - $ {subtotal}"
+        # Recorremos los ítems guardados en el objeto Carrito
+        for item in F.carrito.items:
+            subtotal_item = item["precio"] * item["cantidad"]
+            texto = f"{item['nombre']} x{item['cantidad']} - ${subtotal_item:,.0f}"
             tk.Label(frame_lista_carrito, text=texto, bg="#d9d9d9", anchor="w").pack(fill="x", pady=2)
-#Calculamos el total de la compra
-        total = F.calcular_total()
-        tk.Label(frame_lista_carrito, text=f"Total: $ {total}", bg="#d9d9d9", font=("Arial", 10, "bold")).pack(anchor="w", pady=(10, 0))
+
+        subtotal, iva, total = F.mostrar_info()
+
+        # Mostramos los valores devueltos por la función
+        tk.Label(frame_lista_carrito, text=f"Subtotal: ${subtotal}", bg="#d9d9d9", font=("Arial", 10, "bold")).pack(anchor="w", pady=(10, 0))
+        tk.Label(frame_lista_carrito, text=f"IVA (19%): ${iva}", bg="#d9d9d9", font=("Arial", 10, "bold")).pack(anchor="w", pady=(2, 0))
+        tk.Label(frame_lista_carrito, text=f"Total: ${total}", bg="#d9d9d9", font=("Arial", 11, "bold"), fg="#1b5e20").pack(anchor="w", pady=(2, 0))
 
 #Parte derecha de la ventana, donde se ingresan los datos de la tarjeta
 
@@ -84,4 +89,6 @@ def abrir_carrito():
     btn_validar = tk.Button(parte_derecha, text="Comprar", command=validar_datos) 
     btn_validar.grid(row=3, column=0, columnspan=4, pady=(20, 0)) 
 
+    boton_vaciar=tk.Button(parte_derecha,text="Vaciar carrito", command=lambda:F.vaciarcarrito(ventana))
+    boton_vaciar.grid(row=4, column=0, columnspan=4, pady=(20, 0))
     ventana.mainloop()
