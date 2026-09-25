@@ -46,12 +46,10 @@ def crear_cuadradito(contenedor_padre, gestor, ruta_imagen, nombre, categoria, p
         if not Inventario().validar_stock(nuevo_stock):
             tk.messagebox.showerror("Error", "No hay stock suficiente")
             return
-
-        producto_actualizado = Producto(nombre, precio, nuevo_stock, categoria)
-        producto_actualizado.id = id_producto
-        bd.actualizar_producto(producto_actualizado)#es para que se modifique el stock del inventario cuando se agrega el producto al carro
-
-        F.agregar_producto_carrito(nombre, categoria, precio, cantidad)
+        producto_seleccionado = Producto(nombre, precio, nuevo_stock, categoria)
+        producto_seleccionado.id = id_producto
+        bd.actualizar_producto(producto_seleccionado)
+        F.agregar_producto_carrito(producto_seleccionado, cantidad)
 
         stock_actual = nuevo_stock
         lbl_stock.config(text=f"Stock: {stock_actual}")

@@ -135,3 +135,15 @@ def menor_stock(categoria):
         # La conexión se libera después de obtener el resultado.
         conexion.close()
 
+def restaurar_stock(id_producto, cantidad):
+    conexion = conectar()
+    try:
+        cursor = conexion.cursor()
+        # Actualiza el stock sumando la cantidad especificada.
+        cursor.execute(
+            "UPDATE productos SET stock = stock + ? WHERE id = ?",
+            (cantidad, id_producto)
+        )
+        conexion.commit()
+    finally:
+        conexion.close()

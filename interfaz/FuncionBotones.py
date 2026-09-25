@@ -5,13 +5,15 @@ from tkinter import messagebox
 from clases.usuario import usuario
 from clases.producto import Producto
 from clases.inventario import Inventario as I
+from clases.carrito import Carrito as C
 from datos import bd_usuarios as BD
 from datos import bd 
 from . import Interfaz_pagina
 from . import ventana_admin
 from . import interfaz
+from . import abrir_carrito
 # Codigo realizado por Cristobal Maulen
-carrito = []
+carrito = C()
 inventario=I()
 usuario_actual = None
 def ventana_a(ventana):
@@ -25,13 +27,13 @@ def ventana_usuario(ventana,texto,IngresoClave):
         if resultado==None:
             ventanaAdvertencia=tk.Toplevel(ventana)
             ventanaAdvertencia.geometry("200x60")
-            texto=tk.Label(ventanaAdvertencia,text="EL usuario no existe")
+            texto=tk.Label(ventanaAdvertencia,text="El usuario no existe")
             texto.pack()
             ventanaAdvertencia.after(3000,ventanaAdvertencia.destroy)
         elif contraseña!=resultado[2]:
             ventanaAdvertencia=tk.Toplevel(ventana)
             ventanaAdvertencia.geometry("200x60")
-            texto=tk.Label(ventanaAdvertencia,text="la contraseña es incorrecta")
+            texto=tk.Label(ventanaAdvertencia,text="El usuario y/o la contraseña es incorrecta")
             texto.pack()
             ventanaAdvertencia.after(2000,ventanaAdvertencia.destroy)
         else:
@@ -65,7 +67,7 @@ def registro(texto,IngresoClave,ventana):
     else:
          ventanaAdvertencia=tk.Toplevel(ventana)
          ventanaAdvertencia.geometry("50x50")
-         texto=tk.Label(ventanaAdvertencia,text="EL usuario ya existe")
+         texto=tk.Label(ventanaAdvertencia,text="El usuario ya existe")
          texto.pack()
          ventanaAdvertencia.after(2000,ventanaAdvertencia.destroy)
 
@@ -200,11 +202,17 @@ def ingresar_log(usuario):
 
 
 
-def agregar_producto_carrito(nombre, categoria, precio, cantidad):
-    carrito.append({"nombre": nombre, "categoria": categoria, "precio": precio, "cantidad": cantidad})
+def agregar_producto_carrito(ProductoS, cantidad):
+    carrito.agregar_producto(ProductoS,cantidad)
 
-def calcular_total():
-    total = 0
-    for item in carrito:
-        total += item["precio"] * item["cantidad"]
-    return total
+
+def vaciarcarrito(ventana):
+    carrito.vaciar_carrito()
+    tk.messagebox.showinfo("Carrito", "El carrito ha sido vaciado.")
+    ventana.destroy()
+    abrir_carrito.abrir_carrito()
+def mostrar_info():
+    subtotal= carrito.calcular_subtotal()
+    iva = carrito.calcular_iva()
+    total= carrito.calcular_total()
+    return subtotal,iva,total
