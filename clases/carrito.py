@@ -37,3 +37,18 @@ class Carrito:
     
     def calcular_total(self):
         return self.calcular_subtotal() + self.calcular_iva()
+    def eliminar_producto(self, i, cantidad):
+        # 1. Validar que la cantidad ingresada sea válida
+        if cantidad <= 0:
+            return
+        
+        if cantidad > i["cantidad"]:
+            cantidad = i["cantidad"]
+
+        id_producto = i["id"]
+        bd.restaurar_stock(id_producto, cantidad)
+
+        i["cantidad"] -= cantidad
+
+        if i["cantidad"] <= 0:
+            self.items.remove(i)

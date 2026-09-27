@@ -216,3 +216,28 @@ def mostrar_info():
     iva = carrito.calcular_iva()
     total= carrito.calcular_total()
     return subtotal,iva,total
+def eliminar_producto(ventana, i):
+    ventana_cantidad = tk.Toplevel(ventana)
+    ventana_cantidad.title("Carrito")
+    ventana_cantidad.geometry("300x160")
+    ventana_cantidad.grab_set()
+
+    tk.Label(ventana_cantidad, text="CANTIDAD:").pack(pady=5)
+    cantidad = tk.Entry(ventana_cantidad)
+    cantidad.pack(pady=5)
+    cantidad.focus()
+
+    def eliminar():
+        cant = cantidad.get()
+        if cant.isdigit():
+  
+            carrito.eliminar_producto(i, int(cant))
+            ventana_cantidad.destroy()
+        else:
+            print("Ingrese una cantidad válida")
+
+    btn_confirmar = tk.Button(ventana_cantidad, text="Aceptar", command=eliminar)
+    btn_confirmar.pack(pady=10)
+
+
+    ventana.wait_window(ventana_cantidad)
