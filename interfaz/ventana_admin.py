@@ -18,6 +18,14 @@ def ejecutar():
     Frame_producto=tk.Frame(ventana)
     Frame_producto.pack(fill="both", expand=True)
 
+    Frame_botones.grid_columnconfigure(0, weight=1)
+    Frame_botones.grid_columnconfigure(1, weight=0)
+    Frame_botones.grid_columnconfigure(2, weight=0)
+    Frame_botones.grid_columnconfigure(3, weight=0)
+    Frame_botones.grid_columnconfigure(4, weight=0)
+    Frame_botones.grid_columnconfigure(5, weight=0)
+    Frame_botones.grid_columnconfigure(6, weight=0)
+
     #Frae hijos de Frame contenido
     Frame_ingreso=tk.Frame(Frame_contenido)
     Frame_borrar=tk.Frame(Frame_contenido)
@@ -37,7 +45,7 @@ def ejecutar():
 
     #boton para asignar permisos de admin
     frame_admin = tk.Frame(Frame_botones)
-    frame_admin.grid(row=1, column=5, padx=(80, 0), pady=10, sticky="w")
+    frame_admin.grid(row=1, column=5, padx=(20, 0), pady=10, sticky="w")
     frame_admin.grid_remove()
 
     def mostrar_admin_fields():
@@ -48,7 +56,7 @@ def ejecutar():
         F.mostrar_frame(frame, lista_F)
 
     boton_admin = tk.Button(Frame_botones, text="Hacer admin", command=mostrar_admin_fields)
-    boton_admin.grid(row=1, column=5, padx=(40, 0), pady=10, sticky="w")
+    boton_admin.grid(row=1, column=5, padx=(20, 0), pady=10, sticky="w")
 
     #frame_ingreso
     tk.Label(Frame_ingreso,text="Ingrese nombre").grid(row=1,column=1)
@@ -151,6 +159,70 @@ def ejecutar():
         command=lambda: F.mostrar_total_inventario(resultado_estadisticas)
     )
     boton_total.grid(row=2, column=3, padx=5, pady=5)
+
+    def abrir_ventana_vaciar_admin():
+        ventana_vaciar = tk.Toplevel(ventana)
+        ventana_vaciar.title("Vaciar inventario")
+        ventana_vaciar.geometry("380x220")
+        ventana_vaciar.resizable(False, False)
+        ventana_vaciar.transient(ventana)
+        ventana_vaciar.grab_set()
+
+        tk.Label(ventana_vaciar, text="¿Qué deseas vaciar?", font=("Segoe UI", 12, "bold")).pack(pady=(15, 10))
+
+        categorias = sorted({producto[4].strip() for producto in bd.mostrar_productos() if producto[4] and producto[4].strip()})
+        opciones = ["-- Todo el inventario --"] + categorias
+        categoria_var = tk.StringVar(value=opciones[0])
+
+        selector = ttk.Combobox(ventana_vaciar, textvariable=categoria_var, values=opciones, state="readonly")
+        selector.pack(pady=10)
+        if opciones:
+            selector.current(0)
+
+        def confirmar_vaciado():
+            seleccion = categoria_var.get().strip() if categoria_var.get() else ""
+
+            if not seleccion:
+                messagebox.showwarning("Sin selección", "Debes elegir una categoría o vaciar todo el inventario.")
+                return
+
+            if seleccion == "-- Todo el inventario --":
+                confirmar = messagebox.askyesno(
+                    "Confirmación",
+                    "¿Seguro que quieres vaciar todo el inventario? Esta acción eliminará todos los productos."
+                )
+                if not confirmar:
+                    return
+                bd.vaciar_inventario()
+                messagebox.showinfo("Inventario vaciado", "Se vació todo el inventario.")
+            else:
+                confirmar = messagebox.askyesno(
+                    "Confirmación",
+                    f"¿Seguro que quieres vaciar la categoría '{seleccion}'? Se eliminarán todos los productos de esa categoría."
+                )
+                if not confirmar:
+                    return
+                bd.vaciar_categoria(seleccion)
+                messagebox.showinfo("Categoría vaciada", f"Se vació la categoría '{seleccion}'.")
+
+            F.mostrar_productos(Frame_producto)
+            ventana_vaciar.destroy()
+
+        tk.Button(
+            ventana_vaciar,
+            text="Vaciar",
+            bg="#FFFFFF",
+            fg="black",
+            font=("Segoe UI", 10, "bold"),
+            command=confirmar_vaciado
+        ).pack(pady=10)
+
+    boton_vaciar = tk.Button(
+        Frame_botones,
+        text="Vaciar inventario",
+        command=abrir_ventana_vaciar_admin,
+    )
+    boton_vaciar.grid(row=1, column=6, padx=(20, 20), pady=10, sticky="e")
 
     #frame de los productos
     F.mostrar_productos(Frame_producto)

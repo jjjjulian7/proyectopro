@@ -135,6 +135,34 @@ def menor_stock(categoria):
         # La conexión se libera después de obtener el resultado.
         conexion.close()
 
+
+def vaciar_categoria(categoria):        #   Funcion para eliminar todas las tuplas de una categoria elegida
+    conexion = conectar()
+    cursor = conexion.cursor()
+    cursor.execute(
+        """
+        DELETE FROM productos 
+        WHERE categoria = ?
+        """, 
+        (categoria,)
+    )
+    conexion.commit()    
+    conexion.close()
+    return True
+
+def vaciar_inventario():                #   Funcion para eliminar todo el inventario
+    conexion = conectar()
+    cursor = conexion.cursor()
+    cursor.execute(
+        """
+        DELETE FROM productos 
+        """ 
+    )
+    conexion.commit()    
+    conexion.close()
+    return True
+
+
 def restaurar_stock(id_producto, cantidad):
     conexion = conectar()
     try:
