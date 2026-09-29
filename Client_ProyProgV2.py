@@ -67,12 +67,12 @@ def start_client():
                     try:
                         # Formato esperado: datos:20,galleta
                         contenido = msg[6:]  # Quitamos 'datos:'
-                        partes = contenido.split(',', 1,2)
+                        partes = contenido.split(',', 2) ## partes = contenido.split(',', 2)  # Cambiado a 2 para permitir tres partes
 
                         if len(partes) == 2:
                             numero = int(partes[0].strip())
                             texto = partes[1].strip()
-                            valor = partes[2].strip()
+                            valor = int(partes[2].strip())
 
                             payload = {
                                 'type': 'data_exchange',

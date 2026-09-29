@@ -73,12 +73,12 @@ def handle_client(conn, addr):
                 try:
                     # Formato esperado: datos:30,pan
                     contenido = msg[6:]  # Quitamos 'datos:'
-                    partes = contenido.split(',', 1,2)
+                    partes = contenido.split(',',2)
 
                     if len(partes) == 2:
                         numero = int(partes[0].strip())
                         texto = partes[1].strip()
-                        valor = partes[2].strip() 
+                        valor = int(partes[2].strip())
 
                         response = {
                             'type': 'data_exchange',
