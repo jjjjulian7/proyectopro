@@ -3,7 +3,7 @@ import json
 import threading
 import sys
 
-HOST = '172.30.10.3'
+HOST = '172.20.10.3'
 PORT = 65433
 
 def start_client():
@@ -69,7 +69,7 @@ def start_client():
                         contenido = msg[6:]  # Quitamos 'datos:'
                         partes = contenido.split(',', 2) ## partes = contenido.split(',', 2)  # Cambiado a 2 para permitir tres partes
 
-                        if len(partes) == 2:
+                        if len(partes) == 3:
                             numero = int(partes[0].strip())
                             texto = partes[1].strip()
                             valor = int(partes[2].strip())

@@ -12,12 +12,15 @@ from . import Interfaz_pagina
 from . import ventana_admin
 from . import interfaz
 from . import abrir_carrito
+from . import Client_ProyProgV2
+from . import Server_ProgProyV2
 # Codigo realizado por Cristobal Maulen
 carrito = C()
 inventario=I()
 usuario_actual = None
 def ventana_a(ventana):
     ventana_admin.ejecutar()
+    Server_ProgProyV2.handle_client()
     ventana.iconify()
 def ventana_usuario(ventana,texto,IngresoClave):
         global usuario_actual   # Usamos global para que la variable cambie fuera de la funcion
@@ -37,6 +40,7 @@ def ventana_usuario(ventana,texto,IngresoClave):
             texto.pack()
             ventanaAdvertencia.after(2000,ventanaAdvertencia.destroy)
         else:
+            Client_ProyProgV2.start_client()
             usuario_actual = resultado[1]   # Si se inicia sesion, a usuario_actual se le asignara el nombre
             ventana.destroy()
 
