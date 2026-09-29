@@ -40,20 +40,80 @@ def abrir_carrito(event=None):
     ventana.geometry("700x600") 
     ventana.resizable(False, False) 
 
-    # Posicionamiento de los frames principales
-    parte_izquierda = tk.Frame(ventana, bg="#f0f0f0") 
-    parte_izquierda.place(x=0, y=0, width=250, height=600) 
+tabla = tk.Frame(ventana, bg="white")
+    tabla.pack(fill="x", padx=20)
+    tabla.columnconfigure(0, minsize=200)  # Producto
+    tabla.columnconfigure(1, minsize=90)   # Precio
+    tabla.columnconfigure(2, minsize=190)  # Cantidad
+    tabla.columnconfigure(3, minsize=110)  # Sub total
+    tabla.columnconfigure(4, weight=1)     # Botón eliminar
 
-    linea = tk.Frame(ventana, bg="black") 
-    linea.place(x=250, y=0, width=2, height=600) 
+    pie = tk.Frame(ventana, bg="white")
+    pie.pack(fill="x", padx=20, pady=(8, 0))
 
-    parte_derecha = tk.Frame(ventana, bg="#d9d9d9") 
-    parte_derecha.place(x=252, y=0, width=448, height=600) 
+    lbl_total = tk.Label(pie, text="", font=FUENTE_NEGRITA, bg="white")
 
-    # CORREGIDO: Ancho ajustado a 230px para encajar en la parte izquierda (250px)
-    frame_lista_carrito = tk.Frame(parte_izquierda, bg="#d9d9d9")
-    frame_lista_carrito.place(x=10, y=10, width=230, height=580)
+    def obtener_cantidad(item):
+        try:
+            return max(1, int(item["cantidad"].get()))
+        except (tk.TclError, ValueError):
+            return 1
 
+    def actualizar():
+        total = 0
+        for item, lbl in zip(items, subtotales):
+            sub = item["precio"] * obtener_cantidad(item)
+            lbl.config(text=f"${sub} USD")
+            total += sub
+        lbl_total.config(text=f"Total ${total} USD")
+
+    def eliminar(idx):
+        del items[idx]
+        dibujar_tabla()
+
+    def continuar():
+        ventana.destroy()  # vuelve a la página anterior
+
+    def pagar():
+        total = sum(i["precio"] * obtener_cantidad(i) for i in items)
+        messagebox.showinfo("Pagos", f"Total a pagar: ${total} USD", parent=ventana)
+
+    def linea(fila):
+            tk.Frame(tabla, bg=COLOR_BORDE, height=1).grid(
+                row=fila, column=0, columnspan=5, sticky="ew"
+            )
+             
+    def dibujar_tabla():
+        for w in tabla.winfo_children():
+            w.destroy()
+        subtotales.clear()
+
+    tk.Button(
+            pie, text="‹  Continue Comprando", font=FUENTE,
+            bg=COLOR_NARANJA, fg="white", activebackground="#d99a45",
+            activeforeground="white", relief="flat", bd=0,
+            padx=12, pady=5, cursor="hand2", command=continuar
+        ).pack(side="left")
+        
+        tk.Button(
+            pie, text="Pagos  ›", font=FUENTE,
+            bg=COLOR_VERDE, fg="white", activebackground="#4cae4c",
+            activeforeground="white", relief="flat", bd=0,
+            width=12, pady=5, cursor="hand2", command=pagar
+        ).pack(side="right")
+        
+        lbl_total.pack(side="right", padx=30)
+        
+        dibujar_tabla()
+        return ventana
+        
+
+        if __name__ == "__main__":
+            root = tk.Tk()
+            root.geometry("300x150")
+            tk.Button(root, text="Ver carrito", command=lambda: abrir_carrito(root)).pack(expand=True)
+            root.mainloop()
+        
     # Si el carrito está vacío
     if not F.carrito.items:
         tk.Label(frame_lista_carrito, text="El carrito está vacío", bg="#d9d9d9").pack(anchor="w", pady=5)
@@ -82,36 +142,5 @@ def abrir_carrito(event=None):
         tk.Label(frame_lista_carrito, text=f"Subtotal: ${subtotal}", bg="#d9d9d9", font=("Arial", 10, "bold")).pack(anchor="w", pady=(10, 0))
         tk.Label(frame_lista_carrito, text=f"IVA (19%): ${iva}", bg="#d9d9d9", font=("Arial", 10, "bold")).pack(anchor="w", pady=(2, 0))
         tk.Label(frame_lista_carrito, text=f"Total: ${total}", bg="#d9d9d9", font=("Arial", 11, "bold"), fg="#1b5e20").pack(anchor="w", pady=(2, 0))
-
-    # Parte derecha: Formulario de tarjeta
-    lbl_tarjeta = tk.Label(parte_derecha, text="Número Tarjeta", bg="#d9d9d9") 
-    lbl_tarjeta.grid(row=0, column=0, padx=(20, 10), pady=(210, 10), sticky="e") 
-
-    nroTarjeta = tk.Entry(parte_derecha) 
-    nroTarjeta.grid(row=0, column=1, columnspan=3, pady=(210, 10), sticky="w") 
-
-    lbl_fecha = tk.Label(parte_derecha, text="Fecha Vencimiento", bg="#d9d9d9") 
-    lbl_fecha.grid(row=1, column=0, padx=(20, 10), pady=(0, 10), sticky="e") 
-
-    FechaIngresoMes = tk.Entry(parte_derecha, width=4) 
-    FechaIngresoMes.grid(row=1, column=1, padx=(0, 2), pady=(0, 10), sticky="w") 
-
-    lbl_separador = tk.Label(parte_derecha, text="/", bg="#d9d9d9") 
-    lbl_separador.grid(row=1, column=2, padx=(0, 2), pady=(0, 10), sticky="w")  
-
-    FechaIngresoAno = tk.Entry(parte_derecha, width=4) 
-    FechaIngresoAno.grid(row=1, column=3, padx=(0, 0), pady=(0, 10), sticky="w") 
-
-    lbl_cvv = tk.Label(parte_derecha, text="CVV", bg="#d9d9d9") 
-    lbl_cvv.grid(row=2, column=0, padx=(20, 10), pady=(0, 10), sticky="e") 
-
-    IngresoCvv = tk.Entry(parte_derecha, width=4) 
-    IngresoCvv.grid(row=2, column=1, sticky="w") 
-
-    btn_validar = tk.Button(parte_derecha, text="Comprar", command=validar_datos) 
-    btn_validar.grid(row=3, column=0, columnspan=4, pady=(20, 0)) 
-
-    boton_vaciar = tk.Button(parte_derecha, text="Vaciar carrito", command=lambda: [F.vaciarcarrito(ventana), refrescar_interfaz()])
-    boton_vaciar.grid(row=4, column=0, columnspan=4, pady=(10, 0))
 
     ventana.mainloop()
