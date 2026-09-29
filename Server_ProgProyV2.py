@@ -11,7 +11,7 @@ def handle_client(conn, addr):
     print("=" * 50)
     print("FORMATOS DE ENVÍO DISPONIBLES:")
     print("  1. Chat simple: escribe tu mensaje")
-    print("  2. Datos (numero,texto): escribe 'datos:30,pan'")
+    print("  2. Datos (numero,texto): escribe 'datos:30,procesador,valor'")
     print("  3. Salir: escribe 'salir'")
     print("=" * 50)
 
@@ -73,19 +73,21 @@ def handle_client(conn, addr):
                 try:
                     # Formato esperado: datos:30,pan
                     contenido = msg[6:]  # Quitamos 'datos:'
-                    partes = contenido.split(',', 1)
+                    partes = contenido.split(',', 1,2)
 
                     if len(partes) == 2:
                         numero = int(partes[0].strip())
                         texto = partes[1].strip()
+                        valor = partes[2].strip() 
 
                         response = {
                             'type': 'data_exchange',
                             'numero': numero,
-                            'texto': texto
+                            'texto': texto,
+                            'valor' : valor
                         }
 
-                        print(f"[Servidor envía] Número: {numero}, Texto: '{texto}'")
+                        print(f"[Servidor envía] Número: {numero}, Texto: '{texto}', valor {valor}")
                         conn.sendall((json.dumps(response) + '\n').encode('utf-8'))
                     else:
                         print("[!] Formato incorrecto. Usa: datos:numero,texto")
