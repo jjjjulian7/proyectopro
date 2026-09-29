@@ -11,3 +11,5 @@ class Producto:
         print("Precio:", self.precio)
         print("Stock:", self.stock)
         print("Categoría:", self.categoria)
+
+        

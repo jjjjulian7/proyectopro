@@ -2,9 +2,12 @@ import socket
 import json
 import threading
 import sys
+from clases.producto import Producto
+from clases.inventario import Inventario
 
 HOST = '172.20.10.3'
 PORT = 65433
+
 
 def handle_client(conn, addr):
     print(f"\n[+] Conectado por {addr}")

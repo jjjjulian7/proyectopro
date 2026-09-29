@@ -1,5 +1,6 @@
 import datos.bd as bd
 from clases.producto import Producto
+import json
 
 class Inventario:
     def __init__(self):
@@ -12,6 +13,9 @@ class Inventario:
             p = Producto(fila[1], fila[2], fila[3], fila[4]) #fila[0] es el id, fila[1] es el nombre, fila[2] es el precio, fila[3] es el stock, fila[4] es la categoria
             p.id = fila[0]
             self.productos.append(p)
+
+    def convertir_json(self,p):
+        json.dumps(p)
             
 #VALIDACIONES GENERALES       
     def validar_stock(self, stock):
