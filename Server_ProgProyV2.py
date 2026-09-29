@@ -36,7 +36,8 @@ def handle_client(conn, addr):
                     if request.get('type') == 'data_exchange':
                         numero = request.get('numero')
                         texto = request.get('texto')
-                        print(f"\n[Cliente envió datos] Número: {numero}, Texto: '{texto}'")
+                        valor = request.get('valor')
+                        print(f"\n[Cliente envió datos] Número: {numero}, Texto: '{texto}, valor: {valor}'")
                         print("Tu mensaje: ", end="", flush=True)
 
                     # Manejo de chat simple
