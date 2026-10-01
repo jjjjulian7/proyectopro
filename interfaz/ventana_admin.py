@@ -5,7 +5,9 @@ from . import FuncionBotones as F
 from datos import bd
 from datos import bd_usuarios as BD
 
+
 def ejecutar():
+
     ventana = tk.Tk()
     ventana.title("MaulencitosMarketADMIN")
     ventana.geometry("1280x720")
