@@ -52,3 +52,4 @@ class Carrito:
 
         if i["cantidad"] <= 0:
             self.items.remove(i)
+    

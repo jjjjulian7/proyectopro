@@ -147,3 +147,34 @@ def restaurar_stock(id_producto, cantidad):
         conexion.commit()
     finally:
         conexion.close()
+def procesar_compra(items):
+    conexion = conectar()
+    try:
+        cursor = conexion.cursor()
+        subtotal = 0
+        for it in items:
+            id_p, cant = int(it["id"]), int(it["cantidad"])
+            if cant <= 0:
+                raise ValueError("Cantidad inválida")
+
+            cursor.execute("SELECT nombre, precio FROM productos WHERE id = ?", (id_p,))
+            fila = cursor.fetchone()
+            if fila is None:
+                raise ValueError(f"El producto {id_p} ya no existe")
+
+            cursor.execute(
+                "UPDATE productos SET stock = stock - ? WHERE id = ? AND stock >= ?",
+                (cant, id_p, cant)
+            )
+            if cursor.rowcount == 0:      # no se actualizó ninguna fila: no alcanzaba el stock
+                raise ValueError(f"Stock insuficiente de {fila[0]}")
+
+            subtotal += fila[1] * cant    # el precio sale de la BD, no del cliente
+
+        conexion.commit()
+        return True, round(subtotal * 1.19)
+    except (ValueError, KeyError, TypeError) as e:
+        conexion.rollback()               # si falla un ítem, no se descuenta ninguno
+        return False, str(e)
+    finally:
+        conexion.close()    
