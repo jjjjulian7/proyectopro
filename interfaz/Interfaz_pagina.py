@@ -44,7 +44,7 @@ def ejecutar():
 
     usuario=None
 
-    # Icono Usuario (CORREGIDO: Padre es frame_derecho)
+    # Icono Usuario 
     img_usuario = gestor_imagenes.cargar_foto("usuario_icono")
     lbl_usuario = tk.Label(frame_derecho, image=img_usuario, background="#7422A8",cursor="hand2")
     lbl_usuario.image = img_usuario
@@ -60,7 +60,7 @@ def ejecutar():
     lbl_carrito = tk.Label(frame_derecho, image=img_carrito, background="#7422A8")
     lbl_carrito.image = img_carrito
     lbl_carrito.grid(row=0, column=2, padx=10)
-    lbl_carrito.bind("<Button-1>", lambda event: abrir_carrito.abrir_carrito())
+    lbl_carrito.bind("<Button-1>", lambda event: abrir_carrito.abrir_carrito(F.carrito))
 
     #frame general
     contenido=tk.Frame(ventana,bg="#F7F7F7")

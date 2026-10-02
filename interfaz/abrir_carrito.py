@@ -1,46 +1,46 @@
-import tkinter as tk 
+import tkinter as tk
 from tkinter import messagebox
-from . import FuncionBotones as F
 
-def abrir_carrito(event=None):
-    # Validacion de datos (Fecha vencimiento, numero de tarjeta y cvv)
-    def validar_datos(): 
-        tarjeta = nroTarjeta.get() 
-        cvv = IngresoCvv.get() 
-        mes = FechaIngresoMes.get()
-        anio = FechaIngresoAno.get()
+# Colores que ocupamos en la interfaz
+COLOR_BORDE = "#dddddd"
+COLOR_ROJO = "#d9534f"
+COLOR_NARANJA = "#eeac57"
+COLOR_VERDE = "#5cb85c"
+FUENTE = ("Segoe UI", 10)
+FUENTE_NEGRITA = ("Segoe UI", 10, "bold")
 
-        if not (len(tarjeta) == 16 and tarjeta.startswith("4345") and tarjeta.isdigit()): 
-            messagebox.showerror("Error", "La tarjeta debe tener 16 dígitos y comenzar con 4345.") 
-            return
 
-        if not (len(cvv) == 3 and cvv.isdigit()): 
-            messagebox.showerror("Error", "El código CVV debe tener exactamente 3 dígitos numéricos.") 
-            return
+def abrir_carrito(carrito, event=None):
+    """Abre la ventana del carrito (700x600).
 
-        if not (mes.isdigit() and anio.isdigit()):
-            messagebox.showerror("Error", "La fecha ingresada debe contener números válidos.")
-            return
+    carrito: la instancia de clases.carrito.Carrito que ya usa tu página
+             (la misma donde agregas los productos).
+    """
 
-        if int(anio) < 26 or (int(anio) == 26 and int(mes) <= 10):
-            messagebox.showerror("Error", "La fecha ingresada está vencida.")
-            return  # <-- CORREGIDO: Evita que continue si la fecha está vencida
+    # Si ya existe una ventana principal, el carrito se abre encima (Toplevel);
+    # si no, crea la suya propia.
+    root = tk._default_root
+    if root is None:
+        ventana = tk.Tk()
+        ventana_propia = True
+    else:
+        ventana = tk.Toplevel(root)
+        ventana_propia = False
 
-        messagebox.showinfo("Éxito", "Datos correctos. ¡Compra realizada con éxito!") 
-        F.carrito.clear()
-        ventana.destroy()
+    ventana.title("Carrito")
+    ventana.geometry("700x600")
+    ventana.resizable(False, False)
+    ventana.configure(bg="white")
 
-    # Callback para refrescar la ventana al eliminar o vaciar
-    def refrescar_interfaz():
-        ventana.destroy()
-        abrir_carrito()
+    subtotales = []   # labels de sub total de cada fila
+    variables = []    # IntVar de cada spinbox (evita que se pierdan)
 
-    ventana = tk.Tk() 
-    ventana.title("Carrito") 
-    ventana.geometry("700x600") 
-    ventana.resizable(False, False) 
+    tk.Label(
+        ventana, text="Carrito de compras", font=("Segoe UI", 22),
+        bg="white", fg="#222222", anchor="w"
+    ).pack(fill="x", padx=20, pady=(25, 10))
 
-tabla = tk.Frame(ventana, bg="white")
+    tabla = tk.Frame(ventana, bg="white")
     tabla.pack(fill="x", padx=20)
     tabla.columnconfigure(0, minsize=200)  # Producto
     tabla.columnconfigure(1, minsize=90)   # Precio
@@ -48,99 +48,150 @@ tabla = tk.Frame(ventana, bg="white")
     tabla.columnconfigure(3, minsize=110)  # Sub total
     tabla.columnconfigure(4, weight=1)     # Botón eliminar
 
+    # resumen de compra (subtotal + IVA)
+    resumen = tk.Frame(ventana, bg="white")
+    resumen.pack(fill="x", padx=20, pady=(10, 0))
+    lbl_subtotal = tk.Label(resumen, text="", font=FUENTE, bg="white", anchor="e")
+    lbl_subtotal.pack(fill="x")
+    lbl_iva = tk.Label(resumen, text="", font=FUENTE, bg="white", anchor="e")
+    lbl_iva.pack(fill="x")
+
     pie = tk.Frame(ventana, bg="white")
     pie.pack(fill="x", padx=20, pady=(8, 0))
 
-    lbl_total = tk.Label(pie, text="", font=FUENTE_NEGRITA, bg="white")
+    lbl_total = tk.Label(pie, text="", font=FUENTE_NEGRITA, bg="white", fg="#1b5e20")
 
-    def obtener_cantidad(item):
+    # logica de la interfaz
+    def fmt(valor):
         try:
-            return max(1, int(item["cantidad"].get()))
+            return f"{valor:,.0f}"
+        except (TypeError, ValueError):
+            return str(valor)
+
+    def actualizar_totales():
+        lbl_subtotal.config(text=f"Subtotal: ${fmt(carrito.calcular_subtotal())} CLP")
+        lbl_iva.config(text=f"IVA (19%): ${fmt(carrito.calcular_iva())} CLP")
+        lbl_total.config(text=f"Total ${fmt(carrito.calcular_total())} CLP")
+
+    def cambiar_cantidad(item, var, spin, lbl_sub):
+        # Por ahora solo se puede BAJAR la cantidad (el stock se restaura en la bd)
+        try:
+            nueva = int(var.get())
         except (tk.TclError, ValueError):
-            return 1
+            nueva = item["cantidad"]
+        nueva = max(99, min(nueva, item["cantidad"]))
+        diferencia = item["cantidad"] - nueva
+        if diferencia > 0:
+            carrito.eliminar_producto(item, diferencia)
+        var.set(nueva)
+        spin.config(to=nueva)
+        lbl_sub.config(text=f"${fmt(item['precio'] * item['cantidad'])} CLP")
+        actualizar_totales()
 
-    def actualizar():
-        total = 0
-        for item, lbl in zip(items, subtotales):
-            sub = item["precio"] * obtener_cantidad(item)
-            lbl.config(text=f"${sub} USD")
-            total += sub
-        lbl_total.config(text=f"Total ${total} USD")
+    def eliminar(item):
+        # Quita el producto completo y restaura su stock
+        carrito.eliminar_producto(item, item["cantidad"])
+        refrescar_interfaz()
 
-    def eliminar(idx):
-        del items[idx]
+    #refrescar la ventana al eliminar o vaciar
+    def refrescar_interfaz():
         dibujar_tabla()
 
     def continuar():
         ventana.destroy()  # vuelve a la página anterior
 
     def pagar():
-        total = sum(i["precio"] * obtener_cantidad(i) for i in items)
-        messagebox.showinfo("Pagos", f"Total a pagar: ${total} USD", parent=ventana)
+        if not carrito.items:
+            messagebox.showwarning("Pagos", "El carrito está vacío.", parent=ventana)
+            return
+        messagebox.showinfo(
+            "Pagos", f"Total a pagar: ${fmt(carrito.calcular_total())} USD", parent=ventana
+        )
 
     def linea(fila):
-            tk.Frame(tabla, bg=COLOR_BORDE, height=1).grid(
-                row=fila, column=0, columnspan=5, sticky="ew"
-            )
-             
+        tk.Frame(tabla, bg=COLOR_BORDE, height=1).grid(
+            row=fila, column=0, columnspan=5, sticky="ew"
+        )
+
     def dibujar_tabla():
         for w in tabla.winfo_children():
             w.destroy()
         subtotales.clear()
+        variables.clear()
+
+        # Encabezados
+        for col, texto in enumerate(["Producto", "Precio", "Cantidad", "Sub total"]):
+            tk.Label(tabla, text=texto, font=FUENTE_NEGRITA, bg="white",
+                     anchor="w").grid(row=0, column=col, sticky="w", pady=8, padx=(4, 0))
+        linea(1)
+
+        # Si el carrito está vacío
+        if not carrito.items:
+            tk.Label(tabla, text="El carrito está vacío", font=FUENTE,
+                     bg="white", fg="#777777").grid(
+                row=2, column=0, columnspan=5, sticky="w", pady=15, padx=(4, 0))
+            actualizar_totales()
+            return
+
+        # Recorremos los ítems guardados en el objeto Carrito
+        for i, item in enumerate(carrito.items):
+            fila = 2 + i * 2
+
+            tk.Label(tabla, text=item["nombre"], font=FUENTE, bg="white",
+                     anchor="w").grid(row=fila, column=0, sticky="w", pady=10, padx=(4, 0))
+            tk.Label(tabla, text=f"${fmt(item['precio'])} CLP", font=FUENTE, bg="white",
+                     anchor="w").grid(row=fila, column=1, sticky="w", padx=(4, 0))
+
+            lbl_sub = tk.Label(
+                tabla, text=f"${fmt(item['precio'] * item['cantidad'])} CLP",
+                font=FUENTE, bg="white", anchor="w")
+            lbl_sub.grid(row=fila, column=3, sticky="w", padx=(4, 0))
+            subtotales.append(lbl_sub)
+
+            var = tk.IntVar(master=ventana, value=item["cantidad"])
+            variables.append(var)
+            spin = tk.Spinbox(
+                tabla, from_=1, to=item["cantidad"], width=4, font=FUENTE,
+                textvariable=var, relief="solid", bd=1
+            )
+            spin.config(command=lambda it=item, v=var, s=spin, l=lbl_sub:
+                        cambiar_cantidad(it, v, s, l))
+            spin.grid(row=fila, column=2, sticky="w", padx=(4, 0))
+            for evento in ("<Return>", "<FocusOut>"):
+                spin.bind(evento, lambda e, it=item, v=var, s=spin, l=lbl_sub:
+                          cambiar_cantidad(it, v, s, l))
+
+            tk.Button(
+                tabla, text="🗑", font=("Segoe UI Emoji", 10),
+                bg=COLOR_ROJO, fg="white", activebackground="#c9302c",
+                activeforeground="white", relief="flat", bd=0,
+                width=5, pady=3, cursor="hand2",
+                command=lambda it=item: eliminar(it)
+            ).grid(row=fila, column=4, sticky="w")
+
+            linea(fila + 1)
+
+        actualizar_totales()
+
+    # botones , se pueden mover a FuncionBotones quizas mas adelante
+    tk.Button(
+        pie, text="‹  Continue Comprando", font=FUENTE,
+        bg=COLOR_NARANJA, fg="white", activebackground="#d99a45",
+        activeforeground="white", relief="flat", bd=0,
+        padx=12, pady=5, cursor="hand2", command=continuar
+    ).pack(side="left")
 
     tk.Button(
-            pie, text="‹  Continue Comprando", font=FUENTE,
-            bg=COLOR_NARANJA, fg="white", activebackground="#d99a45",
-            activeforeground="white", relief="flat", bd=0,
-            padx=12, pady=5, cursor="hand2", command=continuar
-        ).pack(side="left")
-        
-        tk.Button(
-            pie, text="Pagos  ›", font=FUENTE,
-            bg=COLOR_VERDE, fg="white", activebackground="#4cae4c",
-            activeforeground="white", relief="flat", bd=0,
-            width=12, pady=5, cursor="hand2", command=pagar
-        ).pack(side="right")
-        
-        lbl_total.pack(side="right", padx=30)
-        
-        dibujar_tabla()
-        return ventana
-        
+        pie, text="Pagos  ›", font=FUENTE,
+        bg=COLOR_VERDE, fg="white", activebackground="#4cae4c",
+        activeforeground="white", relief="flat", bd=0,
+        width=12, pady=5, cursor="hand2", command=pagar
+    ).pack(side="right")
 
-        if __name__ == "__main__":
-            root = tk.Tk()
-            root.geometry("300x150")
-            tk.Button(root, text="Ver carrito", command=lambda: abrir_carrito(root)).pack(expand=True)
-            root.mainloop()
-        
-    # Si el carrito está vacío
-    if not F.carrito.items:
-        tk.Label(frame_lista_carrito, text="El carrito está vacío", bg="#d9d9d9").pack(anchor="w", pady=5)
-    else:
-        # Recorremos los ítems guardados en el objeto Carrito
-        for item in F.carrito.items:
-            subtotal_item = item["precio"] * item["cantidad"]
-            texto = f"{item['nombre']} x{item['cantidad']} - ${subtotal_item:,.0f}"
+    lbl_total.pack(side="right", padx=30)
 
-            # Contenedor para cada fila de producto
-            row_frame = tk.Frame(frame_lista_carrito, bg="#d9d9d9")
-            row_frame.pack(fill="x", pady=2)
+    dibujar_tabla()
 
-            tk.Label(row_frame, text=texto, bg="#d9d9d9", anchor="w").pack(side="left")
-
-            # Etiqueta ELIMINAR con empaquetador .pack()
-            eliminar = tk.Label(row_frame, text="[ELIMINAR]", bg="#d9d9d9", fg="red", cursor="hand2")
-            eliminar.pack(side="right")
-            
-            # Al eliminar se ejecuta la función y luego se destruye/reabre la ventana
-            eliminar.bind("<Button-1>", lambda event, i=item: [F.eliminar_producto(ventana, i), refrescar_interfaz()])
-
-        subtotal, iva, total = F.mostrar_info()
-
-        # Resumen de totales
-        tk.Label(frame_lista_carrito, text=f"Subtotal: ${subtotal}", bg="#d9d9d9", font=("Arial", 10, "bold")).pack(anchor="w", pady=(10, 0))
-        tk.Label(frame_lista_carrito, text=f"IVA (19%): ${iva}", bg="#d9d9d9", font=("Arial", 10, "bold")).pack(anchor="w", pady=(2, 0))
-        tk.Label(frame_lista_carrito, text=f"Total: ${total}", bg="#d9d9d9", font=("Arial", 11, "bold"), fg="#1b5e20").pack(anchor="w", pady=(2, 0))
-
-    ventana.mainloop()
+    if ventana_propia:
+        ventana.mainloop()
+    return ventana
