@@ -195,37 +195,6 @@ def mostrar_total_inventario(etiqueta_resultado):
         text=f"Valor total del inventario: ${total:,.0f}"
     )
 
-def confirmar_vaciado(categoria_var, Frame_productos, ventana_vaciar=None):
-    seleccion = categoria_var.get().strip() if categoria_var and categoria_var.get() else ""
-
-    if not seleccion:
-        messagebox.showwarning("Sin selección", "Debes elegir una categoría o vaciar todo el inventario.")
-        return
-
-    if seleccion == "-- Todo el inventario --":
-        confirmar = messagebox.askyesno(
-            "Confirmación",
-            "¿Seguro que quieres vaciar todo el inventario? Esta acción eliminará todos los productos."
-        )
-        if not confirmar:
-            return
-        bd.vaciar_inventario()
-        messagebox.showinfo("Inventario vaciado", "Se vació todo el inventario.")
-    else:
-        confirmar = messagebox.askyesno(
-            "Confirmación",
-            f"¿Seguro que quieres vaciar la categoría '{seleccion}'? Se eliminarán todos los productos de esa categoría."
-        )
-        if not confirmar:
-            return
-        bd.vaciar_categoria(seleccion)
-        messagebox.showinfo("Categoría vaciada", f"Se vació la categoría '{seleccion}'.")
-
-    if Frame_productos is not None:
-        mostrar_productos(Frame_productos)
-    if ventana_vaciar is not None:
-        ventana_vaciar.destroy()
-
 
 def buscar(buscador, inventario_productos):
     valor = buscador.get()
