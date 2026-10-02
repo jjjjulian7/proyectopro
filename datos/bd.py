@@ -175,3 +175,21 @@ def restaurar_stock(id_producto, cantidad):
         conexion.commit()
     finally:
         conexion.close()
+
+def reservar_stock(id_producto, cantidad, nombre_producto):
+    conexion = conectar()
+    try:
+        cursor = conexion.cursor()
+        cursor.execute(
+            "UPDATE productos SET stock = stock - ? WHERE id = ? AND stock >= ?",
+            (cantidad, id_producto, cantidad)
+        )
+        if cursor.rowcount == 0:  # No se pudo reservar el stock porque no hay suficiente.
+            return False, f"No hay suficiente stock disponible para el producto: {nombre_producto}"
+        conexion.commit()
+        return True, "Stock reservado correctamente" 
+    except Exception as e:
+        conexion.rollback()         # si falla sqlite, deshace los cambios
+        return False, str(e) 
+    finally:
+        conexion.close()    

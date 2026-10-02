@@ -29,16 +29,6 @@ def abrir_ventana_funcionario():
     
     boton_ingresar = estilo_boton.crear_boton_verde(ventana, "Ingresar",lambda: F.ventana_a(ventana)) 
     boton_ingresar.grid(row=5, column=3, padx=(10, 250), pady=(50, 0))
-    
-    
-    cambiar_admin= tk.Label(ventana, text="¿Volver a la ventana de Usuario? Haz click aqui")
-    cambiar_admin.grid(row=12, column=0, padx=(0,0), pady=(300, 0))
-    
-    def volver_interfaz(event):
-        ventana.destroy() #Destruimos la ventana de administrador
-        from . import interfaz
-        interfaz.ventana.deiconify() #Hacemos reaparecer la ventana principal de usuario
 
-    cambiar_admin.bind("<Button-1>", volver_interfaz)
     
     ventana.mainloop()
