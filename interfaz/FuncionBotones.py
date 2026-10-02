@@ -11,7 +11,7 @@ from . import Interfaz_pagina
 from . import ventana_admin
 from . import interfaz
 from . import abrir_carrito
-from . import Client_ProyProgV2
+from . import Client_ProyProgV2 as ClienteRed
 import Server_ProgProyV2
 import threading
 # Codigo realizado por Cristobal Maulen
@@ -40,7 +40,7 @@ def ventana_usuario(ventana,texto,IngresoClave):
             texto.pack()
             ventanaAdvertencia.after(2000,ventanaAdvertencia.destroy)
         else:
-            hilo_cliente = threading.Thread(target=Client_ProyProgV2.start_client)
+            hilo_cliente = threading.Thread(target=ClienteRed.conectar_servidor)
             hilo_cliente.daemon = True
             hilo_cliente.start()
             

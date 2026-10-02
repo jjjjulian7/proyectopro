@@ -1,13 +1,12 @@
 import datos.bd as bd
+from interfaz import Client_ProyProgV2 as ClienteRed
 
 class Carrito:
     def __init__(self):
         self.items = []
         
     def agregar_producto(self, producto, cantidad):
-        exito, mensaje = bd.reservar_stock(producto.id, cantidad, producto.nombre) #llama a la funcion reservar_stock de bd.py para reservar el stock del producto
-        if not exito:
-            return False, mensaje
+        ClienteRed.enviar_reserva(producto.id , cantidad) #llama a la funcion reservar_stock de bd.py para reservar el stock del producto
         
         for item in self.items: #recorre los items del carrito y si el producto ya existe, aumenta la cantidad
             if item["id"] == producto.id: #compara el id del producto con los items del carrito

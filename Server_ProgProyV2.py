@@ -2,22 +2,14 @@ import socket
 import json
 import threading
 import sys
-from clases.producto import Producto
-from clases.inventario import Inventario
-
+from datos import bd
 HOST = '192.168.1.119'
 PORT = 65433
 
 
 def handle_client(conn, addr):
     print(f"\n[+] Conectado por {addr}")
-    print("=" * 50)
-    print("FORMATOS DE ENVÍO DISPONIBLES:")
-    print("  1. Chat simple: escribe tu mensaje")
-    print("  2. Datos (numero,texto): escribe 'datos:30,procesador,valor'")
-    print("  3. Salir: escribe 'salir'")
-    print("=" * 50)
-
+    
     def receive_data():
         buffer = ""
         while True:
@@ -36,17 +28,23 @@ def handle_client(conn, addr):
                     request = json.loads(line)
 
                     # Manejo de intercambio de datos (numero + texto)
-                    if request.get('type') == 'data_exchange':
-                        numero = request.get('numero')
-                        texto = request.get('texto')
-                        valor = request.get('valor')
-                        print(f"\n[Cliente envió datos] Número: {numero}, Texto: '{texto}, valor: {valor}'")
-                        print("Tu mensaje: ", end="", flush=True)
-
-                    # Manejo de chat simple
-                    elif request.get('type') == 'message':
-                        print(f"\n[Cliente]: {request.get('content')}")
-                        print("Tu mensaje: ", end="", flush=True)
+                    if request.get('type') == 'reserva':
+                        id_producto = request.get('id_producto')
+                        cantidad = request.get('cantidad')
+                        print(f"[Servidor recibe] Reserva solicitada: ID Producto: {id_producto}, Cantidad: {cantidad}")
+                    
+                    #exito = bd.reservar_stock(id_producto, cantidad)
+                    exito = True 
+                    if exito:
+                        response = {
+                            'type': 'respuesta_reserva',
+                            'estado': 'ok'
+                        } 
+                    else:
+                        response = {
+                            'type': 'respuesta_reserva',
+                            'estado': 'sin_stock'
+                        }
 
             except json.JSONDecodeError:
                 print("\n[!] Error decodificando JSON.")
@@ -57,7 +55,6 @@ def handle_client(conn, addr):
 
         conn.close()
         print("\n[-] El cliente se ha desconectado.")
-        sys.exit()
 
     thread_recv = threading.Thread(target=receive_data)
     thread_recv.daemon = True
