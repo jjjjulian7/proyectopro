@@ -3,7 +3,7 @@ import json
 import threading
 import sys
 
-HOST = '172.20.10.3'
+HOST = '192.168.1.119'
 PORT = 65433
 
 def start_client():

@@ -147,34 +147,21 @@ def restaurar_stock(id_producto, cantidad):
         conexion.commit()
     finally:
         conexion.close()
-def procesar_compra(items):
+
+def reservar_stock(id_producto, cantidad, nombre_producto):
     conexion = conectar()
     try:
         cursor = conexion.cursor()
-        subtotal = 0
-        for it in items:
-            id_p, cant = int(it["id"]), int(it["cantidad"])
-            if cant <= 0:
-                raise ValueError("Cantidad inválida")
-
-            cursor.execute("SELECT nombre, precio FROM productos WHERE id = ?", (id_p,))
-            fila = cursor.fetchone()
-            if fila is None:
-                raise ValueError(f"El producto {id_p} ya no existe")
-
-            cursor.execute(
-                "UPDATE productos SET stock = stock - ? WHERE id = ? AND stock >= ?",
-                (cant, id_p, cant)
-            )
-            if cursor.rowcount == 0:      # no se actualizó ninguna fila: no alcanzaba el stock
-                raise ValueError(f"Stock insuficiente de {fila[0]}")
-
-            subtotal += fila[1] * cant    # el precio sale de la BD, no del cliente
-
+        cursor.execute(
+            "UPDATE productos SET stock = stock - ? WHERE id = ? AND stock >= ?",
+            (cantidad, id_producto, cantidad)
+        )
+        if cursor.rowcount == 0:  # No se pudo reservar el stock porque no hay suficiente.
+            return False, f"No hay suficiente stock disponible para el producto: {nombre_producto}"
         conexion.commit()
-        return True, round(subtotal * 1.19)
-    except (ValueError, KeyError, TypeError) as e:
-        conexion.rollback()               # si falla un ítem, no se descuenta ninguno
-        return False, str(e)
+        return True, "Stock reservado correctamente" 
+    except Exception as e:
+        conexion.rollback()         # si falla sqlite, deshace los cambios
+        return False, str(e) 
     finally:
         conexion.close()    

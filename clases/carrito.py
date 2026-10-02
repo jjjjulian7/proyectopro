@@ -5,17 +5,21 @@ class Carrito:
         self.items = []
         
     def agregar_producto(self, producto, cantidad):
+        exito, mensaje = bd.reservar_stock(producto.id, cantidad, producto.nombre) #llama a la funcion reservar_stock de bd.py para reservar el stock del producto
+        if not exito:
+            return False, mensaje
+        
         for item in self.items: #recorre los items del carrito y si el producto ya existe, aumenta la cantidad
             if item["id"] == producto.id: #compara el id del producto con los items del carrito
                 item["cantidad"] += cantidad
-                return True
+                return True , "Cantidad actualizada en el carrito"
         self.items.append({ #agrega un nuevo producto al carrito si no existe
             "id": producto.id, # se agrega id para identificar el producto mas facil 
             "nombre": producto.nombre,
             "precio": producto.precio,
             "cantidad": cantidad
         })
-        return True
+        return True, "Producto agregado al carrito"
     
     def vaciar_carrito(self):
         for item in self.items: # recorre los items del carrito y restaura el stock de cada producto en la base de datos
@@ -37,6 +41,7 @@ class Carrito:
     
     def calcular_total(self):
         return self.calcular_subtotal() + self.calcular_iva()
+    
     def eliminar_producto(self, i, cantidad):
         # 1. Validar que la cantidad ingresada sea válida
         if cantidad <= 0:
@@ -52,4 +57,12 @@ class Carrito:
 
         if i["cantidad"] <= 0:
             self.items.remove(i)
+            
+    def procesar_compra(self):
+        if not self.items:
+            return False, "El carrito está vacío"
+        
+        total = self.calcular_total()
+        self.items.clear()  # Vacía el carrito después de procesar la compra
+        return True, f"Compra procesada exitosamente. Total: ${total:.2f}"
     

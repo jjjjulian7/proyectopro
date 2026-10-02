@@ -1,5 +1,4 @@
-#funciones a completar despues con sqlite3
-import sqlite3
+
 import tkinter as tk
 from tkinter import messagebox
 from clases.usuario import usuario
@@ -13,14 +12,15 @@ from . import ventana_admin
 from . import interfaz
 from . import abrir_carrito
 from . import Client_ProyProgV2
-from . import Server_ProgProyV2
+import Server_ProgProyV2
+import threading
 # Codigo realizado por Cristobal Maulen
 carrito = C()
 inventario=I()
 usuario_actual = None
 def ventana_a(ventana):
     ventana_admin.ejecutar()
-    Server_ProgProyV2.handle_client()
+    #Server_ProgProyV2.handle_client()
     ventana.iconify()
 def ventana_usuario(ventana,texto,IngresoClave):
         global usuario_actual   # Usamos global para que la variable cambie fuera de la funcion
@@ -40,9 +40,13 @@ def ventana_usuario(ventana,texto,IngresoClave):
             texto.pack()
             ventanaAdvertencia.after(2000,ventanaAdvertencia.destroy)
         else:
-            Client_ProyProgV2.start_client()
-            usuario_actual = resultado[1]   # Si se inicia sesion, a usuario_actual se le asignara el nombre
+            hilo_cliente = threading.Thread(target=Client_ProyProgV2.start_client)
+            hilo_cliente.daemon = True
+            hilo_cliente.start()
+            
+            usuario_actual = resultado[1] 
             ventana.destroy()
+           
 
 def hay_usuario_autenticado():
     return usuario_actual is not None      
