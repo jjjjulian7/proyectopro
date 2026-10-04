@@ -2,105 +2,73 @@ import socket
 import json
 import threading
 import sys
-
+import time
+from tkinter import messagebox
 HOST = '192.168.1.119'
 PORT = 65433
 
-def start_client():
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
+conexion=None
+c=False
+def conectar():
+    global conexion , c #se ocupa variables globales porque despues se ocupara el socket conexion para mandar la info
+    while not c:
+        intento=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
-            client_socket.connect((HOST, PORT))
-            print(f"[+] Conectado al servidor {HOST}:{PORT}")
-            print("=" * 50)
-            print("FORMATOS DE ENVÍO DISPONIBLES:")
-            print("  1. Chat simple: escribe tu mensaje")
-            print("  2. Datos (numero,texto): escribe 'datos:20,procesador,valor'")
-            print("  3. Salir: escribe 'salir'")
-            print("=" * 50)
+            intento.settimeout(5)
+            intento.connect((HOST,PORT))
+            intento.settimeout(None)
+            print ("se conecto correctamente")
+            conexion=intento
+            c=True
+            hilo_recibir=threading.Thread(target=recibir,args=(intento,),daemon=True)
+            hilo_recibir.start()
+        except OSError:
+            intento.close()
+            time.sleep(3)
+            print("no se pudo conectar con el administrador")
 
-            def receive_data():
-                buffer = ""
-                while True:
-                    try:
-                        data = client_socket.recv(4096)
-                        if not data:
-                            break
+def enviar(dato):
+    if conexion is None:
+        messagebox.showwarning("no se puede mandar al server", "no conexion con servidor")
+        return False
+    mensaje_transformado=json.dumps(dato)+'\n'
+    mensaje_transformado=mensaje_transformado.encode('utf-8')
+    conexion.sendall(mensaje_transformado)
+    return True
 
-                        buffer += data.decode('utf-8')
-                        while '\n' in buffer:
-                            line, buffer = buffer.split('\n', 1)
-                            if not line.strip():
-                                continue
 
-                            request = json.loads(line)
-
-                            # Manejo de intercambio de datos (numero + texto)
-                            if request.get('type') == 'data_exchange':
-                                numero = request.get('numero')
-                                texto = request.get('texto')
-                                valor = request.get('valor')
-                                print(f"\n[Servidor envió datos] Número: {numero}, Texto: '{texto}, valor:{valor}'")
-                                print("Tu mensaje: ", end="", flush=True)
-
-                            # Manejo de chat simple
-                            elif request.get('type') == 'message':
-                                print(f"\n[Servidor]: {request.get('content')}")
-                                print("Tu mensaje: ", end="", flush=True)
-
-                    except Exception:
-                        break
-                print("\n[-] Desconectado del servidor.")
-                sys.exit()
-
-            thread_recv = threading.Thread(target=receive_data)
-            thread_recv.daemon = True
-            thread_recv.start()
-
-            while True:
-                msg = input("Tu mensaje: ")
-
-                if msg.lower() in ['salir', 'exit', 'quit']:
-                    break
-
-                # Detectar si es comando de datos
-                if msg.lower().startswith('datos:'):
-                    try:
-                        # Formato esperado: datos:20,galleta
-                        contenido = msg[6:]  # Quitamos 'datos:'
-                        partes = contenido.split(',', 2) ## partes = contenido.split(',', 2)  # Cambiado a 2 para permitir tres partes
-
-                        if len(partes) == 3:
-                            numero = int(partes[0].strip())
-                            texto = partes[1].strip()
-                            valor = int(partes[2].strip())
-
-                            payload = {
-                                'type': 'data_exchange',
-                                'numero': numero,
-                                'texto': texto,
-                                'valor' : valor
-                            }
-
-                            print(f"[Cliente envía] Número: {numero}, Texto: {texto}, valor: {valor}")
-                            client_socket.sendall((json.dumps(payload) + '\n').encode('utf-8'))
-                        else:
-                            print("[!] Formato incorrecto. Usa: datos:numero,texto,valor")
-
-                    except ValueError:
-                        print("[!] Error: El número debe ser un entero válido.")
-
-                else:
-                    # Mensaje de chat simple
-                    payload = {
-                        'type': 'message',
-                        'content': msg
-                    }
-                    client_socket.sendall((json.dumps(payload) + '\n').encode('utf-8'))
-
-        except ConnectionRefusedError:
-            print("[!] Error: No se pudo conectar al servidor. ¿Está encendido?")
-        finally:
-            client_socket.close()
-
-if __name__ == "__main__":
-    start_client()
+def recibir(socket_conexion):
+    bufer=''
+    while True:
+        mensaje=socket_conexion.recv(4096)
+        if not mensaje:
+            break
+        bufer+=mensaje.decode('utf-8')
+        while '\n' in bufer:
+            mensaje_completo,bufer=bufer.split('\n',1)
+            if not mensaje_completo.strip():
+                continue
+            try:
+                dato=json.loads(mensaje_completo)
+            except json.JSONDecodeError:
+                continue
+            tipo=dato.get('type')
+            if tipo=='reservar_stock':
+                ok=dato.get('ok')
+                mensaje=dato.get('mensaje')
+def dato_envia(dato):
+    tipo=dato.get('type')
+    if tipo == 'reservar_stock':
+        id_producto=dato.get('id_producto')
+        cantidad=dato.get('cantidad')
+        nombre=dato.get('nombre')
+        enviar({'type':'reservar_stock',
+            'id_producto':id_producto,
+                    'cantidad':cantidad,
+                    'nombre':nombre})
+    if tipo =='reponer_stock':
+        id_producto=dato.get('id_producto')
+        cantidad=dato.get('cantidad')
+        enviar({'type':'reponer_stock',
+            'id_producto':id_producto,
+                'cantidad':cantidad})

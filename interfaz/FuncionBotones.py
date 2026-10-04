@@ -40,7 +40,7 @@ def ventana_usuario(ventana,texto,IngresoClave):
             texto.pack()
             ventanaAdvertencia.after(2000,ventanaAdvertencia.destroy)
         else:
-            hilo_cliente = threading.Thread(target=Client_ProyProgV2.start_client)
+            hilo_cliente = threading.Thread(target=Client_ProyProgV2.conectar)
             hilo_cliente.daemon = True
             hilo_cliente.start()
             
