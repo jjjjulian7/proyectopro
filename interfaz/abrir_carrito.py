@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox
+from .validar_tarjeta import abrir_validar_tarjeta
 
 # Colores que ocupamos en la interfaz
 COLOR_BORDE = "#dddddd"
@@ -79,7 +80,7 @@ def abrir_carrito(carrito, event=None):
             nueva = int(var.get())
         except (tk.TclError, ValueError):
             nueva = item["cantidad"]
-        nueva = max(99, min(nueva, item["cantidad"]))
+        nueva = max(1, min(nueva, item["cantidad"]))
         diferencia = item["cantidad"] - nueva
         if diferencia > 0:
             carrito.eliminar_producto(item, diferencia)
@@ -101,12 +102,11 @@ def abrir_carrito(carrito, event=None):
         ventana.destroy()  # vuelve a la página anterior
 
     def pagar():
+        print("click en pagar")  # temporal: borrar cuando todo funcione
         if not carrito.items:
             messagebox.showwarning("Pagos", "El carrito está vacío.", parent=ventana)
             return
-        messagebox.showinfo(
-            "Pagos", f"Total a pagar: ${fmt(carrito.calcular_total())} USD", parent=ventana
-        )
+        abrir_validar_tarjeta(ventana, carrito.calcular_total(), carrito)
 
     def linea(fila):
         tk.Frame(tabla, bg=COLOR_BORDE, height=1).grid(
