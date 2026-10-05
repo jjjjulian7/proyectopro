@@ -160,69 +160,60 @@ def ejecutar():
     )
     boton_total.grid(row=2, column=3, padx=5, pady=5)
 
-    def abrir_ventana_vaciar_admin():
-        ventana_vaciar = tk.Toplevel(ventana)
-        ventana_vaciar.title("Vaciar inventario")
-        ventana_vaciar.geometry("380x220")
-        ventana_vaciar.resizable(False, False)
-        ventana_vaciar.transient(ventana)
-        ventana_vaciar.grab_set()
+    # Vaciar inventario:
+    TODO = "-- Todo el inventario --"
 
-        tk.Label(ventana_vaciar, text="¿Qué deseas vaciar?", font=("Segoe UI", 12, "bold")).pack(pady=(15, 10))
+    selector_vaciar = ttk.Combobox(Frame_botones, state="readonly", width=22)
+    selector_vaciar.grid(row=1, column=6, padx=(20, 5), pady=10)
 
-        categorias = sorted({producto[4].strip() for producto in bd.mostrar_productos() if producto[4] and producto[4].strip()})
-        opciones = ["-- Todo el inventario --"] + categorias
-        categoria_var = tk.StringVar(value=opciones[0])
+    def actualizar_selector_vaciar():
+        # Vuelve a leer las categorías de la BD (así no queda una categoría ya vaciada)
+        categorias_bd = sorted({p[4] for p in bd.mostrar_productos() if p[4] and p[4].strip()})
+        selector_vaciar["values"] = [TODO] + categorias_bd
+        selector_vaciar.current(0)
 
-        selector = ttk.Combobox(ventana_vaciar, textvariable=categoria_var, values=opciones, state="readonly")
-        selector.pack(pady=10)
-        if opciones:
-            selector.current(0)
+        # El selector de estadísticas también se actualiza
+        selector_categoria["values"] = categorias_bd
+        if categorias_bd:
+            selector_categoria.current(0)
+        else:
+            selector_categoria.set("")
+        resultado_estadisticas.config(text="")
 
-        def confirmar_vaciado():
-            seleccion = categoria_var.get().strip() if categoria_var.get() else ""
+    def vaciar():
+        boton_vaciar.config(state="disabled")       # evita clics repetidos mientras se procesa
+        try:
+            seleccion = selector_vaciar.get()      
 
-            if not seleccion:
-                messagebox.showwarning("Sin selección", "Debes elegir una categoría o vaciar todo el inventario.")
+            if not bd.mostrar_productos():
+                messagebox.showinfo("Inventario vacío", "No hay productos para vaciar.", parent=ventana)
                 return
 
-            if seleccion == "-- Todo el inventario --":
-                confirmar = messagebox.askyesno(
-                    "Confirmación",
-                    "¿Seguro que quieres vaciar todo el inventario? Esta acción eliminará todos los productos."
-                )
-                if not confirmar:
-                    return
-                bd.vaciar_inventario()
-                messagebox.showinfo("Inventario vaciado", "Se vació todo el inventario.")
+            if seleccion == TODO:
+                texto = "¿Seguro que quieres vaciar todo el inventario? Esta acción eliminará todos los productos."
             else:
-                confirmar = messagebox.askyesno(
-                    "Confirmación",
-                    f"¿Seguro que quieres vaciar la categoría '{seleccion}'? Se eliminarán todos los productos de esa categoría."
-                )
-                if not confirmar:
-                    return
+                texto = f"¿Seguro que quieres vaciar la categoría '{seleccion}'? Se eliminarán todos los productos de esa categoría."
+            # Si el usuario presiona "No", askyesno devuelve False y se cancela todo.
+            if not messagebox.askyesno("Confirmación", texto, parent=ventana):
+                return
+  
+            if seleccion == TODO:
+                bd.vaciar_inventario()
+                aviso = "Se vació todo el inventario."
+            else:
                 bd.vaciar_categoria(seleccion)
-                messagebox.showinfo("Categoría vaciada", f"Se vació la categoría '{seleccion}'.")
+                aviso = f"Se vació la categoría '{seleccion}'."
 
+            F.inventario.productos = F.I().productos    # actualiza la lista en memoria
             F.mostrar_productos(Frame_producto)
-            ventana_vaciar.destroy()
+            actualizar_selector_vaciar()
+            messagebox.showinfo("Listo", aviso, parent=ventana)
+        finally:
+            boton_vaciar.config(state="normal")
 
-        tk.Button(
-            ventana_vaciar,
-            text="Vaciar",
-            bg="#FFFFFF",
-            fg="black",
-            font=("Segoe UI", 10, "bold"),
-            command=confirmar_vaciado
-        ).pack(pady=10)
-
-    boton_vaciar = tk.Button(
-        Frame_botones,
-        text="Vaciar inventario",
-        command=abrir_ventana_vaciar_admin,
-    )
-    boton_vaciar.grid(row=1, column=6, padx=(20, 20), pady=10, sticky="e")
+    boton_vaciar = tk.Button(Frame_botones, text="Vaciar", command=vaciar)
+    boton_vaciar.grid(row=1, column=7, padx=(0, 20), pady=10)
+    actualizar_selector_vaciar()
 
     #frame de los productos
     F.mostrar_productos(Frame_producto)

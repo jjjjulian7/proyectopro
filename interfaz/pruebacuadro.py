@@ -1,8 +1,7 @@
 import tkinter as tk
 from . import FuncionBotones as F
-from clases.inventario import Inventario
 from clases.producto import Producto
-from datos import bd
+
 def crear_cuadradito(contenedor_padre, gestor, ruta_imagen, nombre, categoria, precio,stock,id_producto):
     marco = tk.Frame(contenedor_padre, bg="white", bd=1, relief="solid", padx=15, pady=15)
     
@@ -30,29 +29,31 @@ def crear_cuadradito(contenedor_padre, gestor, ruta_imagen, nombre, categoria, p
     stock_actual = stock
 
     def agregar_carrito():
-        nonlocal stock_actual
-        if not F.validar_sesion():      #Si no hay sesion iniciada, no permite agregar cosas al carrito
+        if not F.validar_sesion():
             return
 
         cantidad_texto = stok.get()
 
         if not cantidad_texto.isdigit() or int(cantidad_texto) <= 0:
-            tk.messagebox.showerror("Error", "Ingresa una cantidad válida")
+            tk.messagebox.showerror("Error", "Ingresa una cantidad valida")
             return
 
         cantidad = int(cantidad_texto)
-        nuevo_stock = stock_actual - cantidad
 
-        if not Inventario().validar_stock(nuevo_stock):
+        # cuántas unidades de este producto ya están en el carrito
+        en_carrito = 0
+        for i in F.carrito.items:
+            if i["id"] == id_producto:
+                en_carrito = i["cantidad"]
+
+        # si lo que ya tiene más lo nuevo supera el stock, se rechaza
+        if cantidad + en_carrito > stock_actual:
             tk.messagebox.showerror("Error", "No hay stock suficiente")
             return
-        producto_seleccionado = Producto(nombre, precio, nuevo_stock, categoria)
-        producto_seleccionado.id = id_producto
-        bd.actualizar_producto(producto_seleccionado)
-        F.agregar_producto_carrito(producto_seleccionado, cantidad)
 
-        stock_actual = nuevo_stock
-        lbl_stock.config(text=f"Stock: {stock_actual}")
+        producto_seleccionado = Producto(nombre, precio, stock_actual, categoria)
+        producto_seleccionado.id = id_producto
+        F.agregar_producto_carrito(producto_seleccionado, cantidad)
 
     boton_agregar = tk.Button(marco, text="agregar al carrito", font=("Arial", 10, "bold"), 
                         bg="white", fg="#4a2a85", bd=1, relief="solid", cursor="hand2",

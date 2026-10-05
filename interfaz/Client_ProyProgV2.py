@@ -3,7 +3,7 @@ import json
 import threading
 import sys
 
-HOST = '172.16.52.155'
+HOST = '192.168.1.119'
 PORT = 65433
 
 def start_client():
@@ -14,7 +14,7 @@ def start_client():
             print("=" * 50)
             print("FORMATOS DE ENVÍO DISPONIBLES:")
             print("  1. Chat simple: escribe tu mensaje")
-            print("  2. Datos (numero,texto): escribe 'datos:20,galleta'")
+            print("  2. Datos (numero,texto): escribe 'datos:20,procesador,valor'")
             print("  3. Salir: escribe 'salir'")
             print("=" * 50)
 
@@ -38,7 +38,8 @@ def start_client():
                             if request.get('type') == 'data_exchange':
                                 numero = request.get('numero')
                                 texto = request.get('texto')
-                                print(f"\n[Servidor envió datos] Número: {numero}, Texto: '{texto}'")
+                                valor = request.get('valor')
+                                print(f"\n[Servidor envió datos] Número: {numero}, Texto: '{texto}, valor:{valor}'")
                                 print("Tu mensaje: ", end="", flush=True)
 
                             # Manejo de chat simple
@@ -66,22 +67,24 @@ def start_client():
                     try:
                         # Formato esperado: datos:20,galleta
                         contenido = msg[6:]  # Quitamos 'datos:'
-                        partes = contenido.split(',', 1)
+                        partes = contenido.split(',', 2) ## partes = contenido.split(',', 2)  # Cambiado a 2 para permitir tres partes
 
-                        if len(partes) == 2:
+                        if len(partes) == 3:
                             numero = int(partes[0].strip())
                             texto = partes[1].strip()
+                            valor = int(partes[2].strip())
 
                             payload = {
                                 'type': 'data_exchange',
                                 'numero': numero,
-                                'texto': texto
+                                'texto': texto,
+                                'valor' : valor
                             }
 
-                            print(f"[Cliente envía] Número: {numero}, Texto: '{texto}'")
+                            print(f"[Cliente envía] Número: {numero}, Texto: {texto}, valor: {valor}")
                             client_socket.sendall((json.dumps(payload) + '\n').encode('utf-8'))
                         else:
-                            print("[!] Formato incorrecto. Usa: datos:numero,texto")
+                            print("[!] Formato incorrecto. Usa: datos:numero,texto,valor")
 
                     except ValueError:
                         print("[!] Error: El número debe ser un entero válido.")

@@ -1,5 +1,4 @@
-#funciones a completar despues con sqlite3
-import sqlite3
+
 import tkinter as tk
 from tkinter import messagebox
 from clases.usuario import usuario
@@ -12,12 +11,16 @@ from . import Interfaz_pagina
 from . import ventana_admin
 from . import interfaz
 from . import abrir_carrito
+from . import Client_ProyProgV2
+import Server_ProgProyV2
+import threading
 # Codigo realizado por Cristobal Maulen
 carrito = C()
 inventario=I()
 usuario_actual = None
 def ventana_a(ventana):
     ventana_admin.ejecutar()
+    #Server_ProgProyV2.handle_client()
     ventana.iconify()
 def ventana_usuario(ventana,texto,IngresoClave):
         global usuario_actual   # Usamos global para que la variable cambie fuera de la funcion
@@ -37,8 +40,13 @@ def ventana_usuario(ventana,texto,IngresoClave):
             texto.pack()
             ventanaAdvertencia.after(2000,ventanaAdvertencia.destroy)
         else:
-            usuario_actual = resultado[1]   # Si se inicia sesion, a usuario_actual se le asignara el nombre
+            hilo_cliente = threading.Thread(target=Client_ProyProgV2.start_client)
+            hilo_cliente.daemon = True
+            hilo_cliente.start()
+            
+            usuario_actual = resultado[1] 
             ventana.destroy()
+           
 
 def hay_usuario_autenticado():
     return usuario_actual is not None      
@@ -186,37 +194,6 @@ def mostrar_total_inventario(etiqueta_resultado):
     etiqueta_resultado.config(
         text=f"Valor total del inventario: ${total:,.0f}"
     )
-
-def confirmar_vaciado(categoria_var, Frame_productos, ventana_vaciar=None):
-    seleccion = categoria_var.get().strip() if categoria_var and categoria_var.get() else ""
-
-    if not seleccion:
-        messagebox.showwarning("Sin selección", "Debes elegir una categoría o vaciar todo el inventario.")
-        return
-
-    if seleccion == "-- Todo el inventario --":
-        confirmar = messagebox.askyesno(
-            "Confirmación",
-            "¿Seguro que quieres vaciar todo el inventario? Esta acción eliminará todos los productos."
-        )
-        if not confirmar:
-            return
-        bd.vaciar_inventario()
-        messagebox.showinfo("Inventario vaciado", "Se vació todo el inventario.")
-    else:
-        confirmar = messagebox.askyesno(
-            "Confirmación",
-            f"¿Seguro que quieres vaciar la categoría '{seleccion}'? Se eliminarán todos los productos de esa categoría."
-        )
-        if not confirmar:
-            return
-        bd.vaciar_categoria(seleccion)
-        messagebox.showinfo("Categoría vaciada", f"Se vació la categoría '{seleccion}'.")
-
-    if Frame_productos is not None:
-        mostrar_productos(Frame_productos)
-    if ventana_vaciar is not None:
-        ventana_vaciar.destroy()
 
 
 def buscar(buscador, inventario_productos):
