@@ -1,5 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox
+
+from proyectopro.clases.Venta import venta
 from .validar_tarjeta import abrir_validar_tarjeta
 
 # Colores que ocupamos en la interfaz
@@ -189,6 +191,12 @@ def abrir_carrito(carrito, event=None):
     ).pack(side="right")
 
     lbl_total.pack(side="right", padx=30)
+##Copiada de un commit anterior , falta por arreglar
+    boton_vaciar=tk.Button(ventana,text="Vaciar carrito", command=lambda:F.vaciarcarrito(ventana))
+    boton_vaciar.grid(row=4, column=0, columnspan=4, pady=(20, 0))
+    ventana.mainloop()
+    boton_vaciar = tk.Button(ventana, text="Vaciar carrito", command=lambda: [F.vaciarcarrito(ventana), refrescar_interfaz()])
+    boton_vaciar.grid(row=4, column=0, columnspan=4, pady=(10, 0))
 
     dibujar_tabla()
 

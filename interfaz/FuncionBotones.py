@@ -200,8 +200,6 @@ def buscar(buscador, inventario_productos):
     valor = buscador.get()
     return inventario_productos.buscar_producto(2, valor)
 
-
-
 def ingresar_log(usuario):
     if usuario==None:
         interfaz.ejecutar()
