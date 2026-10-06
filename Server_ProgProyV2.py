@@ -2,122 +2,73 @@ import socket
 import json
 import threading
 import sys
-from datos import bd
+from clases.producto import Producto
+from clases.inventario import Inventario
+
 HOST = '192.168.1.119'
 PORT = 65433
+def iniciar_servidor():
+    server=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    server.bind((HOST, PORT))
+    server.listen()
+    while True:
+        socket_cliente, addr = server.accept()# se crea el socket donde se comunica con el cliente
+        hilo_cliente=threading.Thread(target=atender_cliente,args=(socket_cliente,addr),daemon=True)
+        hilo_cliente.start()
 
 
-def handle_client(conn, addr):
-    print(f"\n[+] Conectado por {addr}")
+#manda mensaje a cliente segun el tipo de dato que recibio antes, esto se filtar a travez de procesar solicitud
+def responder_cliente(socket_cliente,datos):
+    mensaje=json.dumps(datos)+'\n'
+    socket_cliente.sendall(mensaje.encode('utf-8'))
+
+#filta por el tipo de mensaje que respondio
+def procesar_solicitud(socket_cliente,mensaje):
+    tipo=mensaje.get('type')
+    if tipo=='mensaje':
+        responder_cliente(socket_cliente,{})
     
-    def receive_data():
-        buffer = ""
-        while True:
-            try:
-                data = conn.recv(4096)
-                if not data:
-                    break
-
-                buffer += data.decode('utf-8')
-
-                while '\n' in buffer:
-                    line, buffer = buffer.split('\n', 1)
-                    if not line.strip():
-                        continue
-
-                    request = json.loads(line)
-
-                    # Manejo de intercambio de datos (numero + texto)
-                    if request.get('type') == 'reserva':
-                        id_producto = request.get('id_producto')
-                        cantidad = request.get('cantidad')
-                        print(f"[Servidor recibe] Reserva solicitada: ID Producto: {id_producto}, Cantidad: {cantidad}")
-                    
-                    #exito = bd.reservar_stock(id_producto, cantidad)
-                    exito = True 
-                    if exito:
-                        response = {
-                            'type': 'respuesta_reserva',
-                            'estado': 'ok'
-                        } 
-                    else:
-                        response = {
-                            'type': 'respuesta_reserva',
-                            'estado': 'sin_stock'
-                        }
-
-            except json.JSONDecodeError:
-                print("\n[!] Error decodificando JSON.")
-            except ConnectionResetError:
-                break
-            except Exception as e:
-                break
-
-        conn.close()
-        print("\n[-] El cliente se ha desconectado.")
-
-    thread_recv = threading.Thread(target=receive_data)
-    thread_recv.daemon = True
-    thread_recv.start()
-
+    elif tipo=='reservar_stock':
+            id_producto=mensaje.get('id_producto')
+            cantidad=mensaje.get('cantidad')
+            nombre=mensaje.get('nombre')
+            if not isinstance(cantidad,int) or cantidad <= 0:
+                responder_cliente(socket_cliente,{'type': 'mensaje'})
+            acepto,respuesta=bd.reservar_stock(id_producto,cantidad,nombre)
+            responder_cliente(socket_cliente,{'type':'reservar_stock',
+                                              'ok':acepto,
+                                              'mensaje':respuesta,
+                                              'id_producto':id_producto,
+                                              'cantidad':cantidad})
+    elif tipo=='reponer_stock':
+        id_producto=mensaje.get('id_producto')
+        cantidad=mensaje.get('cantidad')
+        bd.restaurar_stock(id_producto,cantidad)
+    
+def atender_cliente(socket_cliente, addr):
+    print(f"[+] Cliente conectado: {addr}")
+    buffer = b""
     try:
         while True:
-            msg = input("Tu mensaje: ")
-
-            if msg.lower() in ['salir', 'exit', 'quit']:
-                print("Cerrando conexión...")
+            data = socket_cliente.recv(4096)
+            if not data:
                 break
 
-            # Detectar si es comando de datos
-            if msg.lower().startswith('datos:'):
+            buffer += data
+            while b'\n' in buffer:
+                linea, buffer = buffer.split(b'\n', 1)
+                if not linea.strip():
+                    continue
                 try:
-                    # Formato esperado: datos:30,pan
-                    contenido = msg[6:]  # Quitamos 'datos:'
-                    partes = contenido.split(',',2)
-
-                    if len(partes) == 2:
-                        numero = int(partes[0].strip())
-                        texto = partes[1].strip()
-                        valor = int(partes[2].strip())
-
-                        response = {
-                            'type': 'data_exchange',
-                            'numero': numero,
-                            'texto': texto,
-                            'valor' : valor
-                        }
-
-                        print(f"[Servidor envía] Número: {numero}, Texto: '{texto}', valor {valor}")
-                        conn.sendall((json.dumps(response) + '\n').encode('utf-8'))
-                    else:
-                        print("[!] Formato incorrecto. Usa: datos:numero,texto")
-
-                except ValueError:
-                    print("[!] Error: El número debe ser un entero válido.")
-
-            else:
-                # Mensaje de chat simple
-                response = {
-                    'type': 'message',
-                    'content': msg
-                }
-                conn.sendall((json.dumps(response) + '\n').encode('utf-8'))
-
-    except KeyboardInterrupt:
-        print("\nInterrupción detectada.")
+                    mensaje = json.loads(linea.decode('utf-8'))
+                except json.JSONDecodeError:
+                    print("[!] Mensaje con JSON inválido")
+                    continue
+                procesar_solicitud(socket_cliente, mensaje)
+    except OSError:
+        pass
     finally:
-        conn.close()
-
-def start_server():
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
-        server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        server_socket.bind((HOST, PORT))
-        server_socket.listen()
-        print(f"Servidor Python escuchando en {HOST}:{PORT} ...")
-        print("Esperando conexión de un cliente...")
-
-        conn, addr = server_socket.accept()
-        handle_client(conn, addr)
-
-if __name__ == "__main__":
-    start_server()
+        socket_cliente.close()
+        print(f"[-] Cliente desconectado: {addr}")
+if __name__ == "__main__": iniciar_servidor()
