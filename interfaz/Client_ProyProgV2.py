@@ -27,6 +27,7 @@ def conectar_interfaz_vaciar(conexion):
     conexion_vaciar = conexion
     
 def conectar():
+    """utiliza las variables globales conexion y c para conectarse con el admin """
     global conexion , c #se ocupa variables globales porque despues se ocupara el socket conexion para mandar la info
     while not c:
         intento=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
