@@ -4,11 +4,28 @@ import threading
 import sys
 import time
 from tkinter import messagebox
-HOST = '192.168.1.119'
+HOST = '172.20.10.3'
 PORT = 65433
 
 conexion=None
 c=False
+# conexiones hacia el servidor, se hace en un hilo para que no se congele la interfaz
+conexion_reserva=None
+conexion_reponer=None
+conexion_vaciar=None
+
+def conectar_interfaz_reserva(conexion):
+    global conexion_reserva
+    conexion_reserva = conexion
+
+def conectar_interfaz_reponer(conexion):
+    global conexion_reponer
+    conexion_reponer = conexion
+
+def conectar_interfaz_vaciar(conexion):
+    global conexion_vaciar
+    conexion_vaciar = conexion
+    
 def conectar():
     global conexion , c #se ocupa variables globales porque despues se ocupara el socket conexion para mandar la info
     while not c:
@@ -31,11 +48,10 @@ def enviar(dato):
     if conexion is None:
         messagebox.showwarning("no se puede mandar al server", "no conexion con servidor")
         return False
-    mensaje_transformado=json.dumps(dato)+'\n'
-    mensaje_transformado=mensaje_transformado.encode('utf-8')
-    conexion.sendall(mensaje_transformado)
+    mensaje_transformado=json.dumps(dato)
+    mensaje_transformado+='\n'
+    conexion.sendall(mensaje_transformado.encode('utf-8'))
     return True
-
 
 def recibir(socket_conexion):
     bufer=''
@@ -56,6 +72,23 @@ def recibir(socket_conexion):
             if tipo=='reservar_stock':
                 ok=dato.get('ok')
                 mensaje=dato.get('mensaje')
+                id_producto=dato.get('id_producto')
+                cantidad=dato.get('cantidad')
+                nombre=dato.get('nombre')
+                precio=dato.get('precio')
+                if conexion_reserva is not None:
+                    conexion_reserva(ok,mensaje,id_producto,cantidad,nombre,precio)
+            elif tipo=='reponer_stock':
+                ok=dato.get('ok')
+                if conexion_reponer is not None:
+                    conexion_reponer(ok)
+            elif tipo=='vaciar_carrito':
+                ok=dato.get('ok')
+                mensaje=dato.get('mensaje')
+                if conexion_vaciar is not None:
+                    conexion_vaciar(ok, mensaje)
+                
+
 def dato_envia(dato):
     tipo=dato.get('type')
     if tipo == 'reservar_stock':
@@ -66,9 +99,12 @@ def dato_envia(dato):
             'id_producto':id_producto,
                     'cantidad':cantidad,
                     'nombre':nombre})
-    if tipo =='reponer_stock':
+    elif tipo =='reponer_stock':
         id_producto=dato.get('id_producto')
         cantidad=dato.get('cantidad')
         enviar({'type':'reponer_stock',
             'id_producto':id_producto,
                 'cantidad':cantidad})
+    elif tipo == 'vaciar_carrito':
+        productos=dato.get('productos', [])
+        enviar({'type':'vaciar_carrito', 'productos':productos})

@@ -4,8 +4,9 @@ import threading
 import sys
 from clases.producto import Producto
 from clases.inventario import Inventario
+from datos import bd
 
-HOST = '192.168.1.119'
+HOST = '172.20.10.3'
 PORT = 65433
 def iniciar_servidor():
     server=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -26,26 +27,40 @@ def responder_cliente(socket_cliente,datos):
 #filta por el tipo de mensaje que respondio
 def procesar_solicitud(socket_cliente,mensaje):
     tipo=mensaje.get('type')
-    if tipo=='mensaje':
-        responder_cliente(socket_cliente,{})
-    
-    elif tipo=='reservar_stock':
-            id_producto=mensaje.get('id_producto')
-            cantidad=mensaje.get('cantidad')
-            nombre=mensaje.get('nombre')
-            if not isinstance(cantidad,int) or cantidad <= 0:
-                responder_cliente(socket_cliente,{'type': 'mensaje'})
-            acepto,respuesta=bd.reservar_stock(id_producto,cantidad,nombre)
-            responder_cliente(socket_cliente,{'type':'reservar_stock',
+    if tipo=='reservar_stock':
+        print(f"Servidor : Procesando solicitud de reservar stock {mensaje} \n" ) 
+        id_producto=mensaje.get('id_producto')
+        cantidad=mensaje.get('cantidad')
+        nombre=mensaje.get('nombre')
+        if not isinstance(cantidad,int) or cantidad <= 0:
+            responder_cliente(socket_cliente,{'type': 'mensaje', 'mensaje': 'Cantidad inválida'})
+            return
+            
+        acepto,respuesta, precio =bd.reservar_stock(id_producto,cantidad,nombre)
+        responder_cliente(socket_cliente,{'type':'reservar_stock',
                                               'ok':acepto,
                                               'mensaje':respuesta,
                                               'id_producto':id_producto,
-                                              'cantidad':cantidad})
+                                              'cantidad':cantidad,
+                                              'nombre':nombre,
+                                              'precio':precio})
     elif tipo=='reponer_stock':
         id_producto=mensaje.get('id_producto')
         cantidad=mensaje.get('cantidad')
         bd.restaurar_stock(id_producto,cantidad)
-    
+        responder_cliente(socket_cliente,{'type':'reponer_stock',
+                                          'ok':True,
+                                            'mensaje':'Stock repuesto correctamente',})
+    elif tipo=='vaciar_carrito':
+        lista_productos=mensaje.get('productos', [])
+        print(f"Servidor: Procesando solicitud de vaciar carrito: {mensaje}")
+        exito=True
+        for item in lista_productos:
+            id_producto=item.get('id_producto')
+            cantidad=item.get('cantidad')
+            bd.restaurar_stock(id_producto,cantidad)
+        responder_cliente(socket_cliente,{'type':'vaciar_carrito', 'ok':exito, 'mensaje':'Carrito vaciado correctamente'})
+
 def atender_cliente(socket_cliente, addr):
     print(f"[+] Cliente conectado: {addr}")
     buffer = b""

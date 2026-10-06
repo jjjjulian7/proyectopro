@@ -15,10 +15,12 @@ class Inventario:
             
 #VALIDACIONES GENERALES       
     def validar_stock(self, stock):
-        return stock >= 0
+        valor_stock = int(stock)
+        return valor_stock >= 0
     
     def validar_precio(self, precio):
-        return precio >= 0
+        valor = int(precio)
+        return valor >= 0
     
     def validar_texto(self, texto):
         return texto.strip() != ""

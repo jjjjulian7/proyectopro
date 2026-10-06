@@ -185,9 +185,12 @@ def reservar_stock(id_producto, cantidad, nombre_producto):
             (cantidad, id_producto, cantidad)
         )
         if cursor.rowcount == 0:  # No se pudo reservar el stock porque no hay suficiente.
-            return False, f"No hay suficiente stock disponible para el producto: {nombre_producto}"
+            return False, f"No hay suficiente stock disponible para el producto: {nombre_producto}", None
+        
+        cursor.execute("SELECT precio FROM productos WHERE id = ?", (id_producto,))
+        precio = cursor.fetchone()[0]
         conexion.commit()
-        return True, "Stock reservado correctamente" 
+        return True, "Stock reservado correctamente", precio
     except Exception as e:
         conexion.rollback()         # si falla sqlite, deshace los cambios
         return False, str(e) 
