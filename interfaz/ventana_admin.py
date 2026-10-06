@@ -4,6 +4,7 @@ from . import FuncionBotones as F
 from datos import bd
 from datos import bd_usuarios as BD
 
+
 def ejecutar():
     ventana = tk.Tk()
     ventana.title("MaulencitosMarketADMIN")
@@ -12,10 +13,10 @@ def ejecutar():
     #frames padres
     Frame_botones=tk.Frame(ventana)
     Frame_contenido=tk.Frame(ventana)
-    Frame_botones.pack()
-    Frame_contenido.pack(fill="both", expand=True)
+    Frame_botones.grid(row=0, column=0, columnspan=2, sticky="ew")
+    Frame_contenido.grid(row=1, column=0, sticky="n", padx=20, pady=20)
     Frame_producto=tk.Frame(ventana)
-    Frame_producto.pack(fill="both", expand=True)
+    Frame_producto.grid(row=1, column=1, sticky="nsew", padx=(0, 20), pady=20)
 
     #Frae hijos de Frame contenido
     Frame_ingreso=tk.Frame(Frame_contenido)
