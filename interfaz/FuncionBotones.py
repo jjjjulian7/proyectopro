@@ -1,6 +1,7 @@
 
 import tkinter as tk
 from tkinter import messagebox
+from tkinter import ttk
 from clases.usuario import usuario
 from clases.producto import Producto
 from clases.inventario import Inventario as I
@@ -167,6 +168,29 @@ def mostrar_productos(Frame_productos):
         tabla.tag_configure("par", background="#ffffff")
         tabla.tag_configure("impar", background="#e0e0e0")
 
+        def al_hacer_click(event):
+            if tabla.identify_region(event.x, event.y) == "cell":
+                return  # Si no se hizo click en una celda, no hacemos nada
+
+            fila = tabla.identify_row(event.y)  #iid de la fila = ID del producto
+            columna = tabla.identify_column(event.x)  # "#6" = editar y "#7" = borrar
+            if not fila:
+                return  # Si no se hizo click en una fila, no hacemos nada
+
+            id_producto = int(fila) # convertimos el iid a int
+
+            if columna == "#6":  # columna editar
+                pass
+            elif columna == "#7":  # columna borrar
+                producto = inventario.buscar_producto(1, id_producto) 
+                nombre = producto.nombre if producto else id_producto 
+
+                if messagebox.askyesno("Confirmación", f"¿Eliminar '{nombre}'?"):
+                    inventario.quitar_producto(id_producto)     # Borra de la BD y de la memoria 
+                    mostrar_productos(Frame_productos)          # Volvemos a dibujar la tabla actualizada
+ 
+        tabla.bind("<Button-1>", al_hacer_click)    # Conectamos el click izquierdo con la funcion de arriba
+
         tabla.pack(fill="both", expand=True)
         Frame_productos.tabla = tabla
 
@@ -218,6 +242,7 @@ def actualizar_producto(id_N,Nombre,Precio,Stock,Categoria,Frame_productos):
         return
 
     mostrar_productos(Frame_productos)
+
 
 
 def cargar_producto(id_N, Nombre, Precio, Stock, Categoria):
