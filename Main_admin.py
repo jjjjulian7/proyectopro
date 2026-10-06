@@ -1,0 +1,3 @@
+from interfaz import ventana_Ingreso_admin
+
+ventana_Ingreso_admin.abrir_ventana_funcionario()

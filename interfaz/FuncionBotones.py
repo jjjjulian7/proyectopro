@@ -1,51 +1,69 @@
-#funciones a completar despues con sqlite3
-import sqlite3
+
 import tkinter as tk
+from tkinter import messagebox
 from clases.usuario import usuario
 from clases.producto import Producto
 from clases.inventario import Inventario as I
+from clases.carrito import Carrito as C
 from datos import bd_usuarios as BD
 from datos import bd 
 from . import Interfaz_pagina
 from . import ventana_admin
-<<<<<<< Updated upstream
-from . import procesador_categoria
-from . import Mouses_categoria
-from . import Ram_categoria
-from . import Monitores_categoria
-from . import Teclados_categora
-=======
 from . import interfaz
 from . import abrir_carrito
 from . import Client_ProyProgV2
 import Server_ProgProyV2
 import threading
-from tkinter import ttk
->>>>>>> Stashed changes
 # Codigo realizado por Cristobal Maulen
-
+carrito = C()
 inventario=I()
+usuario_actual = None
 def ventana_a(ventana):
     ventana_admin.ejecutar()
+    #Server_ProgProyV2.handle_client()
     ventana.iconify()
 def ventana_usuario(ventana,texto,IngresoClave):
+        global usuario_actual   # Usamos global para que la variable cambie fuera de la funcion
         Nombre=texto.get()
         contraseña=IngresoClave.get()
         resultado=BD.buscar_usuario(Nombre)
         if resultado==None:
             ventanaAdvertencia=tk.Toplevel(ventana)
             ventanaAdvertencia.geometry("200x60")
-            texto=tk.Label(ventanaAdvertencia,text="EL usuario no existe")
+            texto=tk.Label(ventanaAdvertencia,text="El usuario no existe")
             texto.pack()
             ventanaAdvertencia.after(3000,ventanaAdvertencia.destroy)
         elif contraseña!=resultado[2]:
             ventanaAdvertencia=tk.Toplevel(ventana)
             ventanaAdvertencia.geometry("200x60")
-            texto=tk.Label(ventanaAdvertencia,text="la contraseña es incorrecta")
+            texto=tk.Label(ventanaAdvertencia,text="El usuario y/o la contraseña es incorrecta")
             texto.pack()
             ventanaAdvertencia.after(2000,ventanaAdvertencia.destroy)
         else:
-            Interfaz_pagina.ejecutar(ventana)
+            hilo_cliente = threading.Thread(target=Client_ProyProgV2.start_client)
+            hilo_cliente.daemon = True
+            hilo_cliente.start()
+            
+            usuario_actual = resultado[1] 
+            ventana.destroy()
+           
+
+def hay_usuario_autenticado():
+    return usuario_actual is not None      
+
+def validar_sesion():
+    if not hay_usuario_autenticado():       # Si no se ha iniciado sesion, imprimira el mensaje y bloqueara la funcion de añadir al carrito 
+        messagebox.showwarning(
+            "Inicio de sesión requerido",
+            "Debes iniciar sesión antes de agregar artículos al carrito."
+        )
+        return False
+    return True
+
+def cerrar_sesion():        # AVISO: Falta implementar la funcion. Aun hay q agregar boton de cerrar sesion!
+    global usuario_actual
+    usuario_actual = None
+        
         
 def registro(texto,IngresoClave,ventana):
     Texto=texto.get()
@@ -57,7 +75,7 @@ def registro(texto,IngresoClave,ventana):
     else:
          ventanaAdvertencia=tk.Toplevel(ventana)
          ventanaAdvertencia.geometry("50x50")
-         texto=tk.Label(ventanaAdvertencia,text="EL usuario ya existe")
+         texto=tk.Label(ventanaAdvertencia,text="El usuario ya existe")
          texto.pack()
          ventanaAdvertencia.after(2000,ventanaAdvertencia.destroy)
 
@@ -177,27 +195,134 @@ def borrar(id_producto,Frame_productos):
     mostrar_productos(Frame_productos)
 
 def actualizar_producto(id_N,Nombre,Precio,Stock,Categoria,Frame_productos):
-    i=int(id_N.get())
-    nombre=Nombre.get()
-    precio=Precio.get()
-    stock=Stock.get()
-    categoria=Categoria.get()
-    p=Producto(i,nombre,precio,stock,categoria)
-    inventario.actualizar_producto(p)
+    try:
+        i = int(id_N.get())
+        precio = float(Precio.get())
+        stock = int(Stock.get())
+    except ValueError:
+        tk.messagebox.showwarning("Datos inválidos", "ID, precio y stock deben ser numéricos.")
+        return
+
+    if stock < 0:       # Validacion para que el stock no sea negativo
+        tk.messagebox.showwarning(
+            "Stock inválido",
+            "El stock no puede ser negativo."
+        )
+        return
+
+    actualizado = inventario.actualizar_producto(
+        i, Nombre.get(), precio, stock, Categoria.get()
+    )
+    if not actualizado:
+        tk.messagebox.showwarning("Producto no encontrado", "No existe un producto con ese ID.")
+        return
+
     mostrar_productos(Frame_productos)
+
+
+def cargar_producto(id_N, Nombre, Precio, Stock, Categoria):
+    """Carga los datos del producto cuyo ID está escrito en el formulario."""
+    try:
+        id_producto = int(id_N.get())
+    except ValueError:
+        return
+
+    producto = inventario.buscar_producto(1, id_producto)
+    if producto is None:
+        return
+
+    campos = (
+        (Nombre, producto.nombre),
+        (Precio, producto.precio),
+        (Stock, producto.stock),
+        (Categoria, producto.categoria),
+    )
+    for campo, valor in campos:
+        campo.delete(0, tk.END)
+        campo.insert(0, str(valor))
+
+def mostrar_estadisticas(selector_categoria, etiqueta_resultado):
+    categoria = selector_categoria.get().strip()
+
+    if not categoria:
+        etiqueta_resultado.config(text="Selecciona una categoría.")
+        return
+
+    promedio = bd.promedio_precio_categoria(categoria)
+    producto = bd.menor_stock(categoria)
+
+    if promedio is None or producto is None:
+        etiqueta_resultado.config(
+            text="No hay productos registrados en esta categoría."
+        )
+        return
+
+    etiqueta_resultado.config(
+        text=(
+            f"Precio promedio: ${promedio:,.0f}\n"
+            f"Producto con menor stock: {producto[1]}\n"
+            f"Stock disponible: {producto[3]} unidades"
+        )
+    )
+
+def mostrar_total_inventario(etiqueta_resultado):
+    total = bd.calcular_total_inventario()
+    etiqueta_resultado.config(
+        text=f"Valor total del inventario: ${total:,.0f}"
+    )
+
 
 def buscar(buscador, inventario_productos):
     valor = buscador.get()
     return inventario_productos.buscar_producto(2, valor)
 
 
-def categoria_procesadores():
-    procesador_categoria.ejecutar()
-def categoria_Mouses():
-    Mouses_categoria.ejecutar()
-def categoria_Ram():
-    Ram_categoria.ejecutar()
-def categoria_Monitores():
-    Monitores_categoria.ejecutar()
-def categoria_Teclados():
-    Teclados_categora.ejecutar()
+
+def ingresar_log(usuario):
+    if usuario==None:
+        interfaz.ejecutar()
+    else:
+        
+        return usuario
+
+
+
+def agregar_producto_carrito(ProductoS, cantidad):
+    carrito.agregar_producto(ProductoS,cantidad)
+
+
+def vaciarcarrito(ventana):
+    carrito.vaciar_carrito()
+    tk.messagebox.showinfo("Carrito", "El carrito ha sido vaciado.")
+    ventana.destroy()
+    abrir_carrito.abrir_carrito()
+def mostrar_info():
+    subtotal= carrito.calcular_subtotal()
+    iva = carrito.calcular_iva()
+    total= carrito.calcular_total()
+    return subtotal,iva,total
+def eliminar_producto(ventana, i):
+    ventana_cantidad = tk.Toplevel(ventana)
+    ventana_cantidad.title("Carrito")
+    ventana_cantidad.geometry("300x160")
+    ventana_cantidad.grab_set()
+
+    tk.Label(ventana_cantidad, text="CANTIDAD:").pack(pady=5)
+    cantidad = tk.Entry(ventana_cantidad)
+    cantidad.pack(pady=5)
+    cantidad.focus()
+
+    def eliminar():
+        cant = cantidad.get()
+        if cant.isdigit():
+  
+            carrito.eliminar_producto(i, int(cant))
+            ventana_cantidad.destroy()
+        else:
+            print("Ingrese una cantidad válida")
+
+    btn_confirmar = tk.Button(ventana_cantidad, text="Aceptar", command=eliminar)
+    btn_confirmar.pack(pady=10)
+
+
+    ventana.wait_window(ventana_cantidad)

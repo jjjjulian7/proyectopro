@@ -1,7 +1,13 @@
 import sqlite3
+import os 
+
+ruta_bd = os.path.join(
+    os.path.dirname(os.path.dirname(__file__)), # busca una ruta especifica para la base de datos de productos no importa donde se ejecute el programa, la base de datos se crea en la carpeta raiz del proyecto
+    "MaulenMarket_Productos.db"
+)
 
 def conectar():
-    conexion = sqlite3.connect('MaulenMarket_Productos.db') # Se conecta a la bd si no existe se crea sola
+    conexion = sqlite3.connect(ruta_bd) # Se conecta a la bd si no existe se crea sola
     return conexion
 
 #JULIAN CORREA FUNCION CREAR TABLA
@@ -64,10 +70,12 @@ def eliminar_producto(id_producto):
 #SEBASTIAN LEON TOTAL INVENTARIO
 def calcular_total_inventario():
     conexion = conectar()
+    # Suma el valor de todos los productos disponibles en el inventario.
     cursor = conexion.cursor()
     cursor.execute("SELECT SUM(precio * stock) FROM productos")
     total = cursor.fetchone()[0] # Devuelve el unico resultado, que es el total
-    conexion.close
+    conexion.close()
+    return total
 
 #SEBASTIAN LEON FILTRAR POR RANGO DE PRECIOS
 def filtrar_rango_precios(min, max):
@@ -88,20 +96,100 @@ def filtrar_categoria(categoria):
 
 def promedio_precio_categoria(categoria):
     conexion = conectar()
-    cursor = conexion.cursor()
-    cursor.execute("SELECT AVG(precio) FROM productos WHERE categoria = ?", (categoria,))
-    promedio = cursor.fetchone()[0] # promedio = none 
-    conexion.close()
-    return promedio
+    try:
+        # AVG calcula el precio promedio de los productos de la categoría.
+        # TRIM elimina espacios y COLLATE NOCASE ignora diferencias entre mayúsculas y minúsculas.
+        cursor = conexion.cursor()
+        cursor.execute(
+            """
+            SELECT AVG(precio)
+            FROM productos
+            WHERE TRIM(categoria) COLLATE NOCASE = TRIM(?) COLLATE NOCASE
+            """,
+            (categoria,)
+        )
+        promedio = cursor.fetchone()[0]
+        return promedio
+    finally:
+        # La conexión se cierra aunque la consulta produzca un error.
+        conexion.close()
 
 def menor_stock(categoria):
     conexion = conectar()
+    try:
+        # Ordenar por stock permite encontrar primero el producto con menos unidades.
+        # TRIM elimina espacios y COLLATE NOCASE ignora diferencias entre mayúsculas y minúsculas.
+        cursor = conexion.cursor()
+        cursor.execute(
+            """
+            SELECT * FROM productos
+            WHERE TRIM(categoria) COLLATE NOCASE = TRIM(?) COLLATE NOCASE
+            ORDER BY stock ASC, id ASC
+            LIMIT 1
+            """,
+            (categoria,)
+        )
+        producto = cursor.fetchone()
+        return producto
+    finally:
+        # La conexión se libera después de obtener el resultado.
+        conexion.close()
+
+
+def vaciar_categoria(categoria):        #   Funcion para eliminar todas las tuplas de una categoria elegida
+    conexion = conectar()
     cursor = conexion.cursor()
-    cursor.execute("SELECT * FROM productos WHERE categoria = ? ORDER BY stock ASC LIMIT 1", (categoria,))
-    productos = cursor.fetchone()
+    cursor.execute(
+        """
+        DELETE FROM productos 
+        WHERE categoria = ?
+        """, 
+        (categoria,)
+    )
+    conexion.commit()    
     conexion.close()
-    return productos 
+    return True
+
+def vaciar_inventario():                #   Funcion para eliminar todo el inventario
+    conexion = conectar()
+    cursor = conexion.cursor()
+    cursor.execute(
+        """
+        DELETE FROM productos 
+        """ 
+    )
+    conexion.commit()    
+    conexion.close()
+    return True
 
 
-productos = mostrar_productos()
-print(productos)
+def restaurar_stock(id_producto, cantidad):
+    conexion = conectar()
+    try:
+        cursor = conexion.cursor()
+        # Actualiza el stock sumando la cantidad especificada.
+        cursor.execute(
+            "UPDATE productos SET stock = stock + ? WHERE id = ?",
+            (cantidad, id_producto)
+        )
+        conexion.commit()
+    finally:
+        conexion.close()
+
+def reservar_stock(id_producto, cantidad, nombre_producto):
+    conexion = conectar()
+    try:
+        cursor = conexion.cursor()
+        cursor.execute(
+            "UPDATE productos SET stock = stock - ? WHERE id = ? AND stock >= ?",
+            (cantidad, id_producto, cantidad)
+        )
+        if cursor.rowcount == 0:  # No se pudo reservar el stock porque no hay suficiente.
+            return False, f"No hay suficiente stock disponible para el producto: {nombre_producto}"
+        conexion.commit()
+        return True, "Stock reservado correctamente" 
+    except Exception as e:
+        conexion.rollback()         # si falla sqlite, deshace los cambios
+        return False, str(e) 
+    finally:
+        conexion.close()    
