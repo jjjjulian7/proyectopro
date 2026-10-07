@@ -90,9 +90,11 @@ def abrir_carrito(carrito, event=None):
         lbl_sub.config(text=f"${fmt(item['precio'] * item['cantidad'])} CLP")
         actualizar_totales()
 
-    def eliminar():
+    def eliminar(item):
+        id_producto = item["id"]
+        cantidad = item["cantidad"]
         # Quita el producto completo y restaura su stock
-        carrito.vaciar_carrito()  # Llama al método para vaciar el carrito y restaurar el stock
+        carrito.eliminar_producto(id_producto, cantidad)  # Llama al método para vaciar el carrito y restaurar el stock
         refrescar_interfaz()
 
     #refrescar la ventana al eliminar o vaciar
@@ -168,7 +170,7 @@ def abrir_carrito(carrito, event=None):
                 bg=COLOR_ROJO, fg="white", activebackground="#c9302c",
                 activeforeground="white", relief="flat", bd=0,
                 width=5, pady=3, cursor="hand2",
-                command=lambda it=item: eliminar()
+                command=lambda it=item: eliminar(item)
             ).grid(row=fila, column=4, sticky="w")
 
             linea(fila + 1)
@@ -197,7 +199,8 @@ def abrir_carrito(carrito, event=None):
     dibujar_tabla()
     
     ClienteRed.conectar_interfaz_vaciar(carrito.procesar_respuesta_vaciar)
-    #ClienteRed.conectar_interfaz_reponer(carrito.procesar_respuesta_eliminar)
+    ClienteRed.conectar_interfaz_reponer(carrito.procesar_respuesta_eliminar)
+    ClienteRed.conectar_interfaz_reserva(carrito.procesar_respuesta_reservar)
     
    
 

@@ -69,31 +69,38 @@ class Carrito:
         else:
             messagebox.showwarning("Error al vaciar carrito", mensaje)
     
-    def eliminar_producto(self, producto, cantidad):
+    def eliminar_producto(self, id_producto, cantidad):
         print("Soliciando eliminar producto)\n")
-        ClienteRed.dato_envia({'type' : 'reponer_stock', 'id_producto' : producto["id"], 
+        ClienteRed.dato_envia({'type' : 'reponer_stock', 'id_producto' : id_producto,
                                'cantidad': cantidad})
         
 
-    def procesar_respuesta_eliminar(self, ok, mensaje, cantidad, i, id_producto):
+    def procesar_respuesta_eliminar(self, ok, id_producto, cantidad, mensaje):
+        print("rastreo de eliminar producto")
+        print(f"ok: {ok}, mensaje: {mensaje}, cantidad: {cantidad}, id_producto: {id_producto}")
         if ok:            
             if cantidad <= 0:
                 return
+            print("carrito actual antes de eliminar producto: ", self.items)
         
-            if  cantidad > i["cantidad"]:
-                cantidad = i["cantidad"]
-
-            id_producto = i["id"]
-            bd.restaurar_stock(id_producto, cantidad)
-
-            i["cantidad"] -= cantidad
-
-            if i["cantidad"] <= 0:
-                self.items.remove(i)
-                messagebox.showwarning("Producto eliminado del carrito")           
-                if self.funcion_dibujar_tabla is not None:
-                                self.funcion_dibujar_tabla()
+            for item in self.items:
+                print(f"Comparando item id: {item['id']} con id_producto: {id_producto}")
+                if str(item["id"]) == str(id_producto):
+                    print(f"Producto encontrado en carrito: {item}")
+                    if cantidad >= item["cantidad"]:
+                        cantidad = item["cantidad"]  # Ajusta la cantidad a eliminar si es mayor que la cantidad en el carrito
+                    item["cantidad"] -= cantidad # se resta la cantidad eliminada del producto en el carrito
+                    if item["cantidad"] <= 0:
+                        self.items.remove(item)
+                        print("Producto eliminado del carrito: ", item)
+                              # Elimina el producto del carrito si la cantidad es cero o negativa
+                    if self.funcion_dibujar_tabla is not None:
+                        self.funcion_dibujar_tabla()
+                        print("tabla actualizada despues de eliminar producto")
+                        # Llama a la función para actualizar la interfaz
+                    break
         else:
+            print("Error al eliminar producto: ", mensaje)
             messagebox.showwarning("Error al eliminar producto", mensaje)
 
             

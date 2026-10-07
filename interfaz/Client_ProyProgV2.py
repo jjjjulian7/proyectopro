@@ -4,7 +4,7 @@ import threading
 import sys
 import time
 from tkinter import messagebox
-HOST = '172.20.10.3'
+HOST = '192.168.1.119'
 PORT = 65433
 
 conexion=None
@@ -81,8 +81,11 @@ def recibir(socket_conexion):
                     conexion_reserva(ok,mensaje,id_producto,cantidad,nombre,precio)
             elif tipo=='reponer_stock':
                 ok=dato.get('ok')
+                id_producto=dato.get('id_producto')
+                cantidad=dato.get('cantidad')
+                mensaje=dato.get('mensaje')
                 if conexion_reponer is not None:
-                    conexion_reponer(ok)
+                    conexion_reponer(ok, id_producto, cantidad, mensaje)
             elif tipo=='vaciar_carrito':
                 ok=dato.get('ok')
                 mensaje=dato.get('mensaje')

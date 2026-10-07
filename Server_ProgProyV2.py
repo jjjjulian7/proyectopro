@@ -6,7 +6,7 @@ from clases.producto import Producto
 from clases.inventario import Inventario
 from datos import bd
 
-HOST = '172.20.10.3'
+HOST = '192.168.1.119'
 PORT = 65433
 def iniciar_servidor():
     server=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -50,7 +50,9 @@ def procesar_solicitud(socket_cliente,mensaje):
         bd.restaurar_stock(id_producto,cantidad)
         responder_cliente(socket_cliente,{'type':'reponer_stock',
                                           'ok':True,
-                                            'mensaje':'Stock repuesto correctamente',})
+                                          'id_producto':id_producto,
+                                            'mensaje':'Stock repuesto correctamente',
+                                            'cantidad':cantidad})
     elif tipo=='vaciar_carrito':
         lista_productos=mensaje.get('productos', [])
         print(f"Servidor: Procesando solicitud de vaciar carrito: {mensaje}")
