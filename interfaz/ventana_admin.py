@@ -30,19 +30,13 @@ def ejecutar():
 
     #Frae hijos de Frame contenido
     Frame_ingreso=tk.Frame(Frame_contenido)
-    Frame_borrar=tk.Frame(Frame_contenido)
-    Frame_actualizar=tk.Frame(Frame_contenido)
     Frame_estadisticas=tk.Frame(Frame_contenido)
-    lista_F=[Frame_ingreso,Frame_borrar,Frame_actualizar,Frame_estadisticas]#esto es para que le pasemos los frame a la funcion mostrar frame asi los va a poder ocultar y mostrar el contenido que elija el usuario
+    lista_F=[Frame_ingreso,Frame_estadisticas]#esto es para que le pasemos los frame a la funcion mostrar frame asi los va a poder ocultar y mostrar el contenido que elija el usuario
 
     #botones
     boton_ingreso=tk.Button(Frame_botones,text="Ingresar producto",command=lambda:mostrar_seccion(Frame_ingreso))
-    boton_borrar=tk.Button(Frame_botones,text="Eliminar producto",command=lambda:mostrar_seccion(Frame_borrar))
-    boton_actualizar=tk.Button(Frame_botones,text="Modificar producto",command=lambda:mostrar_seccion(Frame_actualizar))
     boton_estadisticas=tk.Button(Frame_botones,text="Estadísticas",command=lambda:mostrar_seccion(Frame_estadisticas))
     boton_ingreso.grid(column=1,row=1)
-    boton_borrar.grid(column=2,row=1)
-    boton_actualizar.grid(column=3,row=1)
     boton_estadisticas.grid(column=4,row=1)
 
     #boton para asignar permisos de admin
@@ -61,8 +55,9 @@ def ejecutar():
     boton_admin.grid(row=1, column=5, padx=(20, 0), pady=10, sticky="w")
 
     #frame_ingreso
-    tk.Label(Frame_ingreso, text="Registro de productos",
-         bg="#dcdde1", font=("Segoe UI", 12), pady=14).grid(row=0, column=1, sticky="ew")
+    titulo_formulario =tk.Label(Frame_ingreso, text="Registrar Producto",
+                                bg="#dcdde1", font=("Segoe UI", 12), pady=14)
+    titulo_formulario.grid(row=0, column=1, sticky="ew")
     tk.Label(Frame_ingreso,text="Nombre del producto").grid(row=1,column=1, sticky="w")
     tk.Label(Frame_ingreso,text="Precio").grid(row=3,column=1, sticky="w")
     tk.Label(Frame_ingreso,text="Stock").grid(row=5,column=1, sticky="w")
@@ -72,14 +67,14 @@ def ejecutar():
                     highlightthickness=1,               # Agregamos grosor al borde del boton
                     highlightbackground="#ced4da",    # Color del borde
                     highlightcolor="#0d6efd")         #Color del borde al hacer clic
-    precio=tk.Entry(Frame_ingreso, width=30)
-    stock=tk.Entry(Frame_ingreso, width=30)
-    categoria=tk.Entry(Frame_ingreso, width=30)
+    precio=tk.Entry(Frame_ingreso, width=30, highlightthickness=1,highlightbackground="#ced4da", highlightcolor="#0d6efd") 
+    stock=tk.Entry(Frame_ingreso, width=30, highlightthickness=1,highlightbackground="#ced4da", highlightcolor="#0d6efd") 
+    categoria=tk.Entry(Frame_ingreso, width=30, highlightthickness=1,highlightbackground="#ced4da", highlightcolor="#0d6efd") 
 
     nombre.grid(row=2,column=1, ipady=6)                # ipady = mas alto por dentro
-    precio.grid(row=4,column=1)
-    stock.grid(row=6,column=1)
-    categoria.grid(row=8,column=1)
+    precio.grid(row=4,column=1, ipady=6)
+    stock.grid(row=6,column=1, ipady=6)
+    categoria.grid(row=8,column=1, ipady=6)
 
     id_editando = None # Producto que se esta editando
 
@@ -88,8 +83,10 @@ def ejecutar():
         id_editando = None          # Volvemos al modo registrar producto
         for campo in (nombre, precio, stock, categoria):
             campo.delete(0, tk.END)     # Vaciamos los entry que se hayan asigando antes
+        boton.grid_configure(sticky="")
         boton.config(text="Ingresar")   # Devolvemos el boton a su texto original
-        boton_cancelar.grid_remove()    # Ocultamos el boton cancelar 
+        boton_cancelar.grid_remove()    # Ocultamos el boton cancelar
+        titulo_formulario.config(text="Registro de productos")
 
     def guardar():
         # Si se guarda el producto correctamente limpiamos el formulario
@@ -108,48 +105,18 @@ def ejecutar():
 
         for campo, valor in ((nombre, producto.nombre), (precio, producto.precio), (stock, producto.stock), (categoria, producto.categoria)):
             campo.insert(0, str(valor))     # los entry solo aceptan texto, asi que se transforman antes 
-        
-        boton.config(text="Guardar cambios")
-        boton_cancelar.grid(row=9, column=2)     # mostramos boton cancelar
+
+        titulo_formulario.config(text=f"Editando producto #{id_producto}")      # Cambiamos el titulo del formulario
+        boton.grid_configure(sticky="w")        
+        boton.config(text="Guardar")
+        boton_cancelar.grid(row=9, column=1,  sticky="e",pady=(16,0))     # mostramos boton cancelar
 
     boton= tk.Button(Frame_ingreso, text="Ingresar", command=guardar, bg="#0d6efd", fg="white", relief="flat", bd=0, padx=14,pady=6)
     boton_cancelar= tk.Button(Frame_ingreso, text="Cancelar", command=limpiar_formulario, bg="#fd0d0d", fg="white", relief="flat",bd=0, padx=14,pady=6)
-    boton.grid(row=9, column=1)
+    boton.grid(row=9, column=1, pady=((16,0)))
 
-    # DEjamos guardada la funcion dentro del Frame de la tabla
-    Frame_producto.al_editar = iniciar_edicion
+    Frame_producto.al_editar = iniciar_edicion # DEjamos guardada la funcion dentro del Frame de la tabla
 
-    #frame borrar
-    tk.Label(Frame_borrar,text="Ingrese ID del producto a borrar").grid(row=1,column=1)
-    id_producto=tk.Entry(Frame_borrar)
-    botonB=tk.Button(Frame_borrar,text="BORRAR",command=lambda:F.borrar(id_producto,Frame_producto))
-    id_producto.grid(row=1,column=2)
-    botonB.grid(row=2,column=1)
-
-    #frame actualizar producto
-    tk.Label(Frame_actualizar,text="Ingrese ID").grid(row=1,column=1)
-    tk.Label(Frame_actualizar,text="Ingrese nombre").grid(row=2,column=1)
-    tk.Label(Frame_actualizar,text="Stock").grid(row=3,column=1)
-    tk.Label(Frame_actualizar,text="Categoria").grid(row=4,column=1)
-    tk.Label(Frame_actualizar,text="Precio").grid(row=5,column=1)
-    id_N=tk.Entry(Frame_actualizar)
-    Nombre=tk.Entry(Frame_actualizar)
-    Precio=tk.Entry(Frame_actualizar)
-    Stock=tk.Entry(Frame_actualizar)
-    Categoria=tk.Entry(Frame_actualizar)
-    Boton=tk.Button(Frame_actualizar,text="Ingresar",command=lambda:F.actualizar_producto(id_N,Nombre,Precio,Stock,Categoria,Frame_producto))
-    id_N.grid(row=1,column=2)
-    Nombre.grid(row=2,column=2)
-    Stock.grid(row=3,column=2)
-    Categoria.grid(row=4,column=2)
-    Precio.grid(row=5,column=2)
-    Boton.grid(row=6,column=1)
-
-    cargar_datos = lambda event=None: F.cargar_producto(
-        id_N, Nombre, Precio, Stock, Categoria
-    )
-    id_N.bind("<Return>", cargar_datos)
-    id_N.bind("<FocusOut>", cargar_datos)
 
     # Frame para asignar permisos de administrador
     tk.Label(frame_admin,text="Nombre del usuario a convertir en admin").grid(row=1,column=1)
@@ -262,8 +229,7 @@ def ejecutar():
 
         # ---------- estilo de la barra superior ----------
 
-    botones_barra = (boton_ingreso, boton_borrar, boton_actualizar,
-                     boton_estadisticas, boton_admin, boton_vaciar)
+    botones_barra = (boton_ingreso, boton_estadisticas, boton_admin, boton_vaciar)
 
     # El for repite lo mismo con cada botón.
     for b in botones_barra:
@@ -279,9 +245,9 @@ def ejecutar():
         )
 
     # El botón vaciar lo dejamos distinto.
-    boton_vaciar.config(bg="#e8283c", fg="white",
+    boton_vaciar.config(bg="#fd0d0d", fg="white",
                         activebackground="#c9202f", activeforeground="white")
     actualizar_selector_vaciar()
-
+    mostrar_seccion(Frame_ingreso)      # mostramos el formulario apensa se abre la ventana
     #frame de los productos
     F.mostrar_productos(Frame_producto)

@@ -167,6 +167,7 @@ def mostrar_productos(Frame_productos):
         # Aqui definimos que color tiene cada etiqueta, después las asignamos al insertar.
         tabla.tag_configure("par", background="#ffffff")
         tabla.tag_configure("impar", background="#e0e0e0")
+        tabla.tag_configure("sin_stock", foreground="#e8283c")
 
         def al_hacer_click(event):
             if tabla.identify_region(event.x, event.y) != "cell":
@@ -193,7 +194,14 @@ def mostrar_productos(Frame_productos):
  
         tabla.bind("<Button-1>", al_hacer_click)    # Conectamos el click izquierdo con la funcion de arriba
 
-        tabla.pack(fill="both", expand=True)
+        # --- Implementacion del scrollbar
+        # command=tabla.yview      -> al mover la barra, la tabla se desplaza
+        # yscrollcommand   -> al desplazar la tabla con la rueda del mouse, la barra se mueve
+        scroll = ttk.Scrollbar(Frame_productos, orient="vertical", command=tabla.yview)
+        tabla.configure(yscrollcommand=scroll.set)
+        # Asignamos el orden en el frame, la barra del scroll a la derecha y la tabla a la izquierda
+        scroll.pack(side="right", fill="y")
+        tabla.pack(side="left", fill="both", expand=True)
         Frame_productos.tabla = tabla
 
     tabla = Frame_productos.tabla
@@ -202,48 +210,13 @@ def mostrar_productos(Frame_productos):
     # enumerate() entrega (posicion, elemento)
     # usamos la posicion para saber si la fila es par o impar
     for i, producto in enumerate(bd.mostrar_productos()):
-        etiqueta = "par" if i % 2 == 0 else "impar"       
-        tabla.insert("", "end", iid=str(producto[0]), values=producto + (ICONO_EDITAR, ICONO_BORRAR), tags=(etiqueta,))   # tags debe ser una tupla, por eso la coma al final       
+        etiquetas = ["par" if i % 2 == 0 else "impar"]       # lista con la etiqueta de fondo 
+        
+        if int(producto[3]) == 0:
+            etiquetas.append("sin_stock")
 
+        tabla.insert("", "end", iid=str(producto[0]), values=producto + (ICONO_EDITAR, ICONO_BORRAR), tags=tuple(etiquetas))   # tags debe ser una tupla
 
-def ingresar_producto(nombre,precio,stock,categoria,Frame_productos):
-    n=nombre.get()
-    p=precio.get()
-    s=stock.get()
-    c=categoria.get()
-    producto=Producto(n,p,s,c)
-    inventario.agregar_producto(producto)
-    mostrar_productos(Frame_productos)
-
-def borrar(id_producto,Frame_productos):
-    i=int(id_producto.get())
-    inventario.quitar_producto(i)    
-    mostrar_productos(Frame_productos)
-
-def actualizar_producto(id_N,Nombre,Precio,Stock,Categoria,Frame_productos):
-    try:
-        i = int(id_N.get())
-        precio = float(Precio.get())
-        stock = int(Stock.get())
-    except ValueError:
-        tk.messagebox.showwarning("Datos inválidos", "ID, precio y stock deben ser numéricos.")
-        return
-
-    if stock < 0:       # Validacion para que el stock no sea negativo
-        tk.messagebox.showwarning(
-            "Stock inválido",
-            "El stock no puede ser negativo."
-        )
-        return
-
-    actualizado = inventario.actualizar_producto(
-        i, Nombre.get(), precio, stock, Categoria.get()
-    )
-    if not actualizado:
-        tk.messagebox.showwarning("Producto no encontrado", "No existe un producto con ese ID.")
-        return
-
-    mostrar_productos(Frame_productos)
 
 def guardar_producto(id_producto, nombre, precio, stock, categoria, Frame_productos):
     """
@@ -273,33 +246,13 @@ def guardar_producto(id_producto, nombre, precio, stock, categoria, Frame_produc
 
         # agregar_producto y actualizar_producto devuelven False si las validacion falla
         # si ok = False, da mensaje de error y usamos el mensaje de su seccion respectiva
-        if not ok:
-            messagebox.showwarning("Error", mensaje)
-            return False
+    if not ok:
+        messagebox.showwarning("Error", mensaje)
+        return False
 
-        mostrar_productos(Frame_productos)
-        return True
+    mostrar_productos(Frame_productos)
+    return True
 
-def cargar_producto(id_N, Nombre, Precio, Stock, Categoria):
-    """Carga los datos del producto cuyo ID está escrito en el formulario."""
-    try:
-        id_producto = int(id_N.get())
-    except ValueError:
-        return
-
-    producto = inventario.buscar_producto(1, id_producto)
-    if producto is None:
-        return
-
-    campos = (
-        (Nombre, producto.nombre),
-        (Precio, producto.precio),
-        (Stock, producto.stock),
-        (Categoria, producto.categoria),
-    )
-    for campo, valor in campos:
-        campo.delete(0, tk.END)
-        campo.insert(0, str(valor))
 
 def mostrar_estadisticas(selector_categoria, etiqueta_resultado):
     categoria = selector_categoria.get().strip()
