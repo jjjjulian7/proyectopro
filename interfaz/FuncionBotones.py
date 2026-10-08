@@ -169,7 +169,7 @@ def mostrar_productos(Frame_productos):
         tabla.tag_configure("impar", background="#e0e0e0")
 
         def al_hacer_click(event):
-            if tabla.identify_region(event.x, event.y) == "cell":
+            if tabla.identify_region(event.x, event.y) != "cell":
                 return  # Si no se hizo click en una celda, no hacemos nada
 
             fila = tabla.identify_row(event.y)  #iid de la fila = ID del producto
@@ -180,7 +180,9 @@ def mostrar_productos(Frame_productos):
             id_producto = int(fila) # convertimos el iid a int
 
             if columna == "#6":  # columna editar
-                pass
+                if hasattr(Frame_productos, "al_editar"):
+                    Frame_productos.al_editar(id_producto)
+                
             elif columna == "#7":  # columna borrar
                 producto = inventario.buscar_producto(1, id_producto) 
                 nombre = producto.nombre if producto else id_producto 
@@ -243,7 +245,40 @@ def actualizar_producto(id_N,Nombre,Precio,Stock,Categoria,Frame_productos):
 
     mostrar_productos(Frame_productos)
 
+def guardar_producto(id_producto, nombre, precio, stock, categoria, Frame_productos):
+    """
+        Sirve para agregar y modificar los productos en la pestaña admin
+        id_producto = None ; se agregara un producto
+        id_producto = 5    ; se modifica producto con id 5 
+    """
+    precio_num = float(precio.get())        # Pasamos precio y stock a numeros
+    stock_num = int(stock.get())
 
+    if stock_num < 0:                       # Validamos que el stock sea correcto
+        messagebox.showwarning("Stock incorrecto", "El stock no puede ser negativo ")
+        return False
+
+    # Parte donde se registra un nuevo producto y se lo pasamos al inventario
+    if id_producto is None:
+        ok = inventario.agregar_producto(       
+            Producto(nombre.get(), precio_num, stock_num, categoria.get())
+        )
+        mensaje = "Revisa que no haya campos vacios."
+    # Parte donde se edita un producto ya existente, se busca por el id y le cambia los datos
+    else:
+        ok = inventario.actualizar_producto(
+            id_producto, nombre.get(), precio_num, stock_num, categoria.get()
+        )
+        mensaje = "Producto no encontrado"
+
+        # agregar_producto y actualizar_producto devuelven False si las validacion falla
+        # si ok = False, da mensaje de error y usamos el mensaje de su seccion respectiva
+        if not ok:
+            messagebox.showwarning("Error", mensaje)
+            return False
+
+        mostrar_productos(Frame_productos)
+        return True
 
 def cargar_producto(id_N, Nombre, Precio, Stock, Categoria):
     """Carga los datos del producto cuyo ID está escrito en el formulario."""

@@ -13,6 +13,7 @@ def ejecutar():
 
     #frames padres
     Frame_botones=tk.Frame(ventana)
+    Frame_botones.config(bg="#f1f3f5")
     Frame_contenido=tk.Frame(ventana)
     Frame_botones.grid(row=0, column=0, columnspan=2, sticky="ew")
     Frame_contenido.grid(row=1, column=0, sticky="n", padx=20, pady=20)
@@ -60,20 +61,63 @@ def ejecutar():
     boton_admin.grid(row=1, column=5, padx=(20, 0), pady=10, sticky="w")
 
     #frame_ingreso
-    tk.Label(Frame_ingreso,text="Ingrese nombre").grid(row=1,column=1)
-    tk.Label(Frame_ingreso,text="Precio").grid(row=2,column=1)
-    tk.Label(Frame_ingreso,text="Stock").grid(row=3,column=1)
-    tk.Label(Frame_ingreso,text="Categoria").grid(row=4,column=1)
-    nombre=tk.Entry(Frame_ingreso)
-    precio=tk.Entry(Frame_ingreso)
-    stock=tk.Entry(Frame_ingreso)
-    categoria=tk.Entry(Frame_ingreso)
-    boton=tk.Button(Frame_ingreso,text="Ingresar",command=lambda:F.ingresar_producto(nombre,precio,stock,categoria,Frame_producto))
-    nombre.grid(row=1,column=2)
-    precio.grid(row=2,column=2)
-    stock.grid(row=3,column=2)
-    categoria.grid(row=4,column=2)
-    boton.grid(row=5,column=1)
+    tk.Label(Frame_ingreso, text="Registro de productos",
+         bg="#dcdde1", font=("Segoe UI", 12), pady=14).grid(row=0, column=1, sticky="ew")
+    tk.Label(Frame_ingreso,text="Nombre del producto").grid(row=1,column=1, sticky="w")
+    tk.Label(Frame_ingreso,text="Precio").grid(row=3,column=1, sticky="w")
+    tk.Label(Frame_ingreso,text="Stock").grid(row=5,column=1, sticky="w")
+    tk.Label(Frame_ingreso,text="Categoria").grid(row=7,column=1, sticky="w")
+
+    nombre=tk.Entry(Frame_ingreso, width=30,
+                    highlightthickness=1,               # Agregamos grosor al borde del boton
+                    highlightbackground="#ced4da",    # Color del borde
+                    highlightcolor="#0d6efd")         #Color del borde al hacer clic
+    precio=tk.Entry(Frame_ingreso, width=30)
+    stock=tk.Entry(Frame_ingreso, width=30)
+    categoria=tk.Entry(Frame_ingreso, width=30)
+
+    nombre.grid(row=2,column=1, ipady=6)                # ipady = mas alto por dentro
+    precio.grid(row=4,column=1)
+    stock.grid(row=6,column=1)
+    categoria.grid(row=8,column=1)
+
+    id_editando = None # Producto que se esta editando
+
+    def limpiar_formulario():
+        nonlocal id_editando        # Con nonlocal editamos la variable desde afura de la funcion
+        id_editando = None          # Volvemos al modo registrar producto
+        for campo in (nombre, precio, stock, categoria):
+            campo.delete(0, tk.END)     # Vaciamos los entry que se hayan asigando antes
+        boton.config(text="Ingresar")   # Devolvemos el boton a su texto original
+        boton_cancelar.grid_remove()    # Ocultamos el boton cancelar 
+
+    def guardar():
+        # Si se guarda el producto correctamente limpiamos el formulario
+        # Sino, dejamos lo escrito para que sea correjido
+        if F.guardar_producto(id_editando, nombre, precio, stock, categoria, Frame_producto):
+            limpiar_formulario()
+
+    def iniciar_edicion(id_producto):
+        nonlocal id_editando
+        producto = F.inventario.buscar_producto(1, id_producto) # buscamos por id
+        if producto is None:
+            return
+        mostrar_seccion(Frame_ingreso)      # mostramos el formulario
+        limpiar_formulario()                # vaciamos si ya habia algo
+        id_editando = id_producto          
+
+        for campo, valor in ((nombre, producto.nombre), (precio, producto.precio), (stock, producto.stock), (categoria, producto.categoria)):
+            campo.insert(0, str(valor))     # los entry solo aceptan texto, asi que se transforman antes 
+        
+        boton.config(text="Guardar cambios")
+        boton_cancelar.grid(row=9, column=2)     # mostramos boton cancelar
+
+    boton= tk.Button(Frame_ingreso, text="Ingresar", command=guardar, bg="#0d6efd", fg="white", relief="flat", bd=0, padx=14,pady=6)
+    boton_cancelar= tk.Button(Frame_ingreso, text="Cancelar", command=limpiar_formulario, bg="#fd0d0d", fg="white", relief="flat",bd=0, padx=14,pady=6)
+    boton.grid(row=9, column=1)
+
+    # DEjamos guardada la funcion dentro del Frame de la tabla
+    Frame_producto.al_editar = iniciar_edicion
 
     #frame borrar
     tk.Label(Frame_borrar,text="Ingrese ID del producto a borrar").grid(row=1,column=1)
@@ -214,6 +258,29 @@ def ejecutar():
 
     boton_vaciar = tk.Button(Frame_botones, text="Vaciar", command=vaciar)
     boton_vaciar.grid(row=1, column=7, padx=(0, 20), pady=10)
+
+
+        # ---------- estilo de la barra superior ----------
+
+    botones_barra = (boton_ingreso, boton_borrar, boton_actualizar,
+                     boton_estadisticas, boton_admin, boton_vaciar)
+
+    # El for repite lo mismo con cada botón.
+    for b in botones_barra:
+        b.config(
+            bg="#f1f3f5",                 # mismo color que la barra, así parece "sin caja"
+            fg="#212529",                 # letra casi negra
+            activebackground="#dee2e6",   # color mientras lo estás presionando
+            activeforeground="#212529",
+            relief="flat",                # sin relieve de botón clásico
+            bd=0,                         # sin borde
+            font=("Segoe UI", 10),
+            padx=14, pady=6,              # espacio interno
+        )
+
+    # El botón vaciar lo dejamos distinto.
+    boton_vaciar.config(bg="#e8283c", fg="white",
+                        activebackground="#c9202f", activeforeground="white")
     actualizar_selector_vaciar()
 
     #frame de los productos
