@@ -20,13 +20,20 @@ def ejecutar():
     Frame_producto=tk.Frame(ventana)
     Frame_producto.grid(row=1, column=1, sticky="nsew", padx=(0, 20), pady=20)
 
-    Frame_botones.grid_columnconfigure(0, weight=1)
+    ventana.grid_columnconfigure(0, minsize=400)    # Columna del panel izquierdo: ancho minimo fijo
+    ventana.grid_columnconfigure(1, weight=1)       # columna de la tabla: se estira con la ventana
+    ventana.grid_rowconfigure(1, weight=1)          # Fila del contenido tambien se estira
+
+    Frame_botones.grid_columnconfigure(0, weight=0)
     Frame_botones.grid_columnconfigure(1, weight=0)
     Frame_botones.grid_columnconfigure(2, weight=0)
     Frame_botones.grid_columnconfigure(3, weight=0)
     Frame_botones.grid_columnconfigure(4, weight=0)
     Frame_botones.grid_columnconfigure(5, weight=0)
     Frame_botones.grid_columnconfigure(6, weight=0)
+    Frame_botones.grid_columnconfigure(7, weight=0)
+    Frame_botones.grid_columnconfigure(8, weight=1)
+    Frame_botones.grid_columnconfigure(9, weight=0)
 
     #Frae hijos de Frame contenido
     Frame_ingreso=tk.Frame(Frame_contenido)
@@ -36,22 +43,17 @@ def ejecutar():
     #botones
     boton_ingreso=tk.Button(Frame_botones,text="Ingresar producto",command=lambda:mostrar_seccion(Frame_ingreso))
     boton_estadisticas=tk.Button(Frame_botones,text="Estadísticas",command=lambda:mostrar_seccion(Frame_estadisticas))
-    boton_ingreso.grid(column=1,row=1)
+    boton_ingreso.grid(column=1,row=1, padx=(20,0))
     boton_estadisticas.grid(column=4,row=1)
 
     #boton para asignar permisos de admin
-    frame_admin = tk.Frame(Frame_botones)
-    frame_admin.grid(row=1, column=5, padx=(20, 0), pady=10, sticky="w")
-    frame_admin.grid_remove()
-
-    def mostrar_admin_fields():
-        frame_admin.grid()
+    frame_admin = tk.Frame(Frame_contenido)
+    lista_F.append(frame_admin)
 
     def mostrar_seccion(frame):
-        frame_admin.grid_remove()
         F.mostrar_frame(frame, lista_F)
 
-    boton_admin = tk.Button(Frame_botones, text="Hacer admin", command=mostrar_admin_fields)
+    boton_admin = tk.Button(Frame_botones, text="Hacer admin", command=lambda: mostrar_seccion(frame_admin))
     boton_admin.grid(row=1, column=5, padx=(20, 0), pady=10, sticky="w")
 
     #frame_ingreso
@@ -119,13 +121,26 @@ def ejecutar():
 
 
     # Frame para asignar permisos de administrador
-    tk.Label(frame_admin,text="Nombre del usuario a convertir en admin").grid(row=1,column=1)
-    entrada_nombre_admin = tk.Entry(frame_admin)
-    entrada_nombre_admin.grid(row=2,column=1)
 
-    tk.Label(frame_admin,text="RUT del administrador").grid(row=3,column=1)
-    entrada_rut_admin = tk.Entry(frame_admin)
-    entrada_rut_admin.grid(row=4,column=1)
+    frame_admin.grid_columnconfigure(0, weight=1)    # la columna se estira al ancho del panel
+
+    # Título gris, igual que el del formulario
+    tk.Label(frame_admin, text="Hacer administrador",
+             bg="#dcdde1", font=("Segoe UI", 12), pady=14).grid(row=0, column=0, sticky="ew", pady=(0, 10))
+
+
+    tk.Label(frame_admin, text="Nombre del usuario", font=("Segoe UI", 10),
+             anchor="w").grid(row=1, column=0, sticky="ew", pady=(8, 2))
+    entrada_nombre_admin = tk.Entry(frame_admin, width=30, relief="flat",
+                                    highlightthickness=1,
+                                    highlightbackground="#ced4da",    # borde gris normal
+                                    highlightcolor="#0d6efd")         # borde azul al hacer clic
+    entrada_nombre_admin.grid(row=2, column=0, sticky="ew", ipady=6)
+
+    tk.Label(frame_admin, text="RUT del administrador", font=("Segoe UI", 10),
+             anchor="w").grid(row=3, column=0, sticky="ew", pady=(8, 2))
+    entrada_rut_admin = tk.Entry(frame_admin, width=30, relief="flat", highlightthickness=1,highlightbackground="#ced4da", highlightcolor="#0d6efd")
+    entrada_rut_admin.grid(row=4, column=0, sticky="ew", ipady=6)
 
     def hacer_admin():
         nombre = entrada_nombre_admin.get().strip()
@@ -136,47 +151,66 @@ def ejecutar():
 
         entrada_nombre_admin.delete(0, tk.END)
         entrada_rut_admin.delete(0, tk.END)
-        frame_admin.grid_remove()
+        mostrar_seccion(Frame_ingreso)
 
-    boton_hacer_admin = tk.Button(frame_admin, text="Hacer admin", command=hacer_admin)
-    boton_hacer_admin.grid(row=5,column=1)
+    boton_hacer_admin = tk.Button(frame_admin, text="Hacer admin", command=hacer_admin,
+                                  bg="#0d6efd", fg="white", activebackground="#0d6efd", activeforeground="white",
+                                  relief="flat", bd=0, font=("Segoe UI", 10), padx=14, pady=6)
+    boton_hacer_admin.grid(row=5, column=0, sticky="w", pady=(16, 0))
+
 
     # Frame de estadísticas por categoría
-    tk.Label(Frame_estadisticas, text="Categoría").grid(row=1, column=1, padx=5, pady=5)
+    Frame_estadisticas.grid_columnconfigure(0, weight=1)        # la columna se estira al ancho del panel
+
+    # Mantenemos el titulo gris, como el del formulario
+    tk.Label(Frame_estadisticas, text="Estadisticas", bg="#dcdde1", font=("Segoe UI", 12), pady=14).grid(row=0, column=0, sticky="ew", pady=(0,10))
+    # Etiqueta encima del selector
+    tk.Label(Frame_estadisticas, text="Categoria", font=("Segoe UI", 10), anchor="w").grid(row=1, column=0, sticky="ew", pady=(8, 2))
+
     categorias = sorted({producto[4] for producto in bd.mostrar_productos()})
     categoria_estadisticas = tk.StringVar()
     selector_categoria = ttk.Combobox(
         Frame_estadisticas,
         textvariable=categoria_estadisticas,
         values=categorias,
-        state="readonly"
+        state="readonly",
+        font=("Segoe UI", 10),
+        width=30,                       
     )
-    selector_categoria.grid(row=1, column=2, padx=5, pady=5)
+    selector_categoria.grid(row=2, column=0, sticky="ew", pady=4)
     if categorias:
         selector_categoria.current(0)
 
-    resultado_estadisticas = tk.Label(Frame_estadisticas, justify="left")
-    resultado_estadisticas.grid(row=3, column=1, columnspan=2, padx=5, pady=10)
+    # Botón principal (Calcular)
     boton_calcular = tk.Button(
-        Frame_estadisticas,
-        text="Calcular",
-        command=lambda: F.mostrar_estadisticas(
-            selector_categoria, resultado_estadisticas
-        )
+        Frame_estadisticas, text="Calcular",
+        command=lambda: F.mostrar_estadisticas(selector_categoria, resultado_estadisticas),
+        bg="#0d6efd", fg="white", activebackground="#0d6efd", activeforeground="white",
+        relief="flat", bd=0, font=("Segoe UI", 10), padx=14, pady=6,
     )
-    boton_calcular.grid(row=2, column=1, columnspan=2, pady=5)
-    boton_total = tk.Button(
-        Frame_estadisticas,
-        text="Calcular total del inventario",
-        command=lambda: F.mostrar_total_inventario(resultado_estadisticas)
-    )
-    boton_total.grid(row=2, column=3, padx=5, pady=5)
+    boton_calcular.grid(row=3, column=0, sticky="w", pady=(16, 0))
 
-    # Vaciar inventario:
+    # Botón secundario (Total)
+    boton_total = tk.Button(
+        Frame_estadisticas, text="Calcular total del inventario",
+        command=lambda: F.mostrar_total_inventario(resultado_estadisticas),
+        bg="#6c757d", fg="white", activebackground="#6c757d", activeforeground="white",
+        relief="flat", bd=0, font=("Segoe UI", 10), padx=14, pady=6,
+    )
+    boton_total.grid(row=4, column=0, sticky="w", pady=(8, 0))
+
+    # Parte del resultado.
+    # wraplength corta el texto en líneas de máximo 300 px.
+    # Sin eso, un resultado largo ensancharía el panel y empujaría la tabla.
+    resultado_estadisticas = tk.Label(Frame_estadisticas, justify="left", anchor="w",
+                                      font=("Segoe UI", 10), wraplength=300)
+    resultado_estadisticas.grid(row=5, column=0, sticky="ew", pady=(16, 0))
+
+    # Seccion para Vaciar inventario:
     TODO = "-- Todo el inventario --"
 
     selector_vaciar = ttk.Combobox(Frame_botones, state="readonly", width=22)
-    selector_vaciar.grid(row=1, column=6, padx=(20, 5), pady=10)
+    selector_vaciar.grid(row=1, column=9, padx=(0, 5), pady=10)
 
     def actualizar_selector_vaciar():
         # Vuelve a leer las categorías de la BD (así no queda una categoría ya vaciada)
@@ -224,16 +258,21 @@ def ejecutar():
             boton_vaciar.config(state="normal")
 
     boton_vaciar = tk.Button(Frame_botones, text="Vaciar", command=vaciar)
-    boton_vaciar.grid(row=1, column=7, padx=(0, 20), pady=10)
+    boton_vaciar.grid(row=1, column=10, padx=(0, 20), pady=10)
 
+    # Botones provicionales, aun no sirven
+    boton_carritos = tk.Button(Frame_botones, text="Carritos", state="disabled")
+    boton_ventas = tk.Button(Frame_botones, text="Ventas", state="disabled")
+    boton_carritos.grid(column=6, row=1)
+    boton_ventas.grid(column=7, row=1)
 
         # ---------- estilo de la barra superior ----------
 
-    botones_barra = (boton_ingreso, boton_estadisticas, boton_admin, boton_vaciar)
+    botones_barra = (boton_ingreso, boton_estadisticas, boton_admin, boton_vaciar, boton_carritos, boton_ventas)
 
     # El for repite lo mismo con cada botón.
     for b in botones_barra:
-        b.config(
+        b.config(       
             bg="#f1f3f5",                 # mismo color que la barra, así parece "sin caja"
             fg="#212529",                 # letra casi negra
             activebackground="#dee2e6",   # color mientras lo estás presionando
@@ -241,7 +280,7 @@ def ejecutar():
             relief="flat",                # sin relieve de botón clásico
             bd=0,                         # sin borde
             font=("Segoe UI", 10),
-            padx=14, pady=6,              # espacio interno
+            padx=15, pady=6,              # espacio interno
         )
 
     # El botón vaciar lo dejamos distinto.
