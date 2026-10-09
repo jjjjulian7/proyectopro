@@ -6,7 +6,7 @@ from clases.producto import Producto
 from clases.inventario import Inventario
 from datos import bd
 
-HOST = '192.168.1.119'
+HOST = "192.168.100.7"
 PORT = 65433
 def iniciar_servidor():
     server=socket.socket(socket.AF_INET, socket.SOCK_STREAM)

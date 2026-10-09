@@ -3,7 +3,7 @@ from tkinter import messagebox
 from clases.carrito import ClienteRed
 from clases import carrito
 
-from proyectopro.clases.Venta import venta
+from clases import Venta
 from .validar_tarjeta import abrir_validar_tarjeta
 
 # Colores que ocupamos en la interfaz
