@@ -7,6 +7,9 @@ from . import pruebacuadro
 from clases import inventario 
 from . import abrir_carrito
 from . import interfaz
+from interfaz import Client_ProyProgV2 as ClienteRed
+from clases import carrito
+
 
 
 #colores
@@ -304,5 +307,7 @@ def ejecutar():
     buscador.bind("<Return>", buscar_enter)
 
     mostrar_productos()
+    
+    ClienteRed.conexion_reserva = F.carrito.procesar_respuesta_reservar  # Asignar la función de procesamiento de respuesta al atributo conexion_reserva
 
     ventana.mainloop()

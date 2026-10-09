@@ -11,8 +11,8 @@ from . import Interfaz_pagina
 from . import ventana_admin
 from . import interfaz
 from . import abrir_carrito
-from . import Client_ProyProgV2
-import Server_ProgProyV2
+from . import Client_ProyProgV2 as ClienteRed
+import Server_ProgProyV2 as ServidorRed
 import threading
 # Codigo realizado por Cristobal Maulen
 carrito = C()
@@ -40,7 +40,7 @@ def ventana_usuario(ventana,texto,IngresoClave):
             texto.pack()
             ventanaAdvertencia.after(2000,ventanaAdvertencia.destroy)
         else:
-            hilo_cliente = threading.Thread(target=Client_ProyProgV2.start_client)
+            hilo_cliente = threading.Thread(target=ClienteRed.conectar)
             hilo_cliente.daemon = True
             hilo_cliente.start()
             
@@ -201,6 +201,9 @@ def buscar(buscador, inventario_productos):
     return inventario_productos.buscar_producto(2, valor)
 
 def ingresar_log(usuario):
+    hilo_server = threading.Thread(target= ServidorRed.iniciar_servidor)
+    hilo_server.daemon = True
+    hilo_server.start()
     if usuario==None:
         interfaz.ejecutar()
     else:
@@ -213,11 +216,9 @@ def agregar_producto_carrito(ProductoS, cantidad):
     carrito.agregar_producto(ProductoS,cantidad)
 
 
-def vaciarcarrito(ventana):
+def vaciarcarrito():
     carrito.vaciar_carrito()
-    tk.messagebox.showinfo("Carrito", "El carrito ha sido vaciado.")
-    ventana.destroy()
-    abrir_carrito.abrir_carrito()
+    
 def mostrar_info():
     subtotal= carrito.calcular_subtotal()
     iva = carrito.calcular_iva()

@@ -1,5 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox
+from clases.carrito import ClienteRed
+from clases import carrito
 
 from proyectopro.clases.Venta import venta
 from .validar_tarjeta import abrir_validar_tarjeta
@@ -92,8 +94,10 @@ def abrir_carrito(carrito, event=None):
         actualizar_totales()
 
     def eliminar(item):
+        id_producto = item["id"]
+        cantidad = item["cantidad"]
         # Quita el producto completo y restaura su stock
-        carrito.eliminar_producto(item, item["cantidad"])
+        carrito.eliminar_producto(id_producto, cantidad)  # Llama al método para vaciar el carrito y restaurar el stock
         refrescar_interfaz()
 
     #refrescar la ventana al eliminar o vaciar
@@ -168,12 +172,14 @@ def abrir_carrito(carrito, event=None):
                 bg=COLOR_ROJO, fg="white", activebackground="#c9302c",
                 activeforeground="white", relief="flat", bd=0,
                 width=5, pady=3, cursor="hand2",
-                command=lambda it=item: eliminar(it)
+                command=lambda it=item: eliminar(item)
             ).grid(row=fila, column=4, sticky="w")
 
             linea(fila + 1)
 
         actualizar_totales()
+        
+        carrito.funcion_dibujar_tabla = dibujar_tabla  # Guardamos la función para que el carrito pueda actualizar la interfaz
 
     # botones , se pueden mover a FuncionBotones quizas mas adelante
     tk.Button(
@@ -199,6 +205,12 @@ def abrir_carrito(carrito, event=None):
     boton_vaciar.grid(row=4, column=0, columnspan=4, pady=(10, 0))
 
     dibujar_tabla()
+    
+    ClienteRed.conectar_interfaz_vaciar(carrito.procesar_respuesta_vaciar)
+    ClienteRed.conectar_interfaz_reponer(carrito.procesar_respuesta_eliminar)
+    ClienteRed.conectar_interfaz_reserva(carrito.procesar_respuesta_reservar)
+    
+   
 
     if ventana_propia:
         ventana.mainloop()
