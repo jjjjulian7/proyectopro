@@ -53,7 +53,7 @@ def crear_cuadradito(contenedor_padre, gestor, ruta_imagen, nombre, categoria, p
 
         producto_seleccionado = Producto(nombre, precio, stock_actual, categoria)
         producto_seleccionado.id = id_producto
-        F.agregar_producto_carrito(producto_seleccionado, cantidad)
+        F.agregar_producto_carrito(producto_seleccionado, cantidad,F.usuario_actual)
 
     boton_agregar = tk.Button(marco, text="agregar al carrito", font=("Arial", 10, "bold"), 
                         bg="white", fg="#4a2a85", bd=1, relief="solid", cursor="hand2",

@@ -179,8 +179,6 @@ def abrir_carrito(carrito, event=None):
             linea(fila + 1)
 
         actualizar_totales()
-        
-        carrito.funcion_dibujar_tabla = dibujar_tabla  # Guardamos la función para que el carrito pueda actualizar la interfaz
 
     # botones , se pueden mover a FuncionBotones quizas mas adelante
     tk.Button(

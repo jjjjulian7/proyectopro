@@ -193,6 +193,6 @@ def reservar_stock(id_producto, cantidad, nombre_producto):
         return True, "Stock reservado correctamente", precio
     except Exception as e:
         conexion.rollback()         # si falla sqlite, deshace los cambios
-        return False, str(e) 
+        return False, str(e) , None
     finally:
         conexion.close()    

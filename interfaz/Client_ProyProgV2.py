@@ -4,7 +4,7 @@ import threading
 import sys
 import time
 from tkinter import messagebox
-HOST = "192.168.100.7"
+HOST = "172.20.10.3"
 PORT = 65433
 
 conexion=None
@@ -95,6 +95,7 @@ def recibir(socket_conexion):
 
 def dato_envia(dato):
     tipo=dato.get('type')
+    nombre_u=dato.get('nombre_u')
     if tipo == 'reservar_stock':
         id_producto=dato.get('id_producto')
         cantidad=dato.get('cantidad')
@@ -102,13 +103,15 @@ def dato_envia(dato):
         enviar({'type':'reservar_stock',
             'id_producto':id_producto,
                     'cantidad':cantidad,
-                    'nombre':nombre})
+                    'nombre':nombre,
+                    'nombre_u':nombre_u})
     elif tipo =='reponer_stock':
         id_producto=dato.get('id_producto')
         cantidad=dato.get('cantidad')
         enviar({'type':'reponer_stock',
             'id_producto':id_producto,
-                'cantidad':cantidad})
+                'cantidad':cantidad,
+                'nombre_u':nombre_u})
     elif tipo == 'vaciar_carrito':
         productos=dato.get('productos', [])
-        enviar({'type':'vaciar_carrito', 'productos':productos})
+        enviar({'type':'vaciar_carrito', 'productos':productos,'nombre_u':nombre_u})

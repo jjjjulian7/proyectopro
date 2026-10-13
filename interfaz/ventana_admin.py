@@ -1,9 +1,14 @@
 import tkinter as tk
 import tkinter.messagebox as messagebox
 from tkinter import ttk
+import sqlite3
 from . import FuncionBotones as F
 from datos import bd
 from datos import bd_usuarios as BD
+from datos import bd_carrito
+import Server_ProgProyV2 as ServidorRed
+
+
 
 
 def ejecutar():
@@ -49,6 +54,10 @@ def ejecutar():
     #boton para asignar permisos de admin
     frame_admin = tk.Frame(Frame_contenido)
     lista_F.append(frame_admin)
+
+    #frame para ver los carritos de los usuarios
+    frame_carritos = tk.Frame(Frame_contenido)
+    lista_F.append(frame_carritos)
 
     def mostrar_seccion(frame):
         F.mostrar_frame(frame, lista_F)
@@ -236,9 +245,9 @@ def ejecutar():
                 return
 
             if seleccion == TODO:
-                texto = "¿Seguro que quieres vaciar todo el inventario? Esta acción eliminará todos los productos."
+                texto = "¿seguro que quieres vaciar todo el inventario? Esta accion eliminara todos los productos."
             else:
-                texto = f"¿Seguro que quieres vaciar la categoría '{seleccion}'? Se eliminarán todos los productos de esa categoría."
+                texto = f"¿seguro que quieres vaciar la categoria '{seleccion}'? Se eliminarán todos los productos de esa categoría."
             # Si el usuario presiona "No", askyesno devuelve False y se cancela todo.
             if not messagebox.askyesno("Confirmación", texto, parent=ventana):
                 return
@@ -261,10 +270,94 @@ def ejecutar():
     boton_vaciar.grid(row=1, column=10, padx=(0, 20), pady=10)
 
     # Botones provicionales, aun no sirven
-    boton_carritos = tk.Button(Frame_botones, text="Carritos", state="disabled")
+    boton_carritos = tk.Button(Frame_botones, text="Carritos", command=lambda: abrir_carritos())
     boton_ventas = tk.Button(Frame_botones, text="Ventas", state="disabled")
     boton_carritos.grid(column=6, row=1)
     boton_ventas.grid(column=7, row=1)
+
+    # Frame de carritos (solo lectura)
+    frame_carritos.grid_columnconfigure(0, weight=1)        # la columna se estira al ancho del panel
+
+    # Titulo gris, igual que el resto de secciones
+    tk.Label(frame_carritos, text="Carritos", bg="#dcdde1", font=("Segoe UI", 12), pady=14).grid(row=0, column=0, sticky="ew", pady=(0, 10))
+    tk.Label(frame_carritos, text="Carrito de usuario", font=("Segoe UI", 10), anchor="w").grid(row=1, column=0, sticky="ew", pady=(8, 2))
+
+    selector_carrito = ttk.Combobox(frame_carritos, state="readonly", font=("Segoe UI", 10), width=30)
+    selector_carrito.grid(row=2, column=0, sticky="ew", pady=4)
+
+    boton_actualizar_carritos = tk.Button(
+        frame_carritos, text="Actualizar", command=lambda: refrescar_carritos(),
+        bg="#0d6efd", fg="white", activebackground="#0d6efd", activeforeground="white",
+        relief="flat", bd=0, font=("Segoe UI", 10), padx=14, pady=6,
+    )
+    boton_actualizar_carritos.grid(row=3, column=0, sticky="w", pady=(16, 0))
+
+    # Resumen del carrito seleccionado (unidades y total)
+    resumen_carrito = tk.Label(frame_carritos, justify="left", anchor="w", font=("Segoe UI", 10), wraplength=300)
+    resumen_carrito.grid(row=4, column=0, sticky="ew", pady=(16, 8))
+
+    # Tabla con el mismo estilo que la de productos (el estilo "Productos.Treeview" lo crea FuncionBotones)
+    tabla_carrito = ttk.Treeview(frame_carritos, columns=("producto", "cantidad", "precio", "subtotal"),
+                                 show="headings", style="Productos.Treeview", height=6)
+    for col, (texto, ancho, ancla) in {
+        "producto": ("PRODUCTO", 140, "w"),
+        "cantidad": ("CANT.", 50, "center"),
+        "precio":   ("PRECIO", 90, "e"),
+        "subtotal": ("SUBTOTAL", 100, "e"),
+    }.items():
+        tabla_carrito.heading(col, text=texto)
+        tabla_carrito.column(col, width=ancho, anchor=ancla)
+    tabla_carrito.tag_configure("par", background="#ffffff")
+    tabla_carrito.tag_configure("impar", background="#e0e0e0")
+    tabla_carrito.grid(row=5, column=0, sticky="ew")
+
+    ids_carritos = []       # ids de los carritos en el mismo orden que el selector
+
+    def mostrar_items_carrito(event=None):
+        tabla_carrito.delete(*tabla_carrito.get_children())
+        posicion = selector_carrito.current()
+        if posicion < 0:
+            resumen_carrito.config(text="No hay carritos todavía.")
+            return
+        try:
+            items = bd_carrito.items_de_carrito(ids_carritos[posicion])
+        except sqlite3.Error as e:
+            messagebox.showerror("Error", f"No se pudo leer el carrito: {e}", parent=ventana)
+            return
+        unidades = sum(item[2] for item in items)
+        total = sum(item[4] for item in items)
+        resumen_carrito.config(text=f"Unidades: {unidades}\nTotal: ${total:,.0f}")
+        for i, (_id_producto, nombre_p, cantidad, precio, subtotal) in enumerate(items):
+            tabla_carrito.insert("", "end",
+                                 values=(nombre_p, cantidad, f"${precio:,.0f}", f"${subtotal:,.0f}"),
+                                 tags=("par" if i % 2 == 0 else "impar",))
+
+    def refrescar_carritos():
+        # intentamos conservar el carrito que se estaba viendo
+        posicion = selector_carrito.current()
+        previo = ids_carritos[posicion] if 0 <= posicion < len(ids_carritos) else None
+        try:
+            carritos = bd_carrito.listar_carritos()
+        except sqlite3.Error as e:
+            messagebox.showerror("Error", f"No se pudieron leer los carritos: {e}", parent=ventana)
+            return
+        ids_carritos.clear()
+        etiquetas = []
+        for id_c, usuario_c, _fecha, estado, unidades, _total in carritos:
+            ids_carritos.append(id_c)
+            etiquetas.append(f"#{id_c} · {usuario_c} · {estado}")
+        selector_carrito["values"] = etiquetas
+        if ids_carritos:
+            selector_carrito.current(ids_carritos.index(previo) if previo in ids_carritos else 0)
+        else:
+            selector_carrito.set("")
+        mostrar_items_carrito()
+
+    def abrir_carritos():
+        mostrar_seccion(frame_carritos)
+        refrescar_carritos()
+
+    selector_carrito.bind("<<ComboboxSelected>>", mostrar_items_carrito)
 
         # ---------- estilo de la barra superior ----------
 
