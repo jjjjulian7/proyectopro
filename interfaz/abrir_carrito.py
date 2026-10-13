@@ -3,7 +3,6 @@ from tkinter import messagebox
 from clases.carrito import ClienteRed
 from clases import carrito
 
-from clases import Venta
 from .validar_tarjeta import abrir_validar_tarjeta
 
 # Colores que ocupamos en la interfaz
@@ -112,7 +111,9 @@ def abrir_carrito(carrito, event=None):
         if not carrito.items:
             messagebox.showwarning("Pagos", "El carrito está vacío.", parent=ventana)
             return
-        abrir_validar_tarjeta(ventana, carrito.calcular_total(), carrito)
+        from . import FuncionBotones as F  # import aqui adentro para evitar import circular
+        cliente = F.usuario_actual or "Invitado"
+        abrir_validar_tarjeta(ventana, carrito.calcular_total(), carrito, cliente)
 
     def linea(fila):
         tk.Frame(tabla, bg=COLOR_BORDE, height=1).grid(
@@ -172,7 +173,7 @@ def abrir_carrito(carrito, event=None):
                 bg=COLOR_ROJO, fg="white", activebackground="#c9302c",
                 activeforeground="white", relief="flat", bd=0,
                 width=5, pady=3, cursor="hand2",
-                command=lambda it=item: eliminar(item)
+                command=lambda it=item: eliminar(it)
             ).grid(row=fila, column=4, sticky="w")
 
             linea(fila + 1)
@@ -183,35 +184,46 @@ def abrir_carrito(carrito, event=None):
 
     # botones , se pueden mover a FuncionBotones quizas mas adelante
     tk.Button(
-        pie, text="‹  Continue Comprando", font=FUENTE,
+        pie, text="<  Continue Comprando", font=FUENTE,
         bg=COLOR_NARANJA, fg="white", activebackground="#d99a45",
         activeforeground="white", relief="flat", bd=0,
         padx=12, pady=5, cursor="hand2", command=continuar
     ).pack(side="left")
 
     tk.Button(
-        pie, text="Pagos  ›", font=FUENTE,
+        pie, text="Pagos  >", font=FUENTE,
         bg=COLOR_VERDE, fg="white", activebackground="#4cae4c",
         activeforeground="white", relief="flat", bd=0,
         width=12, pady=5, cursor="hand2", command=pagar
     ).pack(side="right")
 
-    lbl_total.pack(side="right", padx=30)
-##Copiada de un commit anterior , falta por arreglar
-    boton_vaciar=tk.Button(ventana,text="Vaciar carrito", command=lambda:F.vaciarcarrito(ventana))
-    boton_vaciar.grid(row=4, column=0, columnspan=4, pady=(20, 0))
-    ventana.mainloop()
-    boton_vaciar = tk.Button(ventana, text="Vaciar carrito", command=lambda: [F.vaciarcarrito(ventana), refrescar_interfaz()])
-    boton_vaciar.grid(row=4, column=0, columnspan=4, pady=(10, 0))
 
+    def vaciar():
+        if not carrito.items:
+            return
+        carrito.vaciar_carrito()  # el servidor restaura el stock y luego redibuja la tabla
+ 
+    tk.Button(
+        ventana, text="Vaciar carrito", font=FUENTE,
+        bg=COLOR_ROJO, fg="white", activebackground="#c9302c",
+        activeforeground="white", relief="flat", bd=0,
+        padx=12, pady=5, cursor="hand2", command=vaciar
+    ).pack(pady=(20, 0))
+ 
+    # Cuando se cierre la ventana, el carrito deja de intentar redibujarla
+    def al_destruir(event):
+        if event.widget is ventana:
+            carrito.funcion_dibujar_tabla = None
+    ventana.bind("<Destroy>", al_destruir)
+ 
+   
+    carrito.funcion_dibujar_tabla = dibujar_tabla  # para que el carrito pueda actualizar la interfaz
     dibujar_tabla()
-    
+ 
     ClienteRed.conectar_interfaz_vaciar(carrito.procesar_respuesta_vaciar)
     ClienteRed.conectar_interfaz_reponer(carrito.procesar_respuesta_eliminar)
     ClienteRed.conectar_interfaz_reserva(carrito.procesar_respuesta_reservar)
-    
-   
-
+ 
     if ventana_propia:
         ventana.mainloop()
     return ventana

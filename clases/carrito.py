@@ -2,6 +2,7 @@ import datos.bd as bd
 from interfaz import Client_ProyProgV2 as ClienteRed
 from tkinter import messagebox
 from interfaz.abrir_carrito import abrir_carrito
+from clases.Venta import venta 
 
 class Carrito:
     def __init__(self):
@@ -104,11 +105,17 @@ class Carrito:
             messagebox.showwarning("Error al eliminar producto", mensaje)
 
             
-    def procesar_compra(self):
+    def procesar_compra(self, cliente):
         if not self.items:
-            return False, "El carrito está vacío"
+            return False, "El carrito está vacío", None
         
-        total = self.calcular_total()
-        self.items.clear()  # Vacía el carrito después de procesar la compra
-        return True, f"Compra procesada exitosamente. Total: ${total:.2f}"
+        nueva_venta = venta(cliente, self.items, self.calcular_subtotal(), self.calcular_iva(), self.calcular_total())
+        nueva_venta.guardar_en_bd()             # asigna el recibo_id
+        ruta = nueva_venta.guardar_json()       # usa recibo_id para el nombre del archivo
+
+        
+        self.items.clear()  # vacia el carrito.
+        if self.funcion_dibujar_tabla is not None:
+            self.funcion_dibujar_tabla()
+        return True, f"Recibo N°{nueva_venta.recibo_id}", ruta
     

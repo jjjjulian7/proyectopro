@@ -24,12 +24,13 @@ def solo_digitos(texto):
     return True
 
 
-def abrir_validar_tarjeta(padre, total, carrito=None):
+def abrir_validar_tarjeta(padre, total, carrito=None, cliente="Invitado"):
     """Ventana de validación de tarjeta.
 
     padre:   ventana del carrito (se cierra junto con esta al pagar)
     total:   monto a pagar
     carrito: instancia de Carrito (opcional)
+    cliente: nombre del usuario que paga (va en el recibo)
     """
     ventana = tk.Toplevel(padre)
     ventana.title("Validar tarjeta")
@@ -134,7 +135,13 @@ def abrir_validar_tarjeta(padre, total, carrito=None):
             return
 
         # ---- Todo correcto: cierra esta ventana y el carrito ----
-        messagebox.showinfo("Pagos", "Pago realizado con éxito.", parent=ventana)
+        # Registra la venta, guarda en BD, genera el JSON y vacia el carrito
+        ok, mensaje, ruta = carrito.procesar_compra(cliente)
+        if not ok:
+            messagebox.showerror("Error", mensaje, parent=ventana)
+            return
+        
+        messagebox.showinfo("Pagos", "Pago realizado con éxito.\n{mensaje}\nGuardado en: {ruta}", parent=ventana)
         ventana.destroy()
         padre.destroy()
 
