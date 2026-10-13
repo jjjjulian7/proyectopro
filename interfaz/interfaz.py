@@ -4,13 +4,13 @@ from . import estilo_boton
 import tkinter.messagebox as messagebox
 from clases import usuario 
 
-# Paleta y fuentes (mismas del carrito)
 COLOR_BORDE = "#dddddd"
 COLOR_VERDE = "#5cb85c"
 COLOR_TEXTO = "#222222"
 COLOR_GRIS = "#777777"
 FUENTE = ("Segoe UI", 10)
 FUENTE_NEGRITA = ("Segoe UI", 10, "bold")
+COLOR_MORADO = "#7422A8"
 
 def ejecutar():
     # ventana de ingreso
@@ -38,7 +38,7 @@ def ejecutar():
              fg=COLOR_TEXTO, anchor="w").pack(fill="x")
     IngresoNombre = tk.Entry(
         contenido, width=34, font=FUENTE, relief="flat", bd=0,
-        highlightthickness=1, highlightbackground=COLOR_BORDE, highlightcolor=COLOR_VERDE
+        highlightthickness=1, highlightbackground=COLOR_BORDE, highlightcolor=COLOR_MORADO
     )
     IngresoNombre.pack(fill="x", ipady=6, pady=(4, 14))
 
@@ -46,7 +46,7 @@ def ejecutar():
              fg=COLOR_TEXTO, anchor="w").pack(fill="x")
     IngresoClave = tk.Entry(
         contenido, width=34, font=FUENTE, show="*", relief="flat", bd=0,
-        highlightthickness=1, highlightbackground=COLOR_BORDE, highlightcolor=COLOR_VERDE
+        highlightthickness=1, highlightbackground=COLOR_BORDE, highlightcolor=COLOR_MORADO
     )
     IngresoClave.pack(fill="x", ipady=6, pady=(4, 14))
 

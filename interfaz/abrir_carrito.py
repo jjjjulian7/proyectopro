@@ -1,5 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox
+
+from clases.Venta import venta
 from .validar_tarjeta import abrir_validar_tarjeta
 
 # Colores que ocupamos en la interfaz
@@ -8,6 +10,7 @@ COLOR_ROJO = "#d9534f"
 COLOR_NARANJA = "#eeac57"
 COLOR_VERDE = "#5cb85c"
 FUENTE = ("Segoe UI", 10)
+COLOR_MORADO= "#7422A8"
 FUENTE_NEGRITA = ("Segoe UI", 10, "bold")
 
 
@@ -94,7 +97,21 @@ def abrir_carrito(carrito, event=None):
         carrito.eliminar_producto(item, item["cantidad"])
         refrescar_interfaz()
 
-    #refrescar la ventana al eliminar o vaciar
+    def vaciar():
+        # Quita TODOS los productos y restaura su stock
+        if not carrito.items:
+            messagebox.showinfo("Carrito", "El carrito ya está vacío.", parent=ventana)
+            return
+        if not messagebox.askyesno("Vaciar carrito",
+                                   "¿Seguro que quieres quitar todos los productos?",
+                                   parent=ventana):
+            return
+        # Se recorre una copia de la lista porque eliminar_producto la modifica
+        for item in list(carrito.items):
+            carrito.eliminar_producto(item, item["cantidad"])
+        refrescar_interfaz()
+
+    # refrescar la ventana al eliminar o vaciar
     def refrescar_interfaz():
         dibujar_tabla()
 
@@ -162,7 +179,7 @@ def abrir_carrito(carrito, event=None):
                           cambiar_cantidad(it, v, s, l))
 
             tk.Button(
-                tabla, text="🗑", font=("Segoe UI Emoji", 10),
+                tabla, text="X", font=("Segoe UI Emoji", 10),
                 bg=COLOR_ROJO, fg="white", activebackground="#c9302c",
                 activeforeground="white", relief="flat", bd=0,
                 width=5, pady=3, cursor="hand2",
@@ -189,6 +206,17 @@ def abrir_carrito(carrito, event=None):
     ).pack(side="right")
 
     lbl_total.pack(side="right", padx=30)
+
+    # Botón Vaciar carrito: abajo a la derecha de la ventana
+    barra_inferior = tk.Frame(ventana, bg="white")
+    barra_inferior.pack(side="bottom", fill="x", padx=20, pady=15)
+
+    tk.Button(
+        barra_inferior, text="Vaciar carrito", font=FUENTE,
+        bg=COLOR_ROJO, fg="white", activebackground="#c9302c",
+        activeforeground="white", relief="flat", bd=0,
+        padx=12, pady=5, cursor="hand2", command=vaciar
+    ).pack(side="right")
 
     dibujar_tabla()
 

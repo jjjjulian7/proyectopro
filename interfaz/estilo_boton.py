@@ -7,7 +7,7 @@ def crear_boton_verde(ventana_padre, texto_boton, funcion_comando):
     boton = tk.Button(ventana_padre, 
                       text=texto_boton, 
                       font=("Arial", 12, "bold"),
-                      bg="#2ecc71",      
+                      bg="#7422A8",      
                       fg="white",         
                       relief="flat",      #Sin bordes feos
                       borderwidth=0,      
@@ -17,10 +17,10 @@ def crear_boton_verde(ventana_padre, texto_boton, funcion_comando):
                       command=funcion_comando) #conecta la acción
     
     def al_entrar(e):
-        boton.config(bg="#27ae60") #Cambia a verde oscuro al pasar el mouse por encima
+        boton.config(bg="#7422A8") #Cambia a verde oscuro al pasar el mouse por encima
 
     def al_salir(e):
-        boton.config(bg="#2ecc71") #Vuelve al verde claro
+        boton.config(bg="#7422A8") #Vuelve al verde claro
 
     boton.bind("<Enter>", al_entrar) #Al mover el mouse sobre el boton, se activa la funcion al_entrar
     boton.bind("<Leave>", al_salir) #Al mover el mouse fuera del boton, se activa la funcion al_salir
