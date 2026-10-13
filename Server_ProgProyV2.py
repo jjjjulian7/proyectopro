@@ -5,8 +5,8 @@ import sys
 from clases.producto import Producto
 from clases.inventario import Inventario
 from datos import bd
-
-HOST = "192.168.100.7"
+from datos import bd_carrito
+HOST = '172.20.10.3'
 PORT = 65433
 def iniciar_servidor():
     server=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -32,11 +32,14 @@ def procesar_solicitud(socket_cliente,mensaje):
         id_producto=mensaje.get('id_producto')
         cantidad=mensaje.get('cantidad')
         nombre=mensaje.get('nombre')
+        nombre_u = mensaje.get('nombre_u')
         if not isinstance(cantidad,int) or cantidad <= 0:
             responder_cliente(socket_cliente,{'type': 'mensaje', 'mensaje': 'Cantidad inválida'})
             return
             
         acepto,respuesta, precio =bd.reservar_stock(id_producto,cantidad,nombre)
+        if acepto:
+            bd_carrito.agregar_item(nombre_u, id_producto, nombre, cantidad, precio)
         responder_cliente(socket_cliente,{'type':'reservar_stock',
                                               'ok':acepto,
                                               'mensaje':respuesta,
@@ -48,6 +51,7 @@ def procesar_solicitud(socket_cliente,mensaje):
         id_producto=mensaje.get('id_producto')
         cantidad=mensaje.get('cantidad')
         bd.restaurar_stock(id_producto,cantidad)
+        bd_carrito.quitar_item(mensaje.get('nombre_u'), id_producto, cantidad)
         responder_cliente(socket_cliente,{'type':'reponer_stock',
                                           'ok':True,
                                           'id_producto':id_producto,
@@ -61,6 +65,7 @@ def procesar_solicitud(socket_cliente,mensaje):
             id_producto=item.get('id_producto')
             cantidad=item.get('cantidad')
             bd.restaurar_stock(id_producto,cantidad)
+        bd_carrito.vaciar_carrito_usuario(mensaje.get('nombre_u'))
         responder_cliente(socket_cliente,{'type':'vaciar_carrito', 'ok':exito, 'mensaje':'Carrito vaciado correctamente'})
 
 def atender_cliente(socket_cliente, addr):

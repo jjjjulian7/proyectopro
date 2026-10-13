@@ -178,8 +178,6 @@ def abrir_carrito(carrito, event=None):
             linea(fila + 1)
 
         actualizar_totales()
-        
-        carrito.funcion_dibujar_tabla = dibujar_tabla  # Guardamos la función para que el carrito pueda actualizar la interfaz
 
     # botones , se pueden mover a FuncionBotones quizas mas adelante
     tk.Button(
@@ -197,12 +195,23 @@ def abrir_carrito(carrito, event=None):
     ).pack(side="right")
 
     lbl_total.pack(side="right", padx=30)
-##Copiada de un commit anterior , falta por arreglar
-    boton_vaciar=tk.Button(ventana,text="Vaciar carrito", command=lambda:F.vaciarcarrito(ventana))
-    boton_vaciar.grid(row=4, column=0, columnspan=4, pady=(20, 0))
-    ventana.mainloop()
-    boton_vaciar = tk.Button(ventana, text="Vaciar carrito", command=lambda: [F.vaciarcarrito(ventana), refrescar_interfaz()])
-    boton_vaciar.grid(row=4, column=0, columnspan=4, pady=(10, 0))
+    # Vaciar carrito: usa pack igual que el resto de la ventana (no se puede mezclar con grid).
+    # carrito.vaciar_carrito() avisa al servidor y la respuesta limpia y redibuja la tabla.
+    tk.Button(
+        pie, text="Vaciar carrito", font=FUENTE,
+        bg=COLOR_ROJO, fg="white", activebackground="#c9302c",
+        activeforeground="white", relief="flat", bd=0,
+        padx=12, pady=5, cursor="hand2", command=carrito.vaciar_carrito
+    ).pack(side="left", padx=10)
+
+    # Registramos la funcion de redibujado ANTES de dibujar, asi tambien queda registrada si el carrito esta vacio
+    carrito.funcion_dibujar_tabla = dibujar_tabla
+
+    # Al cerrar la ventana la desregistramos, si no el carrito intentaria dibujar en una ventana que ya no existe
+    def al_destruir(event):
+        if event.widget is ventana:
+            carrito.funcion_dibujar_tabla = None
+    ventana.bind("<Destroy>", al_destruir)
 
     dibujar_tabla()
     

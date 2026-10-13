@@ -1,12 +1,17 @@
 import tkinter as tk
 from . import estilo_boton
 from . import FuncionBotones as F
+import threading
+import Server_ProgProyV2 as ServidorRed
 
 def abrir_ventana_funcionario():
     #ventana de ingreso
     ventana = tk.Tk() 
     ventana.title("MaulencitosMarketLoginADMIN")
     ventana.geometry("1280x700")
+    hilo_server = threading.Thread(target=ServidorRed.iniciar_servidor)
+    hilo_server.daemon = True
+    hilo_server.start()
     
     #AJUSTES DE LA VENTANA Y POSICIONAMENTO DE LOS ELEMENTOSSSSSSSSSSSSSSSSSSSSSSSSSS
     # Codigo realizado por Jose Cofre

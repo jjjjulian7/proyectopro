@@ -19,7 +19,14 @@ import threading
 carrito = C()
 inventario=I()
 usuario_actual = None
+carrito = C()
+ClienteRed.conectar_interfaz_reserva(carrito.procesar_respuesta_reservar)
+ClienteRed.conectar_interfaz_reponer(carrito.procesar_respuesta_eliminar)
+ClienteRed.conectar_interfaz_vaciar(carrito.procesar_respuesta_vaciar)
 def ventana_a(ventana):
+    hilo_server = threading.Thread(target= ServidorRed.iniciar_servidor)
+    hilo_server.daemon = True
+    hilo_server.start()
     ventana_admin.ejecutar()
     #Server_ProgProyV2.handle_client()
     ventana.iconify()
@@ -44,8 +51,7 @@ def ventana_usuario(ventana,texto,IngresoClave):
             hilo_cliente = threading.Thread(target=ClienteRed.conectar)
             hilo_cliente.daemon = True
             hilo_cliente.start()
-            
-            usuario_actual = resultado[1] 
+            usuario_actual = resultado[1]
             ventana.destroy()
            
 
@@ -290,9 +296,9 @@ def buscar(buscador, inventario_productos):
     return inventario_productos.buscar_producto(2, valor)
 
 def ingresar_log(usuario):
-    hilo_server = threading.Thread(target= ServidorRed.iniciar_servidor)
+    '''hilo_server = threading.Thread(target= ServidorRed.iniciar_servidor)
     hilo_server.daemon = True
-    hilo_server.start()
+    hilo_server.start()'''
     if usuario==None:
         interfaz.ejecutar()
     else:
@@ -301,8 +307,8 @@ def ingresar_log(usuario):
 
 
 
-def agregar_producto_carrito(ProductoS, cantidad):
-    carrito.agregar_producto(ProductoS,cantidad)
+def agregar_producto_carrito(ProductoS, cantidad,usuarioA):
+    carrito.agregar_producto(ProductoS,cantidad,usuarioA)
 
 
 def vaciarcarrito():

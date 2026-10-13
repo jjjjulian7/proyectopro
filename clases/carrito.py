@@ -2,18 +2,20 @@ import datos.bd as bd
 from interfaz import Client_ProyProgV2 as ClienteRed
 from tkinter import messagebox
 from interfaz.abrir_carrito import abrir_carrito
-
 class Carrito:
     def __init__(self):
         self.items = []
+        self.usuario=None
         self.funcion_dibujar_tabla = None  # Inicializamos la función como None
     
-    def agregar_producto(self, producto, cantidad):
+    def agregar_producto(self, producto, cantidad,usuario):
         print(f"Usuario : Agregando producto {producto.nombre}, Cantidad: {cantidad}" )
+        self.usuario=usuario
         ClienteRed.dato_envia({'type' : 'reservar_stock',
                                'id_producto' : producto.id,
                                'cantidad' : cantidad,
-                               'nombre': producto.nombre }) #llama a la funcion reservar_stock de bd.py para reservar el stock del producto
+                               'nombre': producto.nombre,
+                                'nombre_u':usuario}) #llama a la funcion reservar_stock de bd.py para reservar el stock del producto
         
     def procesar_respuesta_reservar(self, ok, mensaje, id_producto, cantidad, nombre, precio):
         if ok:
@@ -54,10 +56,9 @@ class Carrito:
         for item in self.items: # recorre los items del carrito y restaura el stock de cada producto en la base de datos
             productos_a_devolver.append({
                 "id_producto": item["id"],
-                "cantidad": item["cantidad"]
-            })
+                "cantidad": item["cantidad"]})
         print(f"Productos a devolver stock: {productos_a_devolver}")
-        ClienteRed.dato_envia({'type': 'vaciar_carrito', 'productos': productos_a_devolver})
+        ClienteRed.dato_envia({'type': 'vaciar_carrito', 'productos': productos_a_devolver,'nombre_u':self.usuario})
     
     def procesar_respuesta_vaciar(self, ok, mensaje):
         if ok:
@@ -72,7 +73,7 @@ class Carrito:
     def eliminar_producto(self, id_producto, cantidad):
         print("Soliciando eliminar producto)\n")
         ClienteRed.dato_envia({'type' : 'reponer_stock', 'id_producto' : id_producto,
-                               'cantidad': cantidad})
+                               'cantidad': cantidad,'nombre_u':self.usuario})
         
 
     def procesar_respuesta_eliminar(self, ok, id_producto, cantidad, mensaje):
