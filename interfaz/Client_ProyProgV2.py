@@ -4,7 +4,7 @@ import threading
 import sys
 import time
 from tkinter import messagebox
-HOST = "172.20.10.3"
+HOST = "192.168.1.119"
 PORT = 65433
 
 conexion=None

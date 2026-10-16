@@ -13,7 +13,6 @@ COLOR_VERDE = "#5cb85c"
 FUENTE = ("Segoe UI", 10)
 FUENTE_NEGRITA = ("Segoe UI", 10, "bold")
 
-
 def abrir_carrito(carrito, event=None):
     """Abre la ventana del carrito (700x600).
 
@@ -35,7 +34,33 @@ def abrir_carrito(carrito, event=None):
     ventana.geometry("700x600")
     ventana.resizable(False, False)
     ventana.configure(bg="white")
-
+    ventana.timer = None # para que el carrito pueda cancelar el timer si se cierra la ventana
+    segundos_restantes = 120  
+    ventana.tiempo_restante = segundos_restantes
+    def expirar_carrito():
+        if carrito.items:
+            messagebox.showinfo("Tiempo Agotado", "El carrito ha expirado por inactividad.", parent=ventana)
+            carrito.vaciar_carrito()
+        ventana.destroy()
+    def descontar_tiempo():
+        minutos = ventana.tiempo_restante // 60
+        segundos =  ventana.tiempo_restante % 60
+        lbl_timer.config(text=f"Tiempo restante: {minutos:02d}:{segundos:02d}")
+        if ventana.tiempo_restante <= 0:
+            expirar_carrito()
+        else:
+            ventana.tiempo_restante -= 1
+            ventana.timer = ventana.after(1000, descontar_tiempo)
+    
+    def iniciar_resetear_timer(event=None):
+        ventana.tiempo_restante = segundos_restantes
+        if ventana.timer is not None:
+            ventana.after_cancel(ventana.timer)
+        descontar_tiempo() # 2 minutos
+        
+    ventana.bind("<Any-Button>", iniciar_resetear_timer)
+    ventana.bind("<Key>", iniciar_resetear_timer)
+    
     subtotales = []   # labels de sub total de cada fila
     variables = []    # IntVar de cada spinbox (evita que se pierdan)
 
@@ -43,6 +68,11 @@ def abrir_carrito(carrito, event=None):
         ventana, text="Carrito de compras", font=("Segoe UI", 22),
         bg="white", fg="#222222", anchor="w"
     ).pack(fill="x", padx=20, pady=(25, 10))
+    lbl_timer = tk.Label(
+        ventana, text="", font=("Segoe UI", 11, "bold"),
+        bg="white", fg=COLOR_ROJO, anchor="e"
+    )
+    lbl_timer.pack(fill="x", padx=20)
 
     tabla = tk.Frame(ventana, bg="white")
     tabla.pack(fill="x", padx=20)
@@ -212,9 +242,12 @@ def abrir_carrito(carrito, event=None):
     def al_destruir(event):
         if event.widget is ventana:
             carrito.funcion_dibujar_tabla = None
+            if ventana.timer is not None:
+                ventana.after_cancel(ventana.timer)
     ventana.bind("<Destroy>", al_destruir)
+    
+    iniciar_resetear_timer()  # inicia el timer de expiración del carrito
  
-   
     carrito.funcion_dibujar_tabla = dibujar_tabla  # para que el carrito pueda actualizar la interfaz
     dibujar_tabla()
  
