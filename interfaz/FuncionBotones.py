@@ -23,11 +23,7 @@ ClienteRed.conectar_interfaz_reserva(carrito.procesar_respuesta_reservar)
 ClienteRed.conectar_interfaz_reponer(carrito.procesar_respuesta_eliminar)
 ClienteRed.conectar_interfaz_vaciar(carrito.procesar_respuesta_vaciar)
 def ventana_a(ventana):
-    hilo_server = threading.Thread(target= ServidorRed.iniciar_servidor)
-    hilo_server.daemon = True
-    hilo_server.start()
     ventana_admin.ejecutar()
-    #Server_ProgProyV2.handle_client()
     ventana.iconify()
 def ventana_usuario(ventana,texto,IngresoClave):
         global usuario_actual   # Usamos global para que la variable cambie fuera de la funcion

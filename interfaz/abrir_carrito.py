@@ -38,6 +38,10 @@ def abrir_carrito(carrito, event=None):
     segundos_restantes = 120  
     ventana.tiempo_restante = segundos_restantes
     def expirar_carrito():
+        if ventana.timer is not None:
+            ventana.after_cancel(ventana.timer)
+            ventana.timer = None
+        carrito.funcion_dibujar_tabla = None
         if carrito.items:
             messagebox.showinfo("Tiempo Agotado", "El carrito ha expirado por inactividad.", parent=ventana)
             carrito.vaciar_carrito()
@@ -148,7 +152,11 @@ def abrir_carrito(carrito, event=None):
         dibujar_tabla()
 
     def continuar():
-        ventana.destroy()  # vuelve a la página anterior
+        if ventana.timer is not None:
+            ventana.after_cancel(ventana.timer)
+            ventana.timer = None
+        carrito.funcion_dibujar_tabla = None
+        ventana.destroy()
 
     def pagar():
         print("click en pagar")  # temporal: borrar cuando todo funcione
@@ -252,12 +260,22 @@ def abrir_carrito(carrito, event=None):
         padx=12, pady=5, cursor="hand2", command=vaciar
     ).pack(pady=(20, 0))
  
-    # Cuando se cierre la ventana, el carrito deja de intentar redibujarla
+    # Cierre limpio de la ventana cancelando cualquier timer activo
+    def cerrar_carrito():
+        if ventana.timer is not None:
+            ventana.after_cancel(ventana.timer)
+            ventana.timer = None
+        carrito.funcion_dibujar_tabla = None
+        ventana.destroy()
+
+    ventana.protocol("WM_DELETE_WINDOW", cerrar_carrito)
+
     def al_destruir(event):
         if event.widget is ventana:
             carrito.funcion_dibujar_tabla = None
             if ventana.timer is not None:
                 ventana.after_cancel(ventana.timer)
+                ventana.timer = None
     ventana.bind("<Destroy>", al_destruir)
     
     iniciar_resetear_timer()  # inicia el timer de expiración del carrito

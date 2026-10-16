@@ -8,7 +8,12 @@ PORT = 65433
 def iniciar_servidor():
     server=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    server.bind((HOST, PORT))
+    try:
+        server.bind((HOST, PORT))
+    except OSError:
+        print(f"[-] El servidor ya está corriendo o el puerto {PORT} está en uso.")
+        server.close()
+        return
     server.listen()
     while True:
         socket_cliente, addr = server.accept()# se crea el socket donde se comunica con el cliente
