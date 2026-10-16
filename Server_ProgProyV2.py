@@ -1,12 +1,9 @@
 import socket
 import json
 import threading
-import sys
-from clases.producto import Producto
-from clases.inventario import Inventario
 from datos import bd
 from datos import bd_carrito
-HOST = '10.233.161.2'
+HOST = '192.168.1.119'
 PORT = 65433
 def iniciar_servidor():
     server=socket.socket(socket.AF_INET, socket.SOCK_STREAM)

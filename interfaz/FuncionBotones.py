@@ -16,7 +16,6 @@ from . import Client_ProyProgV2 as ClienteRed
 import Server_ProgProyV2 as ServidorRed
 import threading
 # Codigo realizado por Cristobal Maulen
-carrito = C()
 inventario=I()
 usuario_actual = None
 carrito = C()

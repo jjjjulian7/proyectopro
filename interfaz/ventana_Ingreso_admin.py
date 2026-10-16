@@ -10,9 +10,7 @@ COLOR_FONDO = "#f4f6f8"
 COLOR_TARJETA = "white"
 COLOR_BORDE = "#dddddd"
 COLOR_TEXTO = "#222222"
-COLOR_SUAVE = "#777777"
 COLOR_VERDE = "#5cb85c"
-COLOR_MORADO= "#7422A8"
 FUENTE = ("Segoe UI", 11)
 FUENTE_NEGRITA = ("Segoe UI", 10, "bold")
 

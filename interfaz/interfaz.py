@@ -1,11 +1,8 @@
 import tkinter as tk
 from . import FuncionBotones as F
 from . import estilo_boton
-import tkinter.messagebox as messagebox
-from clases import usuario 
 
 COLOR_BORDE = "#dddddd"
-COLOR_VERDE = "#5cb85c"
 COLOR_TEXTO = "#222222"
 COLOR_GRIS = "#777777"
 FUENTE = ("Segoe UI", 10)

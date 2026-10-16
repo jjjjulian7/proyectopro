@@ -1,10 +1,9 @@
 import socket
 import json
 import threading
-import sys
 import time
 from tkinter import messagebox
-HOST = "10.233.161.2"
+HOST = "192.168.1.119"
 PORT = 65433
 
 conexion=None

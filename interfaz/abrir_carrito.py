@@ -1,9 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox
 
-from clases.Venta import venta
-from clases.carrito import ClienteRed
-from clases import carrito
+from . import Client_ProyProgV2 as ClienteRed
 
 from .validar_tarjeta import abrir_validar_tarjeta
 
@@ -13,7 +11,6 @@ COLOR_ROJO = "#d9534f"
 COLOR_NARANJA = "#eeac57"
 COLOR_VERDE = "#5cb85c"
 FUENTE = ("Segoe UI", 10)
-COLOR_MORADO= "#7422A8"
 FUENTE_NEGRITA = ("Segoe UI", 10, "bold")
 
 def abrir_carrito(carrito, event=None):

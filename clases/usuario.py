@@ -1,5 +1,3 @@
-import sqlite3
-
 class usuario:
     def __init__(self, nombre=None, password=None, rol="usuario", rut=None): # Definimos como predeterminado el rol de usuario
         self.id = None                                                       

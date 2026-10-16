@@ -4,18 +4,9 @@ from datos import bd as bd
 from . import estilo_boton as et
 from . import gestor_imagenes 
 from . import pruebacuadro
-from clases import inventario 
+from clases import inventario
 from . import abrir_carrito
-from . import interfaz
 from interfaz import Client_ProyProgV2 as ClienteRed
-from clases import carrito
-
-
-
-#colores
-gris="#E0E0E0"
-blanco="#FFFFFF"
-morado="#7422A8"
 
 def ejecutar():
 

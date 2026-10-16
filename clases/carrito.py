@@ -1,7 +1,5 @@
-import datos.bd as bd
 from interfaz import Client_ProyProgV2 as ClienteRed
 from tkinter import messagebox
-from interfaz.abrir_carrito import abrir_carrito
 from clases.Venta import venta 
 class Carrito:
     def __init__(self):

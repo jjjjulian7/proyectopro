@@ -4,9 +4,7 @@ from tkinter import ttk
 import sqlite3
 from . import FuncionBotones as F
 from datos import bd
-from datos import bd_usuarios as BD
 from datos import bd_carrito
-import Server_ProgProyV2 as ServidorRed
 
 
 
