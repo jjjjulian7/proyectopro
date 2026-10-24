@@ -141,7 +141,7 @@ def abrir_validar_tarjeta(padre, total, carrito=None, cliente="Invitado"):
             messagebox.showerror("Error", mensaje, parent=ventana)
             return
         
-        messagebox.showinfo("Pagos", "Pago realizado con éxito.\n{mensaje}\nGuardado en: {ruta}", parent=ventana)
+        messagebox.showinfo("Pagos", f"Pago realizado con éxito.\n{mensaje}\nGuardado en: {ruta}", parent=ventana)
         ventana.destroy()
         padre.destroy()
 

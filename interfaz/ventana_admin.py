@@ -5,6 +5,8 @@ import sqlite3
 from . import FuncionBotones as F
 from datos import bd
 from datos import bd_carrito
+from datos import bd_ventas
+from datetime import datetime
 
 
 
@@ -56,6 +58,9 @@ def ejecutar():
     #frame para ver los carritos de los usuarios
     frame_carritos = tk.Frame(Frame_contenido)
     lista_F.append(frame_carritos)
+
+    frame_ventas = tk.Frame(Frame_contenido)
+    lista_F.append(frame_ventas)
 
     def mostrar_seccion(frame):
         F.mostrar_frame(frame, lista_F)
@@ -269,7 +274,7 @@ def ejecutar():
 
     # Botones provicionales, aun no sirven
     boton_carritos = tk.Button(Frame_botones, text="Carritos", command=lambda: abrir_carritos())
-    boton_ventas = tk.Button(Frame_botones, text="Ventas", state="disabled")
+    boton_ventas = tk.Button(Frame_botones, text="Ventas", command=lambda: abrir_ventas())
     boton_carritos.grid(column=6, row=1)
     boton_ventas.grid(column=7, row=1)
 
@@ -356,6 +361,141 @@ def ejecutar():
         refrescar_carritos()
 
     selector_carrito.bind("<<ComboboxSelected>>", mostrar_items_carrito)
+
+    frame_ventas.grid_columnconfigure(0, weight=1)
+
+    tk.Label(frame_ventas, text="Ventas", bg="#dcdde1", font=("Segoe UI", 12), pady=14).grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 10))
+    tk.Label(frame_ventas, text="Haz click en un comprobante para ver sus productos", font=("Segoe UI", 10),
+             anchor="w", justify="left", wraplength=340).grid(row=1, column=0, columnspan=2, sticky="ew", pady=(0, 8))
+
+    tabla_ventas = ttk.Treeview(frame_ventas, columns=("id", "cliente", "fecha"),
+                                show="headings", style="Productos.Treeview", height=9)
+    for col, (texto, ancho, ancla) in {
+        "id":      ("N°", 50, "center"),
+        "cliente": ("CLIENTE", 130, "w"),
+        "fecha":   ("FECHA", 140, "center"),
+    }.items():
+        tabla_ventas.heading(col, text=texto)
+        tabla_ventas.column(col, width=ancho, anchor=ancla)
+    tabla_ventas.tag_configure("par", background="#ffffff")
+    tabla_ventas.tag_configure("impar", background="#e0e0e0")
+    tabla_ventas.grid(row=2, column=0, sticky="ew")
+
+    scroll_ventas = ttk.Scrollbar(frame_ventas, orient="vertical", command=tabla_ventas.yview)
+    tabla_ventas.configure(yscrollcommand=scroll_ventas.set)
+    scroll_ventas.grid(row=2, column=1, sticky="ns")
+
+    boton_actualizar_ventas = tk.Button(
+        frame_ventas, text="Actualizar", command=lambda: refrescar_ventas(),
+        bg="#0d6efd", fg="white", activebackground="#0d6efd", activeforeground="white",
+        relief="flat", bd=0, font=("Segoe UI", 10), padx=14, pady=6,
+    )
+    boton_actualizar_ventas.grid(row=3, column=0, sticky="w", pady=(16, 0))
+
+    aviso_ventas = tk.Label(frame_ventas, anchor="w", font=("Segoe UI", 10))
+    aviso_ventas.grid(row=4, column=0, columnspan=2, sticky="ew", pady=(8, 0))
+
+    datos_ventas = {}
+
+    def formatear_fecha(fecha_iso):
+        try:
+            return datetime.fromisoformat(fecha_iso).strftime("%d-%m-%Y %H:%M")
+        except (ValueError, TypeError):
+            return str(fecha_iso)
+
+    def refrescar_ventas():
+        try:
+            ventas = bd_ventas.listar_ventas()
+        except sqlite3.Error as e:
+            messagebox.showerror("Error", f"No se pudieron leer las ventas: {e}", parent=ventana)
+            return
+        tabla_ventas.delete(*tabla_ventas.get_children())
+        datos_ventas.clear()
+        for i, (id_v, fecha_v, cliente_v, total_v) in enumerate(ventas):
+            datos_ventas[id_v] = (fecha_v, cliente_v, total_v)
+            tabla_ventas.insert("", "end", iid=str(id_v),
+                                values=(id_v, cliente_v, formatear_fecha(fecha_v)),
+                                tags=("par" if i % 2 == 0 else "impar",))
+        aviso_ventas.config(text="" if ventas else "Todavía no hay ventas.")
+
+    def abrir_detalle_venta(id_venta):
+        if id_venta not in datos_ventas:
+            return
+        fecha_v, cliente_v, total_v = datos_ventas[id_venta]
+        try:
+            items = bd_ventas.items_de_venta(id_venta)
+            stock_actual = {p[0]: p[3] for p in bd.mostrar_productos()}
+        except sqlite3.Error as e:
+            messagebox.showerror("Error", f"No se pudo leer el detalle de la venta: {e}", parent=ventana)
+            return
+
+        detalle = tk.Toplevel(ventana)
+        detalle.title(f"Comprobante N°{id_venta}")
+        detalle.geometry("780x470")
+        detalle.transient(ventana)
+
+        tk.Label(detalle, text=f"Comprobante N°{id_venta}", bg="#dcdde1",
+                 font=("Segoe UI", 12), pady=14).pack(fill="x")
+        tk.Label(detalle, text=f"Cliente: {cliente_v}\nFecha: {formatear_fecha(fecha_v)}",
+                 font=("Segoe UI", 10), justify="left", anchor="w").pack(fill="x", padx=20, pady=(12, 8))
+
+        marco_tabla = tk.Frame(detalle)
+        marco_tabla.pack(fill="both", expand=True, padx=20)
+
+        tabla_detalle = ttk.Treeview(marco_tabla, columns=("id", "producto", "cantidad", "precio", "stock", "subtotal"),
+                                     show="headings", style="Productos.Treeview", height=5)
+        for col, (texto, ancho, ancla) in {
+            "id":       ("ID", 50, "center"),
+            "producto": ("PRODUCTO", 220, "w"),
+            "cantidad": ("CANT.", 75, "center"),
+            "precio":   ("PRECIO", 105, "e"),
+            "stock":    ("STOCK ACTUAL", 140, "center"),
+            "subtotal": ("SUBTOTAL", 115, "e"),
+        }.items():
+            tabla_detalle.heading(col, text=texto)
+            tabla_detalle.column(col, width=ancho, anchor=ancla)
+        tabla_detalle.tag_configure("par", background="#ffffff")
+        tabla_detalle.tag_configure("impar", background="#e0e0e0")
+        tabla_detalle.tag_configure("sin_stock", foreground="#e8283c")
+
+        scroll_detalle = ttk.Scrollbar(marco_tabla, orient="vertical", command=tabla_detalle.yview)
+        tabla_detalle.configure(yscrollcommand=scroll_detalle.set)
+        scroll_detalle.pack(side="right", fill="y")
+        tabla_detalle.pack(side="left", fill="both", expand=True)
+
+        for i, (id_producto, nombre_p, cantidad, precio, subtotal_item) in enumerate(items):
+            stock = stock_actual.get(id_producto)
+            etiquetas = ["par" if i % 2 == 0 else "impar"]
+            if stock == 0:
+                etiquetas.append("sin_stock")
+            tabla_detalle.insert("", "end",
+                                 values=(id_producto, nombre_p, cantidad, f"${precio:,.0f}",
+                                         "Eliminado" if stock is None else stock, f"${subtotal_item:,.0f}"),
+                                 tags=tuple(etiquetas))
+
+        if items:
+            subtotal = sum(item[4] for item in items)
+            iva = total_v - subtotal
+            resumen = f"Subtotal: ${subtotal:,.0f}\nIVA (19%): ${iva:,.0f}"
+        else:
+            resumen = "Esta venta no tiene el detalle de productos guardado."
+        tk.Label(detalle, text=resumen, font=("Segoe UI", 10), justify="right", anchor="e").pack(fill="x", padx=20, pady=(10, 0))
+        tk.Label(detalle, text=f"Total de la compra: ${total_v:,.0f}", font=("Segoe UI", 11, "bold"),
+                 anchor="e").pack(fill="x", padx=20, pady=(2, 14))
+
+    def al_click_venta(event):
+        if tabla_ventas.identify_region(event.x, event.y) != "cell":
+            return
+        fila = tabla_ventas.identify_row(event.y)
+        if not fila:
+            return
+        abrir_detalle_venta(int(fila))
+
+    tabla_ventas.bind("<Button-1>", al_click_venta)
+
+    def abrir_ventas():
+        mostrar_seccion(frame_ventas)
+        refrescar_ventas()
 
         # ---------- estilo de la barra superior ----------
 

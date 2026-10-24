@@ -23,10 +23,21 @@ class usuario:
         if fila is None:
             return None
 
-        # orden de columnas en la tabla: id, nombre, rut, contrasena, rol
-        _, nombre_bd, rut_bd, contrasena_bd, rol_bd = fila
+        # orden de columnas en la tabla: id, nombre, contrasena, rut, rol
+        _, nombre_bd, contrasena_bd, rut_bd, rol_bd = fila
 
         if contrasena_bd == clave:
             return usuario(nombre=nombre_bd, password=contrasena_bd, rol=rol_bd, rut=rut_bd)
 
         return None
+
+    @staticmethod
+    def validar_rut(rut):
+        rut = rut.replace(".", "").replace("-", "").upper()
+        if len(rut) < 8 or len(rut) > 9:
+            return None
+        if not rut[:-1].isdigit() or not (rut[-1].isdigit() or rut[-1] == "K"):
+            return None
+
+        cuerpo = f"{int(rut[:-1]):,}".replace(",", ".")
+        return f"{cuerpo}-{rut[-1]}"

@@ -1,0 +1,24 @@
+{
+    "recibo_id": 1,
+    "fecha": "2026-10-23T16:23:07",
+    "cliente": "123",
+    "items": [
+        {
+            "id": 24,
+            "nombre": "HyperX Cloud III",
+            "cantidad": 1,
+            "precio": 46990.0,
+            "subtotal": 46990.0
+        },
+        {
+            "id": 23,
+            "nombre": "SteelSeries QcK Heavy XXL",
+            "cantidad": 1,
+            "precio": 49990.0,
+            "subtotal": 49990.0
+        }
+    ],
+    "subtotal": 96980.0,
+    "iva": 18426.2,
+    "total": 115406.2
+}

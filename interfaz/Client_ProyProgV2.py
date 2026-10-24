@@ -3,7 +3,7 @@ import json
 import threading
 import time
 from tkinter import messagebox
-HOST = "192.168.1.119"
+HOST = "192.168.100.7"
 PORT = 65433
 
 conexion=None
@@ -12,6 +12,7 @@ c=False
 conexion_reserva=None
 conexion_reponer=None
 conexion_vaciar=None
+conexion_venta=None
 
 def conectar_interfaz_reserva(conexion):
     global conexion_reserva
@@ -24,6 +25,10 @@ def conectar_interfaz_reponer(conexion):
 def conectar_interfaz_vaciar(conexion):
     global conexion_vaciar
     conexion_vaciar = conexion
+
+def conectar_interfaz_venta(conexion):
+    global conexion_venta
+    conexion_venta = conexion
     
 def conectar():
     """utiliza las variables globales conexion y c para conectarse con el admin """
@@ -90,6 +95,12 @@ def recibir(socket_conexion):
                 mensaje=dato.get('mensaje')
                 if conexion_vaciar is not None:
                     conexion_vaciar(ok, mensaje)
+            elif tipo=='registrar_venta':
+                ok=dato.get('ok')
+                mensaje=dato.get('mensaje')
+                recibo_id=dato.get('recibo_id')
+                if conexion_venta is not None:
+                    conexion_venta(ok, mensaje, recibo_id)
                 
 
 def dato_envia(dato):
@@ -114,3 +125,10 @@ def dato_envia(dato):
     elif tipo == 'vaciar_carrito':
         productos=dato.get('productos', [])
         enviar({'type':'vaciar_carrito', 'productos':productos,'nombre_u':nombre_u})
+    elif tipo == 'registrar_venta':
+        enviar({'type':'registrar_venta',
+                'cliente':dato.get('cliente'),
+                'fecha':dato.get('fecha'),
+                'items':dato.get('items'),
+                'total':dato.get('total'),
+                'nombre_u':nombre_u})

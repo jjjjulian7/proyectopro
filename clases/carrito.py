@@ -1,3 +1,4 @@
+import threading
 from interfaz import Client_ProyProgV2 as ClienteRed
 from tkinter import messagebox
 from clases.Venta import venta 
@@ -6,6 +7,8 @@ class Carrito:
         self.items = []
         self.usuario=None
         self.funcion_dibujar_tabla = None  # Inicializamos la función como None
+        self.evento_venta = threading.Event()
+        self.respuesta_venta = None
     
     def agregar_producto(self, producto, cantidad,usuario):
         print(f"Usuario : Agregando producto {producto.nombre}, Cantidad: {cantidad}" )
@@ -104,12 +107,30 @@ class Carrito:
             messagebox.showwarning("Error al eliminar producto", mensaje)
 
             
+    def procesar_respuesta_venta(self, ok, mensaje, recibo_id):
+        self.respuesta_venta = (ok, mensaje, recibo_id)
+        self.evento_venta.set()
+
     def procesar_compra(self, cliente):
         if not self.items:
             return False, "El carrito está vacío", None
         
         nueva_venta = venta(cliente, self.items, self.calcular_subtotal(), self.calcular_iva(), self.calcular_total())
-        nueva_venta.guardar_en_bd()             # asigna el recibo_id
+        self.respuesta_venta = None
+        self.evento_venta.clear()
+        if ClienteRed.conexion is None:
+            return False, "No hay conexión con el servidor", None
+        try:
+            ClienteRed.dato_envia({'type': 'registrar_venta', 'cliente': cliente, 'fecha': nueva_venta.fecha,
+                                   'items': nueva_venta.items, 'total': nueva_venta.total, 'nombre_u': self.usuario})
+        except OSError:
+            return False, "No se pudo enviar la venta al servidor", None
+        if not self.evento_venta.wait(5):
+            return False, "El servidor no respondió, intenta de nuevo", None
+        ok, mensaje, recibo_id = self.respuesta_venta
+        if not ok:
+            return False, mensaje, None
+        nueva_venta.recibo_id = recibo_id       # lo asigna el servidor al guardar la venta
         ruta = nueva_venta.guardar_json()       # usa recibo_id para el nombre del archivo
 
         
@@ -117,4 +138,3 @@ class Carrito:
         if self.funcion_dibujar_tabla is not None:
             self.funcion_dibujar_tabla()
         return True, f"Recibo N°{nueva_venta.recibo_id}", ruta
-    
