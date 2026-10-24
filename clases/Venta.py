@@ -9,14 +9,14 @@ class venta:
         self.recibo_id = None  # lo asigna la base de datos al guardar
         self.fecha = datetime.now().isoformat(timespec="seconds")
         self.cliente = cliente
-        self.items = [dict(items) for item in items]  # diccionario de productos del carrito
+        self.items = [dict(item) for item in items]  # diccionario de productos del carrito
         self.subtotal = subtotal
         self.iva = iva
         self.total = total
 
     def guardar_en_bd(self):
         # Guarda la venta en la bd y recibe el id automatico
-        self.recibo_id = bd_ventas.insertar_venta(self.fecha, self.cliente, self.total)
+        self.recibo_id = bd_ventas.insertar_venta(self.fecha, self.cliente, self.total, self.items)
 
     def a_diccionario(self):    # Armamos el diccionario con el formato de como saldra el JSON
         return {

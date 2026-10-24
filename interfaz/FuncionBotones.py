@@ -1,4 +1,3 @@
-
 import tkinter as tk
 from tkinter import messagebox
 from tkinter import ttk
@@ -22,12 +21,28 @@ carrito = C()
 ClienteRed.conectar_interfaz_reserva(carrito.procesar_respuesta_reservar)
 ClienteRed.conectar_interfaz_reponer(carrito.procesar_respuesta_eliminar)
 ClienteRed.conectar_interfaz_vaciar(carrito.procesar_respuesta_vaciar)
+ClienteRed.conectar_interfaz_venta(carrito.procesar_respuesta_venta)
 def ventana_a(ventana):
     ventana_admin.ejecutar()
     ventana.iconify()
+def validar_admin(ventana,IngresoRut,IngresoClave):
+    Rut=IngresoRut.get().strip()
+    Clave=IngresoClave.get()
+    if not Rut or not Clave:
+        messagebox.showwarning("Falta información", "Debes completar RUT y clave.")
+        return
+    Rut=usuario.validar_rut(Rut)
+    if Rut==None:
+        messagebox.showwarning("RUT inválido", "El RUT debe tener el formato 12.345.678-9")
+        return
+    resultado=BD.buscar_usuario_por_tipo('admin',Rut)
+    if resultado==None or Clave!=resultado[2]:
+        messagebox.showwarning("Acceso denegado", "RUT o clave incorrectos, o el usuario no es administrador.")
+        return
+    ventana_a(ventana)
 def ventana_usuario(ventana,texto,IngresoClave):
         global usuario_actual   # Usamos global para que la variable cambie fuera de la funcion
-        Nombre=texto.get()
+        Nombre=texto.get().strip()
         contraseña=IngresoClave.get()
         resultado=BD.buscar_usuario(Nombre)
         if resultado==None:
@@ -67,19 +82,27 @@ def cerrar_sesion():        # AVISO: Falta implementar la funcion. Aun hay q agr
     usuario_actual = None
         
         
-def registro(texto,IngresoClave,ventana):
-    Texto=texto.get()
+def registro(texto,IngresoClave,IngresoRut,ventana):
+    Texto=texto.get().strip()
     Clave=IngresoClave.get()
+    Rut=IngresoRut.get().strip()
+    if not Texto or not Clave or not Rut:
+        messagebox.showwarning("Falta información", "Debes completar nombre, clave y RUT.")
+        return
+    Rut=usuario.validar_rut(Rut)
+    if Rut==None:
+        messagebox.showwarning("RUT inválido", "El RUT debe tener el formato 12.345.678-9")
+        return
     resultado=BD.buscar_usuario(Texto)
     if resultado==None:
-        nuevo_usuario=usuario(Texto,Clave)
+        if BD.buscar_usuario_por_rut(Rut)!=None:
+            messagebox.showwarning("RUT ya registrado", "Ya existe un usuario con ese RUT.")
+            return
+        nuevo_usuario=usuario(Texto,Clave,rut=Rut)
         BD.insertar_usuario(nuevo_usuario)
+        messagebox.showinfo("registro","USUARIO REGISTRADO CON EXITO")
     else:
-         ventanaAdvertencia=tk.Toplevel(ventana)
-         ventanaAdvertencia.geometry("50x50")
-         texto=tk.Label(ventanaAdvertencia,text="El usuario ya existe")
-         texto.pack()
-         ventanaAdvertencia.after(2000,ventanaAdvertencia.destroy)
+         messagebox.showinfo("registro","EL USUARIO YA EXISTE")
 
 def mostrar_frame(frame, frames):
     for f in frames:
@@ -92,6 +115,23 @@ def hacer_admin(nombre, rut):
 
     if not nombre or not rut:
         tk.messagebox.showwarning("Falta información", "Debes completar nombre y RUT.")
+        return False
+
+    rut = usuario.validar_rut(rut)
+    if rut is None:
+        tk.messagebox.showwarning("RUT inválido", "El RUT debe tener el formato 12.345.678-9")
+        return False
+
+    resultado = BD.buscar_usuario(nombre)
+    if resultado is None:
+        tk.messagebox.showwarning("Usuario no encontrado", "No existe un usuario con ese nombre.")
+        return False
+    if resultado[3] is not None and resultado[3] != rut:
+        tk.messagebox.showwarning("RUT incorrecto", "El RUT no coincide con el del usuario.")
+        return False
+    otro = BD.buscar_usuario_por_rut(rut)
+    if otro is not None and otro[1] != nombre:
+        tk.messagebox.showwarning("RUT en uso", "Ese RUT ya pertenece a otro usuario.")
         return False
 
     BD.convertir_en_admin(nombre, rut)

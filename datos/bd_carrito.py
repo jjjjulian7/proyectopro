@@ -113,6 +113,22 @@ def quitar_item(nombre_usuario, id_producto, cantidad):
         conexion.close()
 
 
+def cantidad_en_carrito(nombre_usuario, id_producto):
+    crear_tabla()
+    conexion = conectar()
+    try:
+        cursor = conexion.cursor()
+        cursor.execute('''
+            SELECT COALESCE(SUM(i.cantidad), 0)
+            FROM carrito_items i
+            JOIN carritos c ON c.id = i.carrito_id
+            WHERE c.nombre_usuario = ? AND c.estado = 'activo' AND i.id_producto = ?
+        ''', (nombre_usuario, id_producto))
+        return cursor.fetchone()[0]
+    finally:
+        conexion.close()
+
+
 def vaciar_carrito_usuario(nombre_usuario):
     """Borra todos los items del carrito activo del usuario."""
     crear_tabla()

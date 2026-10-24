@@ -15,8 +15,8 @@ def crear_tabla():
         CREATE TABLE IF NOT EXISTS usuarios (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             nombre TEXT,
-            rut TEXT,
             contrasena TEXT NOT NULL,
+            rut TEXT,
             rol TEXT NOT NULL DEFAULT 'usuario'
         )
     ''')
@@ -47,6 +47,7 @@ def insertar_usuario(usuario):
 
 # Funciones hechas por Sebastian Leon 
 def buscar_usuario(nombre):
+    crear_tabla()
     conexion = conectar()
     cursor = conexion.cursor()
     cursor.execute('SELECT * FROM usuarios WHERE nombre = ?', (nombre,))
@@ -56,6 +57,7 @@ def buscar_usuario(nombre):
 
 
 def buscar_usuario_por_rut(rut):
+    crear_tabla()
     conexion = conectar()
     cursor = conexion.cursor()
     cursor.execute('SELECT * FROM usuarios WHERE rut = ?', (rut,))
@@ -64,6 +66,7 @@ def buscar_usuario_por_rut(rut):
     return resultado
 
 def convertir_en_admin(nombre, rut):
+    crear_tabla()
     conexion = conectar()
     cursor = conexion.cursor()
     cursor.execute(
@@ -81,6 +84,7 @@ def crear_admin_por_defecto(): #crea un usuario admin por defecto si no existe e
 # Busca al usuario según la pantalla desde la que intenta entrar.
 # Si viene del login de admin, busca por rut. si viene del login normal, busca por nombre
 def buscar_usuario_por_tipo(tipo, valor):
+    crear_tabla()
     conexion = conectar()
     cursor = conexion.cursor()
 

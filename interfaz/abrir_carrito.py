@@ -120,7 +120,7 @@ def abrir_carrito(carrito, event=None):
         nueva = max(1, min(nueva, item["cantidad"]))
         diferencia = item["cantidad"] - nueva
         if diferencia > 0:
-            carrito.eliminar_producto(item, diferencia)
+            carrito.eliminar_producto(item["id"], diferencia)
         var.set(nueva)
         spin.config(to=nueva)
         lbl_sub.config(text=f"${fmt(item['precio'] * item['cantidad'])} CLP")
@@ -144,7 +144,7 @@ def abrir_carrito(carrito, event=None):
             return
         # Se recorre una copia de la lista porque eliminar_producto la modifica
         for item in list(carrito.items):
-            carrito.eliminar_producto(item, item["cantidad"])
+            carrito.eliminar_producto(item["id"], item["cantidad"])
         refrescar_interfaz()
 
     # refrescar la ventana al eliminar o vaciar

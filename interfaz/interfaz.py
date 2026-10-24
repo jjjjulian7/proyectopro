@@ -47,13 +47,21 @@ def ejecutar():
     )
     IngresoClave.pack(fill="x", ipady=6, pady=(4, 14))
 
+    tk.Label(contenido, text="RUT (solo para registrarte)", font=FUENTE_NEGRITA, bg="white",
+             fg=COLOR_TEXTO, anchor="w").pack(fill="x")
+    IngresoRut = tk.Entry(
+        contenido, width=34, font=FUENTE, relief="flat", bd=0,
+        highlightthickness=1, highlightbackground=COLOR_BORDE, highlightcolor=COLOR_MORADO
+    )
+    IngresoRut.pack(fill="x", ipady=6, pady=(4, 14))
+
     # botones,llamamos al archivo estilo_boton
     botones = tk.Frame(contenido, bg="white")
     botones.pack(fill="x", pady=(15, 0))
     botones.columnconfigure(0, weight=1, uniform="b")
     botones.columnconfigure(1, weight=1, uniform="b")
 
-    boton_registrar = estilo_boton.crear_boton_verde(botones, "Registrar", lambda: F.registro(IngresoNombre, IngresoClave, ventana))
+    boton_registrar = estilo_boton.crear_boton_verde(botones, "Registrar", lambda: F.registro(IngresoNombre, IngresoClave, IngresoRut, ventana))
     boton_registrar.grid(row=0, column=0, sticky="ew", padx=(0, 6))
 
     boton_ingresar = estilo_boton.crear_boton_verde(botones, "Ingresar", lambda: F.ventana_usuario(ventana, IngresoNombre, IngresoClave))
