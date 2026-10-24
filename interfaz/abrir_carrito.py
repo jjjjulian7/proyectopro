@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox
+from types import SimpleNamespace
 
 from . import Client_ProyProgV2 as ClienteRed
 
@@ -64,9 +65,6 @@ def abrir_carrito(carrito, event=None):
         
     ventana.bind("<Any-Button>", iniciar_resetear_timer)
     ventana.bind("<Key>", iniciar_resetear_timer)
-    
-    subtotales = []   # labels de sub total de cada fila
-    variables = []    # IntVar de cada spinbox (evita que se pierdan)
 
     tk.Label(
         ventana, text="Carrito de compras", font=("Segoe UI", 22),
@@ -111,40 +109,24 @@ def abrir_carrito(carrito, event=None):
         lbl_iva.config(text=f"IVA (19%): ${fmt(carrito.calcular_iva())} CLP")
         lbl_total.config(text=f"Total ${fmt(carrito.calcular_total())} CLP")
 
-    def cambiar_cantidad(item, var, spin, lbl_sub):
-        # Por ahora solo se puede BAJAR la cantidad (el stock se restaura en la bd)
-        try:
-            nueva = int(var.get())
-        except (tk.TclError, ValueError):
-            nueva = item["cantidad"]
-        nueva = max(1, min(nueva, item["cantidad"]))
-        diferencia = item["cantidad"] - nueva
-        if diferencia > 0:
-            carrito.eliminar_producto(item["id"], diferencia)
-        var.set(nueva)
-        spin.config(to=nueva)
-        lbl_sub.config(text=f"${fmt(item['precio'] * item['cantidad'])} CLP")
-        actualizar_totales()
+    def restar(item):
+        # Baja de a 1; el minimo es 1 (para quitar todo esta el boton X).
+        # No se redibuja aqui: cuando el servidor responde, carrito llama a dibujar_tabla.
+        if item["cantidad"] <= 1:
+            return
+        carrito.eliminar_producto(item["id"], 1)
+
+    def sumar(item):
+        # Pide reservar 1 mas. Si no hay stock, el servidor responde ok=False
+        # y carrito muestra el aviso. Solo se necesitan id y nombre del producto.
+        producto = SimpleNamespace(id=item["id"], nombre=item["nombre"])
+        carrito.agregar_producto(producto, 1, carrito.usuario)
 
     def eliminar(item):
         id_producto = item["id"]
         cantidad = item["cantidad"]
         # Quita el producto completo y restaura su stock
         carrito.eliminar_producto(id_producto, cantidad)  # Llama al método para vaciar el carrito y restaurar el stock
-        refrescar_interfaz()
-
-    def vaciar():
-        # Quita TODOS los productos y restaura su stock
-        if not carrito.items:
-            messagebox.showinfo("Carrito", "El carrito ya está vacío.", parent=ventana)
-            return
-        if not messagebox.askyesno("Vaciar carrito",
-                                   "¿Seguro que quieres quitar todos los productos?",
-                                   parent=ventana):
-            return
-        # Se recorre una copia de la lista porque eliminar_producto la modifica
-        for item in list(carrito.items):
-            carrito.eliminar_producto(item["id"], item["cantidad"])
         refrescar_interfaz()
 
     # refrescar la ventana al eliminar o vaciar
@@ -175,8 +157,6 @@ def abrir_carrito(carrito, event=None):
     def dibujar_tabla():
         for w in tabla.winfo_children():
             w.destroy()
-        subtotales.clear()
-        variables.clear()
 
         # Encabezados
         for col, texto in enumerate(["Producto", "Precio", "Cantidad", "Sub total"]):
@@ -201,24 +181,33 @@ def abrir_carrito(carrito, event=None):
             tk.Label(tabla, text=f"${fmt(item['precio'])} CLP", font=FUENTE, bg="white",
                      anchor="w").grid(row=fila, column=1, sticky="w", padx=(4, 0))
 
-            lbl_sub = tk.Label(
-                tabla, text=f"${fmt(item['precio'] * item['cantidad'])} CLP",
-                font=FUENTE, bg="white", anchor="w")
-            lbl_sub.grid(row=fila, column=3, sticky="w", padx=(4, 0))
-            subtotales.append(lbl_sub)
+            # Cantidad: boton -, numero fijo (no editable) y boton +
+            frame_cant = tk.Frame(tabla, bg="white")
+            frame_cant.grid(row=fila, column=2, sticky="w", padx=(4, 0))
 
-            var = tk.IntVar(master=ventana, value=item["cantidad"])
-            variables.append(var)
-            spin = tk.Spinbox(
-                tabla, from_=1, to=item["cantidad"], width=4, font=FUENTE,
-                textvariable=var, relief="solid", bd=1
-            )
-            spin.config(command=lambda it=item, v=var, s=spin, l=lbl_sub:
-                        cambiar_cantidad(it, v, s, l))
-            spin.grid(row=fila, column=2, sticky="w", padx=(4, 0))
-            for evento in ("<Return>", "<FocusOut>"):
-                spin.bind(evento, lambda e, it=item, v=var, s=spin, l=lbl_sub:
-                          cambiar_cantidad(it, v, s, l))
+            tk.Button(
+                frame_cant, text="-", font=FUENTE_NEGRITA, width=2,
+                bg=COLOR_NARANJA, fg="white", activebackground="#d99a45",
+                activeforeground="white", relief="flat", bd=0, cursor="hand2",
+                command=lambda it=item: restar(it)
+            ).pack(side="left")
+
+            tk.Label(
+                frame_cant, text=str(item["cantidad"]), font=FUENTE_NEGRITA,
+                bg="white", width=4
+            ).pack(side="left", padx=4)
+
+            tk.Button(
+                frame_cant, text="+", font=FUENTE_NEGRITA, width=2,
+                bg=COLOR_VERDE, fg="white", activebackground="#4cae4c",
+                activeforeground="white", relief="flat", bd=0, cursor="hand2",
+                command=lambda it=item: sumar(it)
+            ).pack(side="left")
+
+            tk.Label(
+                tabla, text=f"${fmt(item['precio'] * item['cantidad'])} CLP",
+                font=FUENTE, bg="white", anchor="w"
+            ).grid(row=fila, column=3, sticky="w", padx=(4, 0))
 
             tk.Button(
                 tabla, text="X", font=("Segoe UI Emoji", 10),
