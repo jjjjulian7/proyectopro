@@ -44,7 +44,7 @@ def ejecutar():
     lbl_usuario.image = img_usuario
     lbl_usuario.grid(row=0, column=0, padx=10)
 
-    lbl_usuario.bind("<Button-1>",lambda event:F.ingresar_log(None))
+    lbl_usuario.bind("<Button-1>",lambda event:F.lista_deseos(ventana))
     
     separador = tk.Frame(frame_derecho, bg="white", width=1, height=30)
     separador.grid(row=0, column=1, padx=15)

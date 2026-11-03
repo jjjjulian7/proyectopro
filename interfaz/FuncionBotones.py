@@ -93,6 +93,9 @@ def registro(texto,IngresoClave,IngresoRut,ventana):
     if Rut==None:
         messagebox.showwarning("RUT inválido", "El RUT debe tener el formato 12.345.678-9")
         return
+    if Rut=="mal digito":
+        messagebox.showerror("digito verificador","digito verificador invalido")
+        return
     resultado=BD.buscar_usuario(Texto)
     if resultado==None:
         if BD.buscar_usuario_por_rut(Rut)!=None:
@@ -379,3 +382,92 @@ def eliminar_producto(ventana, i):
 
 
     ventana.wait_window(ventana_cantidad)
+
+def lista_deseos(ventana):
+    lista=tk.Frame(ventana)
+    lista.place(
+        relx=1,
+        y=96,
+        anchor="ne",
+        width=250,
+        height=220)
+    def crear_linea(contenedor,fila):
+        linea = tk.Frame(
+        contenedor,
+        bg="#dcdcdc",
+        height=1
+        )
+        linea.grid(
+            row=fila,
+            column=0,
+            padx=10,
+            sticky="ew" 
+        )
+        linea.grid(row=fila,column=0, padx=10)
+    lista.grid_columnconfigure(0, weight=1)
+    ListaDeseos=tk.Label(lista,text="Lista de deseos",font=("Arial", 12, "bold"),cursor="hand2")
+    Suscripcion=tk.Label(lista,text="Suscripcion",font=("Arial", 12, "bold"),cursor="hand2")
+    Notificacion=tk.Label(lista,text="Notificacion",font=("Arial", 12, "bold"),cursor="hand2")
+    iniciar_sesion=tk.Label(lista,text="iniciar sesion",font=("Arial", 12, "bold"),cursor="hand2")
+    ListaDeseos.grid(row=0,column=0)
+    crear_linea(lista,1)
+    Suscripcion.grid(row=2,column=0)
+    crear_linea(lista,3)
+    Notificacion.grid(row=4,column=0)
+    crear_linea(lista,5)
+    iniciar_sesion.grid(row=6,column=0)
+
+    iniciar_sesion.bind("<Button-1>",lambda event:ingresar_log(None))
+    ListaDeseos.bind("<Button-1>",lambda event:LD())
+    Suscripcion.bind("<Button-1>",lambda event:Suscripciones())
+    Notificacion.bind("<Button-1>",lambda event:Notificaciones())
+
+
+def mostrar_lista_deseos(frame):
+    # La primera vez creamos la tabla. las siguientes veces solo la rellenamos
+    if not hasattr(frame, "tabla"):
+        aplicar_estilo_tabla(frame)
+
+        columnas = ("id", "nombre", "precio", "stock", "categoria") #asignamos el orden de las columnas
+        tabla = ttk.Treeview(
+                    frame,
+                    columns=columnas,
+                    show="headings",
+                    style="Productos.Treeview",                  
+                )
+        # texto, ancho, alineacion de cada columna    
+        config_columnas = {
+                    "id":        ("ID", 60, "center"),
+                    "nombre":    ("NOMBRE", 260, "w"),         # "w" = west = izquierda
+                    "precio":    ("PRECIO", 110, "e"),         # "e" = east = derecha 
+                    "stock":     ("STOCK", 80, "center"),
+                    "categoria": ("CATEGORÍA", 160, "w"),}
+
+        for col, (texto, ancho, ancla) in config_columnas.items():
+            tabla.heading(col, text=texto)                # texto de la cabecera
+            tabla.column(col, width=ancho, anchor=ancla)  # ancho y alineación del contenido
+        # un tag es una etiqueta que le ponemos a una fila para darle color.
+        # Aqui definimos que color tiene cada etiqueta, después las asignamos al insertar.
+        tabla.tag_configure("par", background="#ffffff")
+        tabla.tag_configure("impar", background="#e0e0e0")
+        tabla.tag_configure("sin_stock", foreground="#e8283c")
+def LD():
+    v=tk.Toplevel()
+    v.title("MaulencitosMarket")
+    v.geometry("1280x700")
+    v.configure(bg="white")
+    Frame_producto=tk.Frame(v)
+    Frame_producto.grid(row=1, column=1, sticky="nsew", padx=(0, 20), pady=20)
+    mostrar_productos(Frame_producto)
+
+def Suscripciones():
+    v=tk.Toplevel()
+    v.title("MaulencitosMarket")
+    v.geometry("1280x700")
+    v.configure(bg="white")
+
+def Notificaciones():
+    v=tk.Toplevel()
+    v.title("MaulencitosMarket")
+    v.geometry("1280x700")
+    v.configure(bg="white")
