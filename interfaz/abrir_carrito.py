@@ -84,26 +84,29 @@ def abrir_carrito(carrito, event=None):
     tabla.columnconfigure(3, minsize=110)  # Sub total
     tabla.columnconfigure(4, weight=1)     # Botón eliminar
 
-    # resumen de compra (subtotal + IVA + descuento)
+    # resumen de compra: subtotal, descuento del cupón, subtotal neto e IVA
     resumen = tk.Frame(ventana, bg="white")
     resumen.pack(fill="x", padx=20, pady=(10, 0))
     lbl_subtotal = tk.Label(resumen, text="", font=FUENTE, bg="white", anchor="e")
     lbl_subtotal.pack(fill="x")
-    lbl_iva = tk.Label(resumen, text="", font=FUENTE, bg="white", anchor="e")
-    lbl_iva.pack(fill="x")
     lbl_descuento = tk.Label(resumen, text="", font=FUENTE_NEGRITA, bg="white", fg="#1b5e20", anchor="e")
     lbl_descuento.pack(fill="x")
+    lbl_neto = tk.Label(resumen, text="", font=FUENTE, bg="white", anchor="e")
+    lbl_neto.pack(fill="x")
+    lbl_iva = tk.Label(resumen, text="", font=FUENTE, bg="white", anchor="e")
+    lbl_iva.pack(fill="x")
 
     ent_cupon = tk.Entry(resumen, font=FUENTE, bg="white", relief="solid", bd=1)
     ent_cupon.pack(side="left", pady=10, padx=(0, 5))
 
     def aplicar_cupon():
-        if ent_cupon.get().strip().upper() == "DESCUENTO10":
-            carrito.cupon = 0.10
-            actualizar_totales()
-            messagebox.showinfo("Cupón aplicado", "Se ha aplicado un 10% de descuento adicional.", parent=ventana)
+        # La validación (si existe,si esta vigente, usos disponibles) la hace el carrito contra la BD (por hacer)
+        ok, mensaje = carrito.aplicar_cupon(ent_cupon.get())
+        actualizar_totales()
+        if ok:
+            messagebox.showinfo("Cupón aplicado", mensaje, parent=ventana)
         else:
-            messagebox.showwarning("Cupón inválido", "El cupón ingresado no es válido.", parent=ventana)
+            messagebox.showwarning("Cupón no válido", mensaje, parent=ventana)
 
     tk.Button(resumen, text="Aplicar cupón", command=aplicar_cupon, font=FUENTE, bg=COLOR_NARANJA, fg="white", activebackground="#d99a45", activeforeground="white", relief="flat", bd=0, padx=10, pady=5, cursor="hand2").pack(side="left", pady=10)
 
@@ -122,12 +125,14 @@ def abrir_carrito(carrito, event=None):
 
     def actualizar_totales():
         lbl_subtotal.config(text=f"Subtotal: ${fmt(carrito.calcular_subtotal())} CLP")
-        lbl_iva.config(text=f"IVA (19%): ${fmt(carrito.calcular_iva())} CLP")
-        lbl_total.config(text=f"Total ${fmt(carrito.calcular_total())} CLP")
-        if carrito.cupon > 0:
-            lbl_descuento.config(text=f"Descuento activo: {int(carrito.cupon * 100)}% con cupón")
+        if carrito.cupon:
+            lbl_descuento.config(
+                text=f"Descuento ({carrito.cupon['codigo']}): -${fmt(carrito.calcular_descuento())} CLP")
         else:
             lbl_descuento.config(text="")
+        lbl_neto.config(text=f"Subtotal neto: ${fmt(carrito.calcular_subtotal_neto())} CLP")
+        lbl_iva.config(text=f"IVA (19%): ${fmt(carrito.calcular_iva())} CLP")
+        lbl_total.config(text=f"Total ${fmt(carrito.calcular_total())} CLP")
 
     def restar(item):
         # Baja de a 1; el minimo es 1 (para quitar todo esta el boton X).

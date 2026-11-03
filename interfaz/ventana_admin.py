@@ -9,8 +9,6 @@ from datos import bd_ventas
 from datetime import datetime
 
 
-
-
 def ejecutar():
     ventana = tk.Tk()
     ventana.title("MaulencitosMarketADMIN")

@@ -1,115 +1,146 @@
 import threading
 from interfaz import Client_ProyProgV2 as ClienteRed
 from tkinter import messagebox
-from clases.Venta import venta 
+from clases.Venta import venta
+from datos import bd_cupones
+
+
 class Carrito:
     def __init__(self):
         self.items = []
-        self.cupon = 0.0
-        self.usuario=None
+        self.cupon = None          # dict del cupón aplicado (o None). Ya no es un float.
+        self.usuario = None
         self.funcion_dibujar_tabla = None  # Inicializamos la función como None
         self.evento_venta = threading.Event()
         self.respuesta_venta = None
-    
-    def agregar_producto(self, producto, cantidad,usuario):
-        print(f"Usuario : Agregando producto {producto.nombre}, Cantidad: {cantidad}" )
-        self.usuario=usuario
-        ClienteRed.dato_envia({'type' : 'reservar_stock',
-                               'id_producto' : producto.id,
-                               'cantidad' : cantidad,
+
+    def agregar_producto(self, producto, cantidad, usuario):
+        print(f"Usuario : Agregando producto {producto.nombre}, Cantidad: {cantidad}")
+        self.usuario = usuario
+        ClienteRed.dato_envia({'type': 'reservar_stock',
+                               'id_producto': producto.id,
+                               'cantidad': cantidad,
                                'nombre': producto.nombre,
-                                'nombre_u':usuario}) #llama a la funcion reservar_stock de bd.py para reservar el stock del producto
-        
+                               'nombre_u': usuario})  # llama a la funcion reservar_stock de bd.py para reservar el stock del producto
+
     def procesar_respuesta_reservar(self, ok, mensaje, id_producto, cantidad, nombre, precio):
         if ok:
-            for item in self.items: #recorre los items del carrito y si el producto ya existe, aumenta la cantidad
-                if item["id"] == id_producto: #compara el id del producto con los items del carrito
+            for item in self.items:  # recorre los items del carrito y si el producto ya existe, aumenta la cantidad
+                if item["id"] == id_producto:  # compara el id del producto con los items del carrito
                     item["cantidad"] += cantidad
                     if self.funcion_dibujar_tabla is not None:
                         self.funcion_dibujar_tabla()  # Llama a la función para actualizar la interfaz
-                    return 
-            self.items.append({ #agrega un nuevo producto al carrito si no existe
-                "id": id_producto, # se agrega id para identificar el producto mas facil 
+                    return
+            self.items.append({  # agrega un nuevo producto al carrito si no existe
+                "id": id_producto,  # se agrega id para identificar el producto mas facil
                 "cantidad": cantidad,
-                "precio" :precio,
+                "precio": precio,
                 "nombre": nombre
             })
             if self.funcion_dibujar_tabla is not None:
                 self.funcion_dibujar_tabla()  # Llama a la función para actualizar la interfaz
         else:
             messagebox.showwarning("Error al agregar producto", mensaje)
-        
-    # funciones matemáticas para calcular el subtotal, iva y total del carrito        
+
+    # ------------------------------------------------------------------
+    # Cálculos. Orden: subtotal -> descuento -> subtotal neto -> IVA -> total
+    # ------------------------------------------------------------------
     def calcular_subtotal(self):
+        """Subtotal BRUTO (antes del descuento)."""
         subtotal = 0
         for item in self.items:
             subtotal += item["precio"] * item["cantidad"]
-        subtotal = subtotal * (1 - self.cupon)
         return subtotal
-    
+
+    def calcular_descuento(self):
+        return bd_cupones.calcular_descuento(self.cupon, self.calcular_subtotal())
+
+    def calcular_subtotal_neto(self):
+        return self.calcular_subtotal() - self.calcular_descuento()
+
     def calcular_iva(self):
-        subtotal = self.calcular_subtotal()
-        return subtotal * 0.19  # 19% de IVA
-    
+        return int(round(self.calcular_subtotal_neto() * 0.19))  # 19% de IVA sobre el neto
+
     def calcular_total(self):
-        return self.calcular_subtotal() + self.calcular_iva()    
-    
+        return self.calcular_subtotal_neto() + self.calcular_iva()
+
+    # ------------------------------------------------------------------
+    # Cupones
+    # ------------------------------------------------------------------
+    def aplicar_cupon(self, codigo):
+        """Valida el código en la BD. Devuelve (ok, mensaje). Si falla, no se aplica."""
+        codigo = (codigo or "").strip()
+        if not codigo:
+            return False, "Ingresa un código de cupón."
+        if not self.items:
+            return False, "El carrito está vacío."
+        try:
+            cupon, motivo = bd_cupones.validar_cupon(codigo)
+        except Exception as e:
+            return False, f"No se pudo consultar el cupón: {e}"
+        if cupon is None:
+            self.cupon = None
+            return False, motivo
+        self.cupon = cupon
+        return True, f"Cupón {cupon['codigo']} aplicado: -${self.calcular_descuento():,.0f} CLP"
+
+    def quitar_cupon(self):
+        self.cupon = None
+
     def vaciar_carrito(self):
         print("Usuario : Enviando solicitud al servidor para vaciar carrito")
         productos_a_devolver = []
-        for item in self.items: # recorre los items del carrito y restaura el stock de cada producto en la base de datos
+        for item in self.items:  # recorre los items del carrito y restaura el stock de cada producto en la base de datos
             productos_a_devolver.append({
                 "id_producto": item["id"],
                 "cantidad": item["cantidad"]})
         print(f"Productos a devolver stock: {productos_a_devolver}")
-        ClienteRed.dato_envia({'type': 'vaciar_carrito', 'productos': productos_a_devolver,'nombre_u':self.usuario})
-    
+        ClienteRed.dato_envia({'type': 'vaciar_carrito', 'productos': productos_a_devolver, 'nombre_u': self.usuario})
+
     def procesar_respuesta_vaciar(self, ok, mensaje):
         if ok:
             self.items.clear()  # Vacía el carrito después de procesar la compra
-            self.cupon = 0.0
+            self.cupon = None
             print("Carrito vaciado correctamente \n")
             messagebox.showinfo("Carrito vaciado", "El carrito ha sido vaciado correctamente.")
             if self.funcion_dibujar_tabla is not None:
                 self.funcion_dibujar_tabla()  # Llama a la función para actualizar la interfaz
         else:
             messagebox.showwarning("Error al vaciar carrito", mensaje)
-    
+
     def eliminar_producto(self, id_producto, cantidad):
         print("Soliciando eliminar producto)\n")
-        ClienteRed.dato_envia({'type' : 'reponer_stock', 'id_producto' : id_producto,
-                               'cantidad': cantidad,'nombre_u':self.usuario})
-        
+        ClienteRed.dato_envia({'type': 'reponer_stock', 'id_producto': id_producto,
+                               'cantidad': cantidad, 'nombre_u': self.usuario})
 
     def procesar_respuesta_eliminar(self, ok, id_producto, cantidad, mensaje):
         print("rastreo de eliminar producto")
         print(f"ok: {ok}, mensaje: {mensaje}, cantidad: {cantidad}, id_producto: {id_producto}")
-        if ok:            
+        if ok:
             if cantidad <= 0:
                 return
             print("carrito actual antes de eliminar producto: ", self.items)
-        
+
             for item in self.items:
                 print(f"Comparando item id: {item['id']} con id_producto: {id_producto}")
                 if str(item["id"]) == str(id_producto):
                     print(f"Producto encontrado en carrito: {item}")
                     if cantidad >= item["cantidad"]:
                         cantidad = item["cantidad"]  # Ajusta la cantidad a eliminar si es mayor que la cantidad en el carrito
-                    item["cantidad"] -= cantidad # se resta la cantidad eliminada del producto en el carrito
+                    item["cantidad"] -= cantidad  # se resta la cantidad eliminada del producto en el carrito
                     if item["cantidad"] <= 0:
                         self.items.remove(item)
                         print("Producto eliminado del carrito: ", item)
-                              # Elimina el producto del carrito si la cantidad es cero o negativa
+                    if not self.items:
+                        self.cupon = None  # sin productos no hay cupón
                     if self.funcion_dibujar_tabla is not None:
                         self.funcion_dibujar_tabla()
                         print("tabla actualizada despues de eliminar producto")
-                        # Llama a la función para actualizar la interfaz
                     break
         else:
             print("Error al eliminar producto: ", mensaje)
             messagebox.showwarning("Error al eliminar producto", mensaje)
 
-            
     def procesar_respuesta_venta(self, ok, mensaje, recibo_id):
         self.respuesta_venta = (ok, mensaje, recibo_id)
         self.evento_venta.set()
@@ -117,8 +148,21 @@ class Carrito:
     def procesar_compra(self, cliente):
         if not self.items:
             return False, "El carrito está vacío", None
-        
-        nueva_venta = venta(cliente, self.items, self.calcular_subtotal(), self.calcular_iva(), self.calcular_total())
+
+        # Revalida el cupón justo antes de cobrar (pudo vencer o agotarse mientras compraba)
+        if self.cupon is not None:
+            vigente, motivo = bd_cupones.validar_cupon(self.cupon["codigo"])
+            if vigente is None:
+                self.cupon = None
+                if self.funcion_dibujar_tabla is not None:
+                    self.funcion_dibujar_tabla()
+                return False, f"{motivo} Se quitó el cupón; revisa el nuevo total.", None
+            self.cupon = vigente
+
+        codigo_cupon = self.cupon["codigo"] if self.cupon else None
+
+        # La venta guarda el subtotal NETO (ya con descuento); iva y total salen de ahí
+        nueva_venta = venta(cliente, self.items, self.calcular_subtotal_neto(), self.calcular_iva(), self.calcular_total())
         self.respuesta_venta = None
         self.evento_venta.clear()
         if ClienteRed.conexion is None:
@@ -136,9 +180,12 @@ class Carrito:
         nueva_venta.recibo_id = recibo_id       # lo asigna el servidor al guardar la venta
         ruta = nueva_venta.guardar_json()       # usa recibo_id para el nombre del archivo
 
-        
+        # Venta confirmada: ahora sí se gasta un uso del cupón
+        if codigo_cupon:
+            bd_cupones.registrar_uso(codigo_cupon)
+
         self.items.clear()  # vacia el carrito.
-        self.cupon = 0.0
+        self.cupon = None
         if self.funcion_dibujar_tabla is not None:
             self.funcion_dibujar_tabla()
         return True, f"Recibo N°{nueva_venta.recibo_id}", ruta
