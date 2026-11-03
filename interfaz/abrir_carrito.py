@@ -84,18 +84,34 @@ def abrir_carrito(carrito, event=None):
     tabla.columnconfigure(3, minsize=110)  # Sub total
     tabla.columnconfigure(4, weight=1)     # Botón eliminar
 
-    # resumen de compra (subtotal + IVA)
+    # resumen de compra (subtotal + IVA + descuento)
     resumen = tk.Frame(ventana, bg="white")
     resumen.pack(fill="x", padx=20, pady=(10, 0))
     lbl_subtotal = tk.Label(resumen, text="", font=FUENTE, bg="white", anchor="e")
     lbl_subtotal.pack(fill="x")
     lbl_iva = tk.Label(resumen, text="", font=FUENTE, bg="white", anchor="e")
     lbl_iva.pack(fill="x")
+    lbl_descuento = tk.Label(resumen, text="", font=FUENTE_NEGRITA, bg="white", fg="#1b5e20", anchor="e")
+    lbl_descuento.pack(fill="x")
+
+    ent_cupon = tk.Entry(resumen, font=FUENTE, bg="white", relief="solid", bd=1)
+    ent_cupon.pack(side="left", pady=10, padx=(0, 5))
+
+    def aplicar_cupon():
+        if ent_cupon.get().strip().upper() == "DESCUENTO10":
+            carrito.cupon = 0.10
+            actualizar_totales()
+            messagebox.showinfo("Cupón aplicado", "Se ha aplicado un 10% de descuento adicional.", parent=ventana)
+        else:
+            messagebox.showwarning("Cupón inválido", "El cupón ingresado no es válido.", parent=ventana)
+
+    tk.Button(resumen, text="Aplicar cupón", command=aplicar_cupon, font=FUENTE, bg=COLOR_NARANJA, fg="white", activebackground="#d99a45", activeforeground="white", relief="flat", bd=0, padx=10, pady=5, cursor="hand2").pack(side="left", pady=10)
 
     pie = tk.Frame(ventana, bg="white")
     pie.pack(fill="x", padx=20, pady=(8, 0))
 
     lbl_total = tk.Label(pie, text="", font=FUENTE_NEGRITA, bg="white", fg="#1b5e20")
+    lbl_total.pack(side="right", padx=(0, 10))
 
     # logica de la interfaz
     def fmt(valor):
@@ -108,6 +124,10 @@ def abrir_carrito(carrito, event=None):
         lbl_subtotal.config(text=f"Subtotal: ${fmt(carrito.calcular_subtotal())} CLP")
         lbl_iva.config(text=f"IVA (19%): ${fmt(carrito.calcular_iva())} CLP")
         lbl_total.config(text=f"Total ${fmt(carrito.calcular_total())} CLP")
+        if carrito.cupon > 0:
+            lbl_descuento.config(text=f"Descuento activo: {int(carrito.cupon * 100)}% con cupón")
+        else:
+            lbl_descuento.config(text="")
 
     def restar(item):
         # Baja de a 1; el minimo es 1 (para quitar todo esta el boton X).

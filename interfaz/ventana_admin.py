@@ -61,6 +61,8 @@ def ejecutar():
 
     frame_ventas = tk.Frame(Frame_contenido)
     lista_F.append(frame_ventas)
+    frame_cupones = tk.Frame(Frame_contenido)
+    lista_F.append(frame_cupones)
 
     def mostrar_seccion(frame):
         F.mostrar_frame(frame, lista_F)
@@ -170,6 +172,39 @@ def ejecutar():
                                   relief="flat", bd=0, font=("Segoe UI", 10), padx=14, pady=6)
     boton_hacer_admin.grid(row=5, column=0, sticky="w", pady=(16, 0))
 
+    # Boceto de frame para crear cupones (en construccion)
+    frame_cupones.grid_columnconfigure(0, weight=1)
+
+    tk.Label(frame_cupones, text="Crear cupones",
+             bg="#dcdde1", font=("Segoe UI", 12), pady=14).grid(row=0, column=0, sticky="ew", pady=(0, 10))
+
+    tk.Label(frame_cupones, text="Código del cupón", font=("Segoe UI", 10),
+             anchor="w").grid(row=1, column=0, sticky="ew", pady=(8, 2))
+    entrada_codigo_cupon = tk.Entry(frame_cupones, width=30, relief="flat",
+                                    highlightthickness=1,
+                                    highlightbackground="#ced4da",
+                                    highlightcolor="#0d6efd")
+    entrada_codigo_cupon.grid(row=2, column=0, sticky="ew", ipady=6)
+
+    tk.Label(frame_cupones, text="Porcentaje de descuento (%)", font=("Segoe UI", 10),
+             anchor="w").grid(row=3, column=0, sticky="ew", pady=(8, 2))
+    entrada_descuento_cupon = tk.Entry(frame_cupones, width=30, relief="flat",
+                                       highlightthickness=1,
+                                       highlightbackground="#ced4da",
+                                       highlightcolor="#0d6efd")
+    entrada_descuento_cupon.grid(row=4, column=0, sticky="ew", ipady=6)
+
+    def crear_cupon_admin():
+        codigo = entrada_codigo_cupon.get().strip().upper()
+        porcentaje = entrada_descuento_cupon.get().strip()
+        # falta validar y guardar el cupon para que lo lea el carrito
+        print("Cupon en pruebas:", codigo, porcentaje)
+
+    boton_guardar_cupon = tk.Button(frame_cupones, text="Crear cupón", command=crear_cupon_admin,
+                                    bg="#0d6efd", fg="white", activebackground="#0d6efd", activeforeground="white",
+                                    relief="flat", bd=0, font=("Segoe UI", 10), padx=14, pady=6)
+    boton_guardar_cupon.grid(row=5, column=0, sticky="w", pady=(16, 0))
+
 
     # Frame de estadísticas por categoría
     Frame_estadisticas.grid_columnconfigure(0, weight=1)        # la columna se estira al ancho del panel
@@ -277,6 +312,8 @@ def ejecutar():
     boton_ventas = tk.Button(Frame_botones, text="Ventas", command=lambda: abrir_ventas())
     boton_carritos.grid(column=6, row=1)
     boton_ventas.grid(column=7, row=1)
+    boton_cupones = tk.Button(Frame_botones, text="Cupones", command=lambda: mostrar_seccion(frame_cupones))
+    boton_cupones.grid(column=8, row=1, sticky="w")
 
     # Frame de carritos (solo lectura)
     frame_carritos.grid_columnconfigure(0, weight=1)        # la columna se estira al ancho del panel
@@ -499,7 +536,7 @@ def ejecutar():
 
         # ---------- estilo de la barra superior ----------
 
-    botones_barra = (boton_ingreso, boton_estadisticas, boton_admin, boton_vaciar, boton_carritos, boton_ventas)
+    botones_barra = (boton_ingreso, boton_estadisticas, boton_admin, boton_vaciar, boton_carritos, boton_ventas, boton_cupones)
 
     # El for repite lo mismo con cada botón.
     for b in botones_barra:

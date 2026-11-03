@@ -5,6 +5,7 @@ from clases.Venta import venta
 class Carrito:
     def __init__(self):
         self.items = []
+        self.cupon = 0.0
         self.usuario=None
         self.funcion_dibujar_tabla = None  # Inicializamos la función como None
         self.evento_venta = threading.Event()
@@ -43,6 +44,7 @@ class Carrito:
         subtotal = 0
         for item in self.items:
             subtotal += item["precio"] * item["cantidad"]
+        subtotal = subtotal * (1 - self.cupon)
         return subtotal
     
     def calcular_iva(self):
@@ -65,6 +67,7 @@ class Carrito:
     def procesar_respuesta_vaciar(self, ok, mensaje):
         if ok:
             self.items.clear()  # Vacía el carrito después de procesar la compra
+            self.cupon = 0.0
             print("Carrito vaciado correctamente \n")
             messagebox.showinfo("Carrito vaciado", "El carrito ha sido vaciado correctamente.")
             if self.funcion_dibujar_tabla is not None:
@@ -135,6 +138,7 @@ class Carrito:
 
         
         self.items.clear()  # vacia el carrito.
+        self.cupon = 0.0
         if self.funcion_dibujar_tabla is not None:
             self.funcion_dibujar_tabla()
         return True, f"Recibo N°{nueva_venta.recibo_id}", ruta
