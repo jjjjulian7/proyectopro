@@ -3,7 +3,7 @@ import json
 import threading
 import time
 from tkinter import messagebox
-HOST = "192.168.18.229"
+HOST = "10.190.94.2"
 PORT = 65433
 
 conexion=None

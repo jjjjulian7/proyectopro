@@ -5,7 +5,7 @@ import sqlite3
 from datos import bd
 from datos import bd_carrito
 from datos import bd_ventas
-HOST = '192.168.18.229'
+HOST = '10.190.94.2'
 PORT = 65433
 def iniciar_servidor():
     server=socket.socket(socket.AF_INET, socket.SOCK_STREAM)

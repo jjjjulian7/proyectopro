@@ -8,7 +8,7 @@ para que el admin y el cliente lean la misma tabla.
 import sqlite3
 from datetime import date, datetime
 
-RUTA_BD = "maulencitos.db"   # <-- CAMBIAR por la ruta real que usas en bd_ventas.py
+RUTA_BD = "ventas.db"   # <-- CAMBIAR por la ruta real que usas en bd_ventas.py
 
 PORCENTAJE = "porcentaje"
 MONTO_FIJO = "monto_fijo"
