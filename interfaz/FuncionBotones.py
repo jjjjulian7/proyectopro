@@ -383,8 +383,22 @@ def eliminar_producto(ventana, i):
 
     ventana.wait_window(ventana_cantidad)
 
+menu_usuario = None   # frame del menu del icono de usuario; vive fuera de la funcion para recordar si esta abierto
+
+def cerrar_menu():
+    global menu_usuario
+    if menu_usuario is not None and menu_usuario.winfo_exists():
+        menu_usuario.destroy()
+    menu_usuario = None
+
 def lista_deseos(ventana):
+    global menu_usuario
+    # si el menu ya esta abierto, este segundo clic lo cierra y no crea otro
+    if menu_usuario is not None and menu_usuario.winfo_exists():
+        cerrar_menu()
+        return
     lista=tk.Frame(ventana)
+    menu_usuario = lista
     lista.place(
         relx=1,
         y=96,
@@ -417,10 +431,15 @@ def lista_deseos(ventana):
     crear_linea(lista,5)
     iniciar_sesion.grid(row=6,column=0)
 
-    iniciar_sesion.bind("<Button-1>",lambda event:ingresar_log(None))
-    ListaDeseos.bind("<Button-1>",lambda event:LD())
-    Suscripcion.bind("<Button-1>",lambda event:Suscripciones())
-    Notificacion.bind("<Button-1>",lambda event:Notificaciones())
+    # al elegir una opcion el menu se cierra y despues se abre la ventana correspondiente
+    def elegir(accion):
+        cerrar_menu()
+        accion()
+
+    iniciar_sesion.bind("<Button-1>",lambda event:elegir(lambda:ingresar_log(None)))
+    ListaDeseos.bind("<Button-1>",lambda event:elegir(LD))
+    Suscripcion.bind("<Button-1>",lambda event:elegir(Suscripciones))
+    Notificacion.bind("<Button-1>",lambda event:elegir(Notificaciones))
 
 
 def mostrar_lista_deseos(frame):

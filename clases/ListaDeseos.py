@@ -1,4 +1,4 @@
-from producto import *
+from clases.producto import *
 import datos.bd as bd
 class ListaDeseos:
     def __init__(self,nombreU):
@@ -10,6 +10,6 @@ class ListaDeseos:
         self.productos.append({'nombre':producto.nombre,
                             'precio':producto.precio,
                             'stock':producto.stock,
-                            'categoria':producto
+                            'categoria':producto.categoria
                             })
 

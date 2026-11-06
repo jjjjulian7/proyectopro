@@ -1,5 +1,6 @@
 import datos.bd as bd
 from clases.producto import Producto
+import datos.bd_deseos  as bdd
 
 class Inventario:
     def __init__(self):
@@ -69,7 +70,11 @@ class Inventario:
             if p.id == id_producto:
                 if not self.validar_producto(nombre, precio, stock, categoria): # busca el producto por id y valida los nuevos datos antes de actualizar
                     return False
-                
+
+                if p.precio>precio:
+                    bdd.notificacion(id_producto,"p")
+                if p.stock<stock:
+                    bdd.notificacion(id_producto,'s')
                 p.nombre = nombre #datos nuevos al producto
                 p.precio = precio
                 p.stock = stock
