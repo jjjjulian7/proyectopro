@@ -5,6 +5,9 @@ import sqlite3
 from datos import bd
 from datos import bd_carrito
 from datos import bd_ventas
+from clases.asistente_ia import AsistenteIA
+
+asistente_ia = AsistenteIA()
 HOST = '10.190.94.2'
 PORT = 65433
 def iniciar_servidor():
@@ -109,6 +112,18 @@ def procesar_solicitud(socket_cliente,mensaje):
             responder_cliente(socket_cliente,{'type':'registrar_venta','ok':False,'mensaje':'No se pudo guardar la venta en el servidor','recibo_id':None})
             return
         responder_cliente(socket_cliente,{'type':'registrar_venta','ok':True,'mensaje':'Venta registrada correctamente','recibo_id':recibo_id})
+    elif tipo=='consulta_ia':
+        pregunta = mensaje.get('pregunta', '')
+        print(f"Servidor : Consulta para asistente IA: {pregunta}")
+        def responder_ia():
+            ok, texto_respuesta = asistente_ia.consultar(pregunta)
+            responder_cliente(socket_cliente, {
+                'type': 'consulta_ia',
+                'ok': ok,
+                'respuesta': texto_respuesta
+            })
+        hilo_ia = threading.Thread(target=responder_ia, daemon=True)
+        hilo_ia.start()
 
 def atender_cliente(socket_cliente, addr):
     print(f"[+] Cliente conectado: {addr}")

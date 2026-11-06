@@ -13,6 +13,7 @@ conexion_reserva=None
 conexion_reponer=None
 conexion_vaciar=None
 conexion_venta=None
+conexion_ia=None  # falta conectar con la ventana del chat cuando este lista la interfaz
 
 def conectar_interfaz_reserva(conexion):
     global conexion_reserva
@@ -101,6 +102,12 @@ def recibir(socket_conexion):
                 recibo_id=dato.get('recibo_id')
                 if conexion_venta is not None:
                     conexion_venta(ok, mensaje, recibo_id)
+            elif tipo=='consulta_ia':
+                ok=dato.get('ok')
+                respuesta=dato.get('respuesta')
+                print("Respuesta recibida del asistente IA:", respuesta)
+                if conexion_ia is not None:
+                    conexion_ia(ok, respuesta)
                 
 
 def dato_envia(dato):
@@ -132,3 +139,7 @@ def dato_envia(dato):
                 'items':dato.get('items'),
                 'total':dato.get('total'),
                 'nombre_u':nombre_u})
+    elif tipo == 'consulta_ia':
+        enviar({'type': 'consulta_ia',
+                'pregunta': dato.get('pregunta'),
+                'nombre_u': nombre_u})
