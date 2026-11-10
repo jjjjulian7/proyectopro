@@ -173,23 +173,19 @@ def ejecutar():
                                   relief="flat", bd=0, font=("Segoe UI", 10), padx=14, pady=6)
     boton_hacer_admin.grid(row=5, column=0, sticky="w", pady=(16, 0))
 
-    # Frame para crear cupones (se guardan en la BD y los lee el carrito del cliente)
+    # Frame para crear cupones
     frame_cupones.grid_columnconfigure(0, weight=1)
 
     tk.Label(frame_cupones, text="Crear cupones",
              bg="#dcdde1", font=("Segoe UI", 12), pady=14).grid(row=0, column=0, sticky="ew", pady=(0, 10))
 
-    def campo_cupon(texto, fila):
-        tk.Label(frame_cupones, text=texto, font=("Segoe UI", 10),
-                 anchor="w").grid(row=fila, column=0, sticky="ew", pady=(8, 2))
-        entrada = tk.Entry(frame_cupones, width=30, relief="flat",
-                           highlightthickness=1,
-                           highlightbackground="#ced4da",
-                           highlightcolor="#0d6efd")
-        entrada.grid(row=fila + 1, column=0, sticky="ew", ipady=6)
-        return entrada
-
-    entrada_codigo_cupon = campo_cupon("Código del cupón", 1)
+    tk.Label(frame_cupones, text="Código del cupón", font=("Segoe UI", 10),
+             anchor="w").grid(row=1, column=0, sticky="ew", pady=(8, 2))
+    entrada_codigo_cupon = tk.Entry(frame_cupones, width=30, relief="flat",
+                                    highlightthickness=1,
+                                    highlightbackground="#ced4da",
+                                    highlightcolor="#0d6efd")
+    entrada_codigo_cupon.grid(row=2, column=0, sticky="ew", ipady=6)
 
     tk.Label(frame_cupones, text="Tipo de descuento", font=("Segoe UI", 10),
              anchor="w").grid(row=3, column=0, sticky="ew", pady=(8, 2))
@@ -198,26 +194,49 @@ def ejecutar():
     selector_tipo_cupon.current(0)
     selector_tipo_cupon.grid(row=4, column=0, sticky="ew")
 
-    entrada_descuento_cupon = campo_cupon("Valor del descuento", 5)
-    entrada_vence_cupon = campo_cupon("Vencimiento (DD-MM-AAAA)", 7)
-    entrada_usos_cupon = campo_cupon("Usos máximos", 9)
+    tk.Label(frame_cupones, text="Valor del descuento", font=("Segoe UI", 10),
+             anchor="w").grid(row=5, column=0, sticky="ew", pady=(8, 2))
+    entrada_descuento_cupon = tk.Entry(frame_cupones, width=30, relief="flat",
+                                       highlightthickness=1,
+                                       highlightbackground="#ced4da",
+                                       highlightcolor="#0d6efd")
+    entrada_descuento_cupon.grid(row=6, column=0, sticky="ew", ipady=6)
+
+    tk.Label(frame_cupones, text="Vencimiento (DD-MM-AAAA)", font=("Segoe UI", 10),
+             anchor="w").grid(row=7, column=0, sticky="ew", pady=(8, 2))
+    entrada_vence_cupon = tk.Entry(frame_cupones, width=30, relief="flat",
+                                   highlightthickness=1,
+                                   highlightbackground="#ced4da",
+                                   highlightcolor="#0d6efd")
+    entrada_vence_cupon.grid(row=8, column=0, sticky="ew", ipady=6)
+
+    tk.Label(frame_cupones, text="Usos máximos", font=("Segoe UI", 10),
+             anchor="w").grid(row=9, column=0, sticky="ew", pady=(8, 2))
+    entrada_usos_cupon = tk.Entry(frame_cupones, width=30, relief="flat",
+                                  highlightthickness=1,
+                                  highlightbackground="#ced4da",
+                                  highlightcolor="#0d6efd")
+    entrada_usos_cupon.grid(row=10, column=0, sticky="ew", ipady=6)
 
     def crear_cupon_admin():
-        tipo = bd_cupones.PORCENTAJE if selector_tipo_cupon.current() == 0 else bd_cupones.MONTO_FIJO
-        try:
-            codigo = bd_cupones.crear_cupon(entrada_codigo_cupon.get(), tipo,
-                                            entrada_descuento_cupon.get(),
-                                            entrada_vence_cupon.get(),
-                                            entrada_usos_cupon.get())
-        except ValueError as e:
-            messagebox.showwarning("Cupón", str(e), parent=ventana)
-            return
-        except sqlite3.Error as e:
-            messagebox.showerror("Error", f"No se pudo guardar el cupón: {e}", parent=ventana)
-            return
-        for campo in (entrada_codigo_cupon, entrada_descuento_cupon, entrada_vence_cupon, entrada_usos_cupon):
-            campo.delete(0, tk.END)
-        messagebox.showinfo("Cupón creado", f"El cupón {codigo} ya está disponible para los clientes.", parent=ventana)
+        codigo = entrada_codigo_cupon.get()
+        if selector_tipo_cupon.current() == 0:
+            tipo = "porcentaje"
+        else:
+            tipo = "monto_fijo"
+        valor = entrada_descuento_cupon.get()
+        fecha = entrada_vence_cupon.get()
+        usos = entrada_usos_cupon.get()
+
+        ok, mensaje = bd_cupones.crear_cupon(codigo, tipo, valor, fecha, usos)
+        if ok:
+            entrada_codigo_cupon.delete(0, tk.END)
+            entrada_descuento_cupon.delete(0, tk.END)
+            entrada_vence_cupon.delete(0, tk.END)
+            entrada_usos_cupon.delete(0, tk.END)
+            messagebox.showinfo("Cupón creado", mensaje, parent=ventana)
+        else:
+            messagebox.showwarning("Error", mensaje, parent=ventana)
 
     boton_guardar_cupon = tk.Button(frame_cupones, text="Crear cupón", command=crear_cupon_admin,
                                     bg="#0d6efd", fg="white", activebackground="#0d6efd", activeforeground="white",
