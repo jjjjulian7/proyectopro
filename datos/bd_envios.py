@@ -40,7 +40,7 @@ def crear_tabla():
     cursor.execute('''                              
         CREATE TABLE IF NOT EXISTS config_envio( 
             id INTEGER PRIMARY KEY CHECK (id = 1),
-            monto_minimo REAL NOT NULL DEFAULT '100000',
+            monto_minimo REAL NOT NULL DEFAULT '100000' CHECK (monto_minimo >= 0),
             region_tienda TEXT NOT NUL DEFAULT 'Maule'
                    
         )
@@ -62,13 +62,24 @@ def crear_tabla():
     cursor.execute("INSERT OR IGNORE INTO config_envio (id, monto_minimo, region_tienda) VALUES (1, ?, ?)",
                    (MONTO_MINIMO_INICIAL, REGION_ORIGEN_INICIAL))
  
-
     conexion.commit()
     conexion.close()
 
 
 # FUNCIONES TABLA ENVIOS:
 def guardar_tarifa(region, costo, dias_habiles):  # actualiza la tarifa de una region
+    if region not in REGIONES:  # Validamos los datos ingresados
+        raise ValueError("Selecciona una region valida")
+    try:
+        costo = int(str(costo).strip())
+        dias_habiles = int(str(dias_habiles).strip())
+    except ValueError:
+        raise ValueError("Ingrese numero enteros")
+    if costo < 0:   
+        raise ValueError("El costo no puede ser negativo")
+    if dias_habiles<0:
+        raise ValueError("Los dias habiles no pueden ser negativos")
+    
     crear_tabla()
     conexion = conectar()
     cursor = conexion.cursor()
@@ -93,8 +104,7 @@ def obtener_tarifa(region):                     # Devuelve la tupla de una regio
     crear_tabla()
     conexion = conectar()
     cursor = conexion.cursor()
-    cursor.execute("SELECT region, costo, dias_habiles FROM envios WHERE region = ?", (region,))
-    fila = cursor.fetchone()
+    fila = cursor.execute("SELECT region, costo, dias_habiles FROM envios WHERE region = ?", (region,)).fetchone()
     conexion.close()
     return fila
 
@@ -108,3 +118,9 @@ def insertar_monto(monto):
         INSERT OR REPLACE INTO config_envio (id, monto_minimo) 
     ''')
 
+def obtener_config():
+    conexion = conectar()
+    cursor = conexion.cursor()
+    fila = cursor.execute("SELECT monto_minimo, region_tienda FROM config_envio WHERE id = 1").fetchone()
+    conexion.close()
+    return fila

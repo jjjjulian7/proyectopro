@@ -5,7 +5,7 @@ import datos.bd_ventas as bd_ventas
 
 
 class venta:
-    def __init__(self, cliente, items, subtotal, iva,total):
+    def __init__(self, cliente, items, subtotal, iva, total, despacho=None, costo_envio=0):
         self.recibo_id = None  # lo asigna la base de datos al guardar
         self.fecha = datetime.now().isoformat(timespec="seconds")
         self.cliente = cliente
@@ -13,10 +13,12 @@ class venta:
         self.subtotal = subtotal
         self.iva = iva
         self.total = total
+        self.despacho = despacho or {}   # dict de entrega 
+        self.costo_envio = costo_envio
 
     def guardar_en_bd(self):
         # Guarda la venta en la bd y recibe el id automatico
-        self.recibo_id = bd_ventas.insertar_venta(self.fecha, self.cliente, self.total, self.items)
+        self.recibo_id = bd_ventas.insertar_venta(self.fecha, self.cliente, self.total, self.items, self.despacho)
 
     def a_diccionario(self):    # Armamos el diccionario con el formato de como saldra el JSON
         return {
@@ -34,8 +36,18 @@ class venta:
                 for item in self.items
             ],
             "subtotal": round(self.subtotal, 2),
+            "envio": round(self.costo_envio, 2),
             "iva": round(self.iva, 2),
             "total": round(self.total, 2),
+            "despacho": {
+                "modalidad": self.despacho.get("modalidad", "Retiro en tienda"),
+                "destinatario": self.despacho.get("destinatario"),
+                "direccion": self.despacho.get("direccion"),
+                "comuna": self.despacho.get("comuna"),
+                "region": self.despacho.get("region"),
+                "costo_envio": round(self.costo_envio, 2),
+                "fecha_entrega_estimada": self.despacho.get("fecha_entrega"),
+            },
         }
 
     def guardar_json(self):
