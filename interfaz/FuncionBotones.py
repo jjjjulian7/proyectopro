@@ -14,6 +14,7 @@ from . import abrir_carrito
 from . import Client_ProyProgV2 as ClienteRed
 import Server_ProgProyV2 as ServidorRed
 import threading
+import queue
 # Codigo realizado por Cristobal Maulen
 inventario=I()
 usuario_actual = None
@@ -22,6 +23,15 @@ ClienteRed.conectar_interfaz_reserva(carrito.procesar_respuesta_reservar)
 ClienteRed.conectar_interfaz_reponer(carrito.procesar_respuesta_eliminar)
 ClienteRed.conectar_interfaz_vaciar(carrito.procesar_respuesta_vaciar)
 ClienteRed.conectar_interfaz_venta(carrito.procesar_respuesta_venta)
+
+def procesar_respuesta_deseos(tipo, ok, mensaje):
+    """Llega desde el hilo que escucha al servidor; muestra el resultado de agregar a deseos / suscribirse."""
+    titulo = "Lista de deseos" if tipo == 'agregar_deseo' else "Aviso de reposición"
+    if ok:
+        messagebox.showinfo(titulo, mensaje)
+    else:
+        messagebox.showwarning(titulo, mensaje)
+ClienteRed.conectar_interfaz_deseos(procesar_respuesta_deseos)
 def ventana_a(ventana):
     ventana_admin.ejecutar()
     ventana.iconify()
@@ -348,6 +358,38 @@ def ingresar_log(usuario):
 def agregar_producto_carrito(ProductoS, cantidad,usuarioA):
     carrito.agregar_producto(ProductoS,cantidad,usuarioA)
 
+def identificador_usuario():
+    """Con que se identifica al cliente en deseos, suscripciones y notificaciones.
+    El enunciado permite RUN o nombre de usuario. Los clientes registrados hoy no tienen RUT
+    (solo los admin), asi que se usa el RUT si existe y si no el nombre de usuario."""
+    fila = BD.buscar_usuario(usuario_actual)  # columnas: id, nombre, contrasena, rut, rol
+    return fila[3] or fila[1]
+
+def agregar_a_deseos(id_producto, precio):
+    if not hay_usuario_autenticado():
+        messagebox.showwarning("Inicio de sesión requerido","Debes iniciar sesión para usar la lista de deseos.")
+        return
+    rut = identificador_usuario()
+    # ya no se escribe en la BD desde el cliente: se manda al servidor por el socket y el responde por procesar_respuesta_deseos
+    # (el precio no se envia: el servidor usa el precio real del producto)
+    try:
+        ClienteRed.dato_envia({'type':'agregar_deseo','rut':rut,'id_producto':id_producto})
+    except OSError:
+        messagebox.showwarning("Sin conexión","No se pudo comunicar con el servidor.")
+
+def avisar_reposicion(id_producto, stock):
+    if not hay_usuario_autenticado():
+        messagebox.showwarning("Inicio de sesión requerido","Debes iniciar sesión para suscribirte al aviso de reposición.")
+        return
+    if stock > 0:
+        messagebox.showinfo("Aviso de reposición","Este producto tiene stock disponible, el aviso es solo para productos agotados.")
+        return
+    rut = identificador_usuario()
+    try:
+        ClienteRed.dato_envia({'type':'suscribir_reposicion','rut':rut,'id_producto':id_producto})
+    except OSError:
+        messagebox.showwarning("Sin conexión","No se pudo comunicar con el servidor.")
+
 
 def vaciarcarrito():
     carrito.vaciar_carrito()
@@ -442,51 +484,142 @@ def lista_deseos(ventana):
     Notificacion.bind("<Button-1>",lambda event:elegir(Notificaciones))
 
 
-def mostrar_lista_deseos(frame):
-    # La primera vez creamos la tabla. las siguientes veces solo la rellenamos
-    if not hasattr(frame, "tabla"):
-        aplicar_estilo_tabla(frame)
+# ---------------------------------------------------------------
+# Ventanas del cliente: lista de deseos, suscripciones y notificaciones.
+# Los datos NO se leen de la BD aqui: se piden al servidor por el socket (mensaje 'mi_lista')
+# y cuando llega la respuesta se rellenan todas las ventanas que estan abiertas.
+# ---------------------------------------------------------------
+ventanas_lista = {}   # clave ('deseos','suscripciones','notificaciones') -> (ventana, tabla)
 
-        columnas = ("id", "nombre", "precio", "stock", "categoria") #asignamos el orden de las columnas
-        tabla = ttk.Treeview(
-                    frame,
-                    columns=columnas,
-                    show="headings",
-                    style="Productos.Treeview",                  
-                )
-        # texto, ancho, alineacion de cada columna    
-        config_columnas = {
-                    "id":        ("ID", 60, "center"),
-                    "nombre":    ("NOMBRE", 260, "w"),         # "w" = west = izquierda
-                    "precio":    ("PRECIO", 110, "e"),         # "e" = east = derecha 
-                    "stock":     ("STOCK", 80, "center"),
-                    "categoria": ("CATEGORÍA", 160, "w"),}
+def _clp(valor):
+    return f"${valor:,.0f}".replace(",", ".") if valor is not None else "-"
 
-        for col, (texto, ancho, ancla) in config_columnas.items():
-            tabla.heading(col, text=texto)                # texto de la cabecera
-            tabla.column(col, width=ancho, anchor=ancla)  # ancho y alineación del contenido
-        # un tag es una etiqueta que le ponemos a una fila para darle color.
-        # Aqui definimos que color tiene cada etiqueta, después las asignamos al insertar.
+def _filas_deseos(datos):
+    filas = []
+    for p in datos.get("deseos", []):
+        etiqueta = []
+        if p["stock"] == 0:
+            etiqueta.append("sin_stock")
+        if p["precio"] < p["precio_guardado"]:
+            etiqueta.append("rebaja")      # el precio actual es menor al que tenia al guardarlo
+        filas.append(((p["id"], p["nombre"], _clp(p["precio_guardado"]), _clp(p["precio"]),
+                       p["stock"], p["categoria"]), etiqueta))
+    return filas
+
+def _filas_suscripciones(datos):
+    return [((p["id"], p["nombre"], _clp(p["precio"]), p["stock"], p["categoria"],
+              "Ya hay stock" if p["stock"] > 0 else "Esperando reposición"),
+             ["con_stock"] if p["stock"] > 0 else ["sin_stock"])
+            for p in datos.get("suscripciones", [])]
+
+def _filas_notificaciones(datos):
+    return [((n["id"], n["nombre"], n["mensaje"]), []) for n in datos.get("notificaciones", [])]
+
+# clave -> (titulo ventana, columnas {id: (texto, ancho, ancla)}, funcion que arma las filas, texto si esta vacia)
+CONFIG_VENTANAS = {
+    "deseos": ("Mi lista de deseos",
+               {"id": ("ID", 50, "center"), "nombre": ("NOMBRE", 260, "w"),
+                "guardado": ("PRECIO GUARDADO", 130, "e"), "actual": ("PRECIO ACTUAL", 130, "e"),
+                "stock": ("STOCK", 70, "center"), "categoria": ("CATEGORÍA", 150, "w")},
+               _filas_deseos, "Aún no tienes productos en tu lista de deseos."),
+    "suscripciones": ("Mis avisos de reposición",
+               {"id": ("ID", 50, "center"), "nombre": ("NOMBRE", 280, "w"),
+                "precio": ("PRECIO", 110, "e"), "stock": ("STOCK", 70, "center"),
+                "categoria": ("CATEGORÍA", 150, "w"), "estado": ("ESTADO", 170, "w")},
+               _filas_suscripciones, "No estás suscrito a ningún producto agotado."),
+    "notificaciones": ("Mis notificaciones",
+               {"id": ("ID", 50, "center"), "nombre": ("PRODUCTO", 260, "w"),
+                "mensaje": ("AVISO", 480, "w")},
+               _filas_notificaciones, "No tienes notificaciones."),
+}
+
+def _rellenar_ventana(clave, datos):
+    ventana, tabla, etiqueta_vacia = ventanas_lista[clave]
+    _, _, armar_filas, texto_vacio = CONFIG_VENTANAS[clave]
+    tabla.delete(*tabla.get_children())
+    filas = armar_filas(datos)
+    for i, (valores, etiquetas) in enumerate(filas):
+        tabla.insert("", "end", values=valores, tags=["par" if i % 2 == 0 else "impar"] + etiquetas)
+    etiqueta_vacia.config(text="" if filas else texto_vacio)
+
+cola_respuestas_lista = queue.Queue()   # puente entre el hilo de red y el hilo de tkinter
+revisando_cola = False
+
+def procesar_respuesta_lista(datos):
+    """Corre en el hilo que escucha al servidor: NO toca la interfaz, solo deja la respuesta en la cola.
+    (tkinter no es seguro entre hilos; la ventana la lee desde su propio hilo con after)."""
+    cola_respuestas_lista.put(datos)
+ClienteRed.conectar_interfaz_lista(procesar_respuesta_lista)
+
+def _revisar_cola_lista(raiz):
+    """Corre en el hilo de tkinter cada 200 ms mientras haya alguna ventana abierta."""
+    global revisando_cola
+    try:
+        while True:
+            datos = cola_respuestas_lista.get_nowait()
+            if not datos.get("ok"):
+                messagebox.showwarning("Mis listas", datos.get("mensaje", "No se pudo cargar la información."))
+                continue
+            for clave in list(ventanas_lista):
+                if ventanas_lista[clave][0].winfo_exists():
+                    _rellenar_ventana(clave, datos)
+    except queue.Empty:
+        pass
+    if ventanas_lista:
+        raiz.after(200, lambda: _revisar_cola_lista(raiz))
+    else:
+        revisando_cola = False
+
+def abrir_ventana_lista(clave):
+    if not hay_usuario_autenticado():
+        messagebox.showwarning("Inicio de sesión requerido", "Debes iniciar sesión para ver esta sección.")
+        return
+    # si ya esta abierta, se trae al frente y se refresca en vez de abrir otra igual
+    if clave in ventanas_lista and ventanas_lista[clave][0].winfo_exists():
+        ventanas_lista[clave][0].lift()
+    else:
+        titulo, columnas, _, _ = CONFIG_VENTANAS[clave]
+        v = tk.Toplevel()
+        v.title(titulo)
+        v.geometry("900x480")
+        v.configure(bg="white")
+        tk.Label(v, text=titulo, font=("Arial", 14, "bold"), bg="white").pack(pady=(12, 4))
+        etiqueta_vacia = tk.Label(v, text="Cargando...", bg="white", fg="#666666")
+        etiqueta_vacia.pack()
+        marco = tk.Frame(v)
+        marco.pack(fill="both", expand=True, padx=20, pady=12)
+        aplicar_estilo_tabla(marco)
+        tabla = ttk.Treeview(marco, columns=tuple(columnas), show="headings", style="Productos.Treeview")
+        for col, (texto, ancho, ancla) in columnas.items():
+            tabla.heading(col, text=texto)
+            tabla.column(col, width=ancho, anchor=ancla)
         tabla.tag_configure("par", background="#ffffff")
         tabla.tag_configure("impar", background="#e0e0e0")
         tabla.tag_configure("sin_stock", foreground="#e8283c")
+        tabla.tag_configure("con_stock", foreground="#1a7f37")
+        tabla.tag_configure("rebaja", foreground="#1a7f37")
+        scroll = ttk.Scrollbar(marco, orient="vertical", command=tabla.yview)
+        tabla.configure(yscrollcommand=scroll.set)
+        scroll.pack(side="right", fill="y")
+        tabla.pack(side="left", fill="both", expand=True)
+        ventanas_lista[clave] = (v, tabla, etiqueta_vacia)
+        v.bind("<Destroy>", lambda e: ventanas_lista.pop(clave, None) if e.widget is v else None)
+    global revisando_cola
+    if not revisando_cola:
+        revisando_cola = True
+        raiz = tk._default_root   # ventana principal de la tienda: no se cierra mientras se usa la app
+        raiz.after(200, lambda: _revisar_cola_lista(raiz))
+    rut = identificador_usuario()
+    try:
+        ClienteRed.dato_envia({'type': 'mi_lista', 'rut': rut})
+    except OSError:
+        messagebox.showwarning("Sin conexión", "No se pudo comunicar con el servidor.")
+
 def LD():
-    v=tk.Toplevel()
-    v.title("MaulencitosMarket")
-    v.geometry("1280x700")
-    v.configure(bg="white")
-    Frame_producto=tk.Frame(v)
-    Frame_producto.grid(row=1, column=1, sticky="nsew", padx=(0, 20), pady=20)
-    mostrar_productos(Frame_producto)
+    abrir_ventana_lista("deseos")
 
 def Suscripciones():
-    v=tk.Toplevel()
-    v.title("MaulencitosMarket")
-    v.geometry("1280x700")
-    v.configure(bg="white")
+    abrir_ventana_lista("suscripciones")
 
 def Notificaciones():
-    v=tk.Toplevel()
-    v.title("MaulencitosMarket")
-    v.geometry("1280x700")
-    v.configure(bg="white")
+    abrir_ventana_lista("notificaciones")

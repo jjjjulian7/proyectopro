@@ -30,100 +30,104 @@ def crear_tabla():
         CREATE TABLE IF NOT EXISTS notificaciones(
         rut TEXT NOT NULL,
         id_producto INTEGER,
-        notificacion TEXT ,
+        notificacion TEXT)
         '''
     )
     cursor.execute(
         '''
         CREATE TABLE IF NOT EXISTS suscripciones(
         rut TEXT NOT NULL,
-        id_producto INTEGER NOT NULL)
+        id_producto INTEGER NOT NULL,
+        UNIQUE(rut,id_producto))
         '''
     )
     conexion.commit()
     conexion.close()
 
-def mostrar_lista(rut):
+def notificacion(id_producto,categoria_notificacion):
+    """Deja anotado en la lista de cada usuario que el producto cambio (p = precio, s = stock)."""
+    crear_tabla()
     conexion=conectar()
-    cursor=conexion.cursor()
-
-    cursor.execute(
-        '''
-        SELECT u.rut,u.nombre_usuario,l.nombre,l.precio,l.stock,l.categoria
-        from deseos u  
-        INNER JOIN lista l ON l.rut=u.rut
-        where u.rut=?
-        ''',(rut,)
-    )
-
-def crear_lista_o_buscar(rut,nombre_usuarios):
-    conexion=conectar()
-    cursor=conexion.cursor()
-    cursor.execute(
-        '''
-        SELECT rut,nombre_usuario
-        FROM deseos
-        WHERE rut=? AND nombre_usuarios=?
-        ''',(rut,nombre_usuarios)
-    )
-    fila=cursor.fetchone()
-    if fila is None:
-        return fila[0]
-    
-    cursor.execute(
-        '''
-        INSERT INTO deseos(rut,nombre_usuarios) VALUES (?,?)
-        ''',(rut,nombre_usuarios)
-    )
-    conexion.commit()
-    conexion.close()
-    
-    return cursor.lastrowid()
-
-
-
-
-def agregar_producto(id_producto,rut,nombre_usuario,nombre,precio,stock,categoria):
-    conexion=conectar()
-    cursor=conexion.cursor()
-    r=crear_lista_o_buscar(rut,nombre_usuario)
-    cursor.execute(
-        '''
-        INSERT INTO lista (id_producto,rut,nombre,precio,stock,goria) VALUES (?,r,?,?,?,?)
-        ''',(id_producto,nombre,precio,stock,categoria)
-    )
-
-
-def notificacion(id_producto,categoria_notificacion,):
-    conexion=conectar()
-    cursor=conexion.cursor()
-    
-    cursor.execute(#me devolvera los rut en donde el producto actualizado se encuentre en su lista
-        '''
-        SELECT rut 
-        FROM lista 
-        WHERE id_producto=?
-        ''',(id_producto,)
-    )
-    filas=cursor.fetchall()
-    
-    for (rut,) in filas:#recorrera cada lista de los usuarios
-        if categoria_notificacion=='p':#si se actualizo el precio
-            cursor.execute(
+    try:
+        cursor=conexion.cursor()
+        texto={'p':"se rebajo el precio del producto",'s':"se actualizo el stock del producto"}.get(categoria_notificacion)
+        if texto is None:
+            return
+        cursor.execute(
             '''
             UPDATE lista
             SET notificacion=?
-            WHERE rut=? AND id_producto=?
-            '''
-        ,("se rebajo el precio del producto",rut,id_producto,))
-            conexion.commit()
-        if categoria_notificacion=='s':
-            cursor.execute(
-                        '''
-                        UPDATE lista
-                        SET notificacion=?
-                        WHERE rut=? AND id_producto=?
-                        '''
-                    ,("se actualizo el stock del producto",rut,id_producto,))
-            conexion.commit
+            WHERE id_producto=?
+            ''',(texto,id_producto)
+        )
+        conexion.commit()
+    finally:
+        conexion.close() #se cierra una sola vez y aunque falle la consulta
+
+
+def agregar_deseo(id_producto,rut,precio):
+    crear_tabla()
+    conexion=conectar()
+    cursor=conexion.cursor()
+    cursor.execute(
+        '''
+        INSERT OR IGNORE INTO lista(id_producto,rut,precio_actualizado) VALUES (?,?,?)
+        ''',(id_producto,rut,precio)
+    )
+    agregado=cursor.rowcount>0 #si ya estaba en la lista el UNIQUE lo ignora y rowcount queda en 0
+    conexion.commit()
+    conexion.close()
+    return agregado
+
+def agregar_suscripcion(id_producto,rut):
+    crear_tabla()
+    conexion=conectar()
+    cursor=conexion.cursor()
+    cursor.execute(
+        '''
+        SELECT 1 FROM suscripciones WHERE rut=? AND id_producto=?
+        ''',(rut,id_producto)
+    )
+    if cursor.fetchone() is not None:
+        conexion.close()
+        return False
+    cursor.execute(
+        '''
+        INSERT INTO suscripciones(rut,id_producto) VALUES (?,?)
+        ''',(rut,id_producto)
+    )
+    conexion.commit()
+    conexion.close()
+    return True
+
+
+def _consultar(sql,params):
+    crear_tabla()  #si el usuario abre la ventana antes de agregar algo, las tablas aun no existen
+    conexion=conectar()
+    try:
+        cursor=conexion.cursor()
+        cursor.execute(sql,params)
+        return cursor.fetchall()
+    finally:
+        conexion.close()
+
+def listar_deseos(rut):
+    """[(id_producto, precio guardado)] en el orden en que se agregaron."""
+    return _consultar("SELECT id_producto,precio_actualizado FROM lista WHERE rut=? ORDER BY rowid",(rut,))
+
+def listar_suscripciones(rut):
+    """[(id_producto,)] de los productos a los que el usuario pidio aviso de reposicion."""
+    return _consultar("SELECT id_producto FROM suscripciones WHERE rut=? ORDER BY rowid",(rut,))
+
+def listar_notificaciones(rut):
+    """[(id_producto, mensaje)] la mas reciente primero."""
+    return _consultar("SELECT id_producto,notificacion FROM notificaciones WHERE rut=? ORDER BY rowid DESC",(rut,))
+
+def guardar_notificacion(rut,id_producto,mensaje):
+    crear_tabla()
+    conexion=conectar()
+    try:
+        conexion.execute("INSERT INTO notificaciones(rut,id_producto,notificacion) VALUES (?,?,?)",(rut,id_producto,mensaje))
+        conexion.commit()
+    finally:
         conexion.close()

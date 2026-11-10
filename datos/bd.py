@@ -195,4 +195,15 @@ def reservar_stock(id_producto, cantidad, nombre_producto):
         conexion.rollback()         # si falla sqlite, deshace los cambios
         return False, str(e) , None
     finally:
-        conexion.close()    
+        conexion.close()
+
+
+def obtener_producto(id_producto):
+    """Devuelve la fila (id, nombre, precio, stock, categoria) o None si no existe."""
+    conexion = conectar()
+    try:
+        cursor = conexion.cursor()
+        cursor.execute("SELECT * FROM productos WHERE id = ?", (id_producto,))
+        return cursor.fetchone()
+    finally:
+        conexion.close()
