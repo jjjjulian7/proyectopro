@@ -22,7 +22,7 @@ def abrir_carrito(carrito, event=None):
              (la misma donde agregas los productos).
     """
 
-    # Si ya existe una ventana principal, el carrito se abre encima (Toplevel);
+    # Si ya existe una ventana principal, el carrito se abre encima ;
     # si no, crea la suya propia.
     root = tk._default_root
     if root is None:

@@ -28,7 +28,6 @@ def crear_tabla():
     conexion.close() # Cierra la conexion a la base de datos
     # conexion.rollback() # Deshace un cambio en la base de datos
 
-
 #JULIAN CORREA FUNCION MOSTRAR_PRODUCTOS
 def mostrar_productos():
     conexion = conectar()
@@ -135,7 +134,6 @@ def menor_stock(categoria):
         # La conexión se libera después de obtener el resultado.
         conexion.close()
 
-
 def vaciar_categoria(categoria):        #   Funcion para eliminar todas las tuplas de una categoria elegida
     conexion = conectar()
     cursor = conexion.cursor()
@@ -161,7 +159,6 @@ def vaciar_inventario():                #   Funcion para eliminar todo el invent
     conexion.commit()    
     conexion.close()
     return True
-
 
 def restaurar_stock(id_producto, cantidad):
     conexion = conectar()
@@ -196,7 +193,6 @@ def reservar_stock(id_producto, cantidad, nombre_producto):
         return False, str(e) , None
     finally:
         conexion.close()
-
 
 def obtener_producto(id_producto):
     """Devuelve la fila (id, nombre, precio, stock, categoria) o None si no existe."""
