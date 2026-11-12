@@ -22,6 +22,7 @@ class AsistenteIA:
         self.modelo = MODELO
         self.host = HOST
         self.path = PATH
+        self.historial = []
         self.headers = {
             "Content-Type": "application/json"
         }
@@ -34,35 +35,50 @@ class AsistenteIA:
             texto_productos += f"- {p[1]} (Categoria: {p[4]}) Precio: ${p[2]} Stock: {p[3]}\n"
         return texto_productos
 
+    def obtener_historial(self):
+        if not self.historial:
+            return ""
+        texto_historial = "Mensajes anteriores:\n"
+        for m in self.historial[-5:]:
+            texto_historial += f"Cliente: {m['pregunta']}\nAsistente: {m['respuesta']}\n"
+        return texto_historial
+
     def consultar(self, pregunta):
+        if not API_KEY:
+            return False, "Error: Falta agregar la API key en api_key.txt"
+
         catalogo = self.obtener_catalogo()
+        historial = self.obtener_historial()
 
         body = {
             "contents": [
                 {
                     "parts": [
-                        {"text": f"Eres el asistente de nuestra tienda online. {catalogo}\nPregunta del cliente: {pregunta}"}
+                        {"text": f"Eres el asistente de nuestra tienda online. {catalogo}\n{historial}\nPregunta del cliente: {pregunta}"}
                     ]
                 }
             ]
         }
 
-        
         body_json = json.dumps(body)
 
-        # conexion con gemini
-        conn = http.client.HTTPSConnection(self.host)
-        conn.request("POST", self.path, body=body_json, headers=self.headers)
+        try:
+            # conexion con gemini
+            conn = http.client.HTTPSConnection(self.host, timeout=10)
+            conn.request("POST", self.path, body=body_json, headers=self.headers)
 
-        # almacenar respuesta 
-        response = conn.getresponse()
-        data = response.read().decode("utf-8")
-        conn.close()
+            # almacenar respuesta 
+            response = conn.getresponse()
+            data = response.read().decode("utf-8")
+            conn.close()
+        except:
+            return False, "Error: No se pudo conectar con el servidor de Gemini"
 
         # verificar de respuesta 
         if response.status == 200:
             response_data = json.loads(data)
             respuesta_texto = response_data["candidates"][0]["content"]["parts"][0]["text"]
+            self.historial.append({"pregunta": pregunta, "respuesta": respuesta_texto})
             print("Respuesta de Gemini:")
             print(respuesta_texto)
             return True, respuesta_texto
