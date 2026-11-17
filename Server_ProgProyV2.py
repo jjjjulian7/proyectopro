@@ -5,6 +5,7 @@ import sqlite3
 from datos import bd
 from datos import bd_carrito
 from datos import bd_ventas
+from datos import bd_pedidos
 from datos import bd_deseos
 from clases.asistente_ia import AsistenteIA
 
@@ -135,7 +136,11 @@ def procesar_solicitud(socket_cliente,mensaje):
             responder_cliente(socket_cliente,{'type':'registrar_venta','ok':False,'mensaje':'Datos de la venta inválidos','recibo_id':None})
             return
         try:
-            recibo_id=bd_ventas.insertar_venta(mensaje.get('fecha'),mensaje.get('cliente'),mensaje.get('total'),mensaje.get('items'))
+            recibo_id=bd_ventas.insertar_venta(mensaje.get('fecha'),mensaje.get('cliente'),mensaje.get('total'),mensaje.get('items'),mensaje.get('despacho'))
+            try:
+                bd_pedidos.crear_pedido(recibo_id,mensaje.get('cliente'))   # numero de seguimiento de la compra
+            except sqlite3.Error:
+                pass    # si falla, el panel Seguimiento del admin lo crea al abrirse
             bd_carrito.marcar_pagado(mensaje.get('nombre_u'))
         except sqlite3.Error:
             responder_cliente(socket_cliente,{'type':'registrar_venta','ok':False,'mensaje':'No se pudo guardar la venta en el servidor','recibo_id':None})

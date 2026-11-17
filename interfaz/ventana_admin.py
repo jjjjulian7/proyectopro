@@ -8,7 +8,9 @@ from datos import bd_carrito
 from datos import bd_ventas
 from datos import bd_cupones
 from datos import bd_envios
-from datetime import datetime
+from datos import bd_pedidos
+from clases.pedido import EstadoPedido
+from datetime import datetime, date
 
 
 def ejecutar():
@@ -68,6 +70,8 @@ def ejecutar():
     lista_F.append(frame_cupones)
     frame_envios = tk.Frame(Frame_contenido)
     lista_F.append(frame_envios)
+    frame_seguimiento = tk.Frame(Frame_contenido)
+    lista_F.append(frame_seguimiento)
 
     def mostrar_seccion(frame):
         F.mostrar_frame(frame, lista_F)
@@ -476,6 +480,8 @@ def ejecutar():
     boton_cupones.pack(side="left")
     boton_envios = tk.Button(frame_cupones_envios, text="Envíos", command=lambda: abrir_envios())
     boton_envios.pack(side="left")
+    boton_seguimiento = tk.Button(frame_cupones_envios, text="Seguimiento", command=lambda: abrir_seguimiento())
+    boton_seguimiento.pack(side="left")
 
     # Frame de carritos (solo lectura)
     frame_carritos.grid_columnconfigure(0, weight=1)        # la columna se estira al ancho del panel
@@ -702,9 +708,206 @@ def ejecutar():
         mostrar_seccion(frame_ventas)
         refrescar_ventas()
 
-        # ---------- estilo de la barra superior ----------
+   #Seguimiento de pedidos
+    frame_seguimiento.grid_columnconfigure(0, weight=1)
 
-    botones_barra = (boton_ingreso, boton_estadisticas, boton_admin, boton_vaciar, boton_carritos, boton_ventas, boton_cupones, boton_envios)
+    tk.Label(frame_seguimiento, text="Seguimiento", bg="#dcdde1", font=("Segoe UI", 12), pady=14).grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 10))
+    tk.Label(frame_seguimiento, text="Haz click en un ID de seguimiento para ver en qué etapa va y cuántos días faltan para la entrega",
+             font=("Segoe UI", 10), anchor="w", justify="left", wraplength=340).grid(row=1, column=0, columnspan=2, sticky="ew", pady=(0, 8))
+
+    tabla_seguimiento = ttk.Treeview(frame_seguimiento, columns=("id", "cliente", "estado", "llegada"),
+                                     show="headings", style="Productos.Treeview", height=9)
+    for col, (texto, ancho, ancla) in {
+        "id":      ("ID SEGUIMIENTO", 100, "center"),
+        "cliente": ("CLIENTE", 80, "w"),
+        "estado":  ("ESTADO", 105, "w"),
+        "llegada": ("LLEGA", 85, "center"),
+    }.items():
+        tabla_seguimiento.heading(col, text=texto)
+        tabla_seguimiento.column(col, width=ancho, anchor=ancla)
+    tabla_seguimiento.tag_configure("par", background="#ffffff")
+    tabla_seguimiento.tag_configure("impar", background="#e0e0e0")
+    tabla_seguimiento.grid(row=2, column=0, sticky="ew")
+
+    scroll_seguimiento = ttk.Scrollbar(frame_seguimiento, orient="vertical", command=tabla_seguimiento.yview)
+    tabla_seguimiento.configure(yscrollcommand=scroll_seguimiento.set)
+    scroll_seguimiento.grid(row=2, column=1, sticky="ns")
+
+    boton_actualizar_seguimiento = tk.Button(
+        frame_seguimiento, text="Actualizar", command=lambda: refrescar_seguimiento(),
+        bg="#0d6efd", fg="white", activebackground="#0d6efd", activeforeground="white",
+        relief="flat", bd=0, font=("Segoe UI", 10), padx=14, pady=6,
+    )
+    boton_actualizar_seguimiento.grid(row=3, column=0, sticky="w", pady=(16, 0))
+
+    aviso_seguimiento = tk.Label(frame_seguimiento, anchor="w", font=("Segoe UI", 10))
+    aviso_seguimiento.grid(row=4, column=0, columnspan=2, sticky="ew", pady=(8, 0))
+
+    datos_seguimiento = {}      # {numero de pedido: (venta_id, cliente, fecha, estado, despacho)}
+
+    def dias_para_llegar(estado, despacho):
+        """Devuelve (texto corto, fecha estimada o None) segun el estado y la fecha de entrega de la venta."""
+        if estado in (EstadoPedido.CANCELADO, EstadoPedido.ENTREGADO):
+            return "—", None
+        if not despacho or despacho.get("modalidad") == bd_ventas.MODALIDAD_RETIRO:
+            return "Retiro en tienda", None
+        try:
+            llegada = date.fromisoformat(despacho.get("fecha_entrega"))
+        except (TypeError, ValueError):
+            return "Sin fecha", None
+        dias = (llegada - date.today()).days
+        if dias > 1:
+            return f"En {dias} días", llegada
+        if dias == 1:
+            return "En 1 día", llegada
+        if dias == 0:
+            return "Hoy", llegada
+        return f"Atrasado {-dias} d.", llegada
+
+    def refrescar_seguimiento():
+        try:
+            filas = []
+            for id_v, fecha_v, cliente_v, _total in bd_ventas.listar_ventas():
+                numero = bd_pedidos.asegurar_pedido(id_v, cliente_v)    # ventas antiguas sin pedido lo reciben aqui
+                estado = bd_pedidos.obtener_pedido(numero)[3]
+                filas.append((numero, id_v, cliente_v, fecha_v, estado, bd_ventas.obtener_despacho(id_v)))
+        except sqlite3.Error as e:
+            messagebox.showerror("Error", f"No se pudo leer el seguimiento: {e}", parent=ventana)
+            return
+        filas.sort(reverse=True)
+        tabla_seguimiento.delete(*tabla_seguimiento.get_children())
+        datos_seguimiento.clear()
+        for i, (numero, id_v, cliente_v, fecha_v, estado, despacho) in enumerate(filas):
+            datos_seguimiento[numero] = (id_v, cliente_v, fecha_v, estado, despacho)
+            tabla_seguimiento.insert("", "end", iid=str(numero),
+                                     values=(bd_pedidos.codigo_seguimiento(numero), cliente_v, estado,
+                                             dias_para_llegar(estado, despacho)[0]),
+                                     tags=("par" if i % 2 == 0 else "impar",))
+        aviso_seguimiento.config(text="" if filas else "Todavía no hay pedidos.")
+
+    def cambiar_estado_seguimiento(numero, nuevo_estado, detalle):
+        if not nuevo_estado:
+            messagebox.showwarning("Seguimiento", "Elige el nuevo estado.", parent=detalle)
+            return
+        id_v = datos_seguimiento[numero][0]
+        if nuevo_estado == EstadoPedido.CANCELADO and not messagebox.askyesno(
+                "Confirmación", "¿Cancelar el pedido? Se devolverá el stock de sus productos.", parent=detalle):
+            return
+        try:
+            ok, mensaje = bd_pedidos.cambiar_estado(numero, nuevo_estado)
+            if ok and nuevo_estado == EstadoPedido.CANCELADO:
+                # solo se puede cancelar antes de despachar, asi que el stock vuelve al inventario
+                for id_p, _nombre, cantidad, _precio, _sub in bd_ventas.items_de_venta(id_v):
+                    bd.restaurar_stock(id_p, cantidad)
+        except sqlite3.Error as e:
+            messagebox.showerror("Error", f"No se pudo cambiar el estado: {e}", parent=detalle)
+            return
+        if not ok:
+            messagebox.showwarning("Seguimiento", mensaje, parent=detalle)
+            return
+        detalle.destroy()
+        if nuevo_estado == EstadoPedido.CANCELADO:
+            F.inventario.productos = F.I().productos    # actualiza la lista en memoria
+            F.mostrar_productos(Frame_producto)
+        refrescar_seguimiento()
+        abrir_detalle_seguimiento(numero)
+
+    def abrir_detalle_seguimiento(numero):
+        if numero not in datos_seguimiento:
+            return
+        id_v, cliente_v, fecha_v, estado, despacho = datos_seguimiento[numero]
+        try:
+            items = bd_ventas.items_de_venta(id_v)
+            historial = bd_pedidos.historial(numero)
+        except sqlite3.Error as e:
+            messagebox.showerror("Error", f"No se pudo leer el seguimiento: {e}", parent=ventana)
+            return
+
+        texto_dias, llegada = dias_para_llegar(estado, despacho)
+        if despacho and despacho.get("modalidad") != bd_ventas.MODALIDAD_RETIRO:
+            entrega = f"Despacho a {despacho.get('direccion') or '-'}, {despacho.get('comuna') or '-'}, {despacho.get('region') or '-'}"
+        else:
+            entrega = "Retiro en tienda"
+        if llegada is not None:
+            llegada_txt = f"{llegada.strftime('%d-%m-%Y')} ({texto_dias.lower()})"
+        elif estado == EstadoPedido.CANCELADO:
+            llegada_txt = "Pedido cancelado"
+        elif estado == EstadoPedido.ENTREGADO:
+            llegada_txt = "Ya fue entregado"
+        else:
+            llegada_txt = texto_dias
+
+        detalle = tk.Toplevel(ventana)
+        detalle.title(f"Seguimiento {bd_pedidos.codigo_seguimiento(numero)}")
+        detalle.geometry("780x560")
+        detalle.transient(ventana)
+
+        tk.Label(detalle, text=f"Seguimiento {bd_pedidos.codigo_seguimiento(numero)}", bg="#dcdde1",
+                 font=("Segoe UI", 12), pady=14).pack(fill="x")
+        tk.Label(detalle, text=(f"Comprobante N°{id_v}\nCliente: {cliente_v}\nFecha de compra: {formatear_fecha(fecha_v)}\n"
+                                f"Entrega: {entrega}\nLlegada estimada: {llegada_txt}"),
+                 font=("Segoe UI", 10), justify="left", anchor="w").pack(fill="x", padx=20, pady=(12, 4))
+        tk.Label(detalle, text=f"Estado actual: {estado}", font=("Segoe UI", 11, "bold"),
+                 anchor="w").pack(fill="x", padx=20, pady=(0, 8))
+
+        marco_tabla = tk.Frame(detalle)
+        marco_tabla.pack(fill="both", expand=True, padx=20)
+        tabla_prod = ttk.Treeview(marco_tabla, columns=("id", "producto", "cantidad"),
+                                  show="headings", style="Productos.Treeview", height=4)
+        for col, (texto, ancho, ancla) in {
+            "id":       ("ID PRODUCTO", 100, "center"),
+            "producto": ("PRODUCTO", 400, "w"),
+            "cantidad": ("CANT.", 90, "center"),
+        }.items():
+            tabla_prod.heading(col, text=texto)
+            tabla_prod.column(col, width=ancho, anchor=ancla)
+        tabla_prod.tag_configure("par", background="#ffffff")
+        tabla_prod.tag_configure("impar", background="#e0e0e0")
+        scroll_prod = ttk.Scrollbar(marco_tabla, orient="vertical", command=tabla_prod.yview)
+        tabla_prod.configure(yscrollcommand=scroll_prod.set)
+        scroll_prod.pack(side="right", fill="y")
+        tabla_prod.pack(side="left", fill="both", expand=True)
+        for i, (id_producto, nombre_p, cantidad, _precio, _sub) in enumerate(items):
+            tabla_prod.insert("", "end", values=(id_producto, nombre_p, cantidad),
+                              tags=("par" if i % 2 == 0 else "impar",))
+
+        lineas = "\n".join(f"{formatear_fecha(f)}  →  {e}" for f, e in historial)
+        tk.Label(detalle, text="Historial", font=("Segoe UI", 10, "bold"), anchor="w").pack(fill="x", padx=20, pady=(10, 0))
+        tk.Label(detalle, text=lineas, font=("Segoe UI", 10), justify="left", anchor="w").pack(fill="x", padx=20)
+
+        # cambio de estado: solo ofrece las transiciones permitidas desde el estado actual
+        siguientes = EstadoPedido.TRANSICIONES.get(estado, [])
+        marco_estado = tk.Frame(detalle)
+        marco_estado.pack(fill="x", padx=20, pady=(10, 14))
+        if siguientes:
+            tk.Label(marco_estado, text="Cambiar estado a:", font=("Segoe UI", 10)).pack(side="left")
+            selector_estado = ttk.Combobox(marco_estado, state="readonly", values=siguientes,
+                                           font=("Segoe UI", 10), width=18)
+            selector_estado.pack(side="left", padx=8)
+            tk.Button(marco_estado, text="Actualizar estado",
+                      command=lambda: cambiar_estado_seguimiento(numero, selector_estado.get(), detalle),
+                      bg="#0d6efd", fg="white", activebackground="#0d6efd", activeforeground="white",
+                      relief="flat", bd=0, font=("Segoe UI", 10), padx=14, pady=6).pack(side="left")
+        else:
+            tk.Label(marco_estado, text="Este pedido ya está finalizado.", font=("Segoe UI", 10)).pack(side="left")
+
+    def al_click_seguimiento(event):
+        if tabla_seguimiento.identify_region(event.x, event.y) != "cell":
+            return
+        fila = tabla_seguimiento.identify_row(event.y)
+        if not fila:
+            return
+        abrir_detalle_seguimiento(int(fila))
+
+    tabla_seguimiento.bind("<Button-1>", al_click_seguimiento)
+
+    def abrir_seguimiento():
+        mostrar_seccion(frame_seguimiento)
+        refrescar_seguimiento()
+
+        #estilo de la barra superior
+
+    botones_barra = (boton_ingreso, boton_estadisticas, boton_admin, boton_vaciar, boton_carritos, boton_ventas, boton_cupones, boton_envios, boton_seguimiento)
 
     # El for repite lo mismo con cada botón.
     for b in botones_barra:

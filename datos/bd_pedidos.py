@@ -104,3 +104,32 @@ def listar_por_estado():
         grupos[estado].append((numero, venta_id, cliente, fecha))
     conexion.close()
     return grupos
+
+
+def codigo_seguimiento(numero):
+    """ID de seguimiento que ve el admin, por ejemplo SEG-000007."""
+    return f"SEG-{int(numero):06d}"
+
+
+def asegurar_pedido(venta_id, cliente):
+    """Devuelve el numero del pedido de esa venta. Si no tenia (ventas antiguas), lo crea en Pendiente."""
+    crear_tabla()
+    conexion = conectar()
+    cursor = conexion.cursor()
+    cursor.execute("SELECT numero FROM pedidos WHERE venta_id = ?", (venta_id,))
+    fila = cursor.fetchone()
+    conexion.close()
+    if fila is not None:
+        return fila[0]
+    return crear_pedido(venta_id, cliente)
+
+
+def historial(numero):
+    """Lista [(fecha, estado), ...] del pedido, del primer estado al ultimo."""
+    crear_tabla()
+    conexion = conectar()
+    cursor = conexion.cursor()
+    cursor.execute("SELECT fecha, estado FROM pedido_historial WHERE numero = ? ORDER BY id", (numero,))
+    filas = cursor.fetchall()
+    conexion.close()
+    return filas
