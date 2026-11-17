@@ -5,7 +5,6 @@ from types import SimpleNamespace
 
 from . import Client_ProyProgV2 as ClienteRed
 from datos import bd_cupones
-from datos import bd_envios
 from clases.envio import Despacho
 
 from .validar_tarjeta import abrir_validar_tarjeta
@@ -126,6 +125,10 @@ def abrir_carrito(carrito, event=None):
 
     tk.Button(resumen, text="Aplicar cupón", command=aplicar_cupon, font=FUENTE, bg=COLOR_NARANJA, fg="white", activebackground="#d99a45", activeforeground="white", relief="flat", bd=0, padx=10, pady=5, cursor="hand2").pack(side="left", pady=10)
 
+    # conecta el callback y pide las tarifas al servidor antes de armar las regiones
+    ClienteRed.conectar_interfaz_envios(carrito.procesar_respuesta_envios)
+    carrito.pedir_tarifas_servidor(esperar=True)
+
     # entrega: retiro en tienda o despacho a domicilio
     entrega = tk.LabelFrame(ventana, text=" Entrega ", font=FUENTE_NEGRITA, bg="white", bd=1, relief="solid")
     entrega.pack(fill="x", padx=20, pady=(8, 0))
@@ -157,10 +160,7 @@ def abrir_carrito(carrito, event=None):
     ent_comuna = campo_envio("Comuna", 1, 0)
     tk.Label(form_envio, text="Región", font=FUENTE, bg="white", anchor="w").grid(
         row=1, column=2, sticky="w", padx=(0, 5), pady=3)
-    try:
-        regiones = bd_envios.regiones_con_tarifa()
-    except Exception:
-        regiones = []
+    regiones = carrito.regiones_disponibles()
     cmb_region = ttk.Combobox(form_envio, state="readonly", font=FUENTE, values=regiones)
     cmb_region.grid(row=1, column=3, sticky="ew", padx=(0, 12), pady=3)
 
@@ -209,6 +209,9 @@ def abrir_carrito(carrito, event=None):
             form_envio.pack_forget()
             carrito.elegir_retiro()
         else:
+            # vuelve a pedir las tarifas por si el admin las cambio
+            carrito.pedir_tarifas_servidor(esperar=True)
+            cmb_region.config(values=carrito.regiones_disponibles())
             form_envio.pack(fill="x", padx=8, pady=(4, 0), before=lbl_fecha_entrega)
             aplicar_despacho(silencioso=True)
         actualizar_totales()

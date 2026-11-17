@@ -3,7 +3,6 @@ from interfaz import Client_ProyProgV2 as ClienteRed
 from tkinter import messagebox
 from clases.Venta import venta 
 from datos import bd_cupones
-from datos import bd_envios
 from clases.envio import Despacho, TarifaEnvio
 from clases.direccion import Direccion
 
@@ -18,6 +17,12 @@ class Carrito:
         self.funcion_dibujar_tabla = None  # Inicializamos la función como None
         self.evento_venta = threading.Event()
         self.respuesta_venta = None
+        # tarifas y configuracion que llegan desde el servidor
+        self.tarifas_envio = {}
+        self.monto_minimo_envio = 100000
+        self.region_tienda = "Maule"
+        self.evento_envios = threading.Event()
+        self.envios_cargados = False
     
     def agregar_producto(self, producto, cantidad,usuario):
         print(f"Usuario : Agregando producto {producto.nombre}, Cantidad: {cantidad}" )
@@ -71,46 +76,76 @@ class Carrito:
     def calcular_total(self):
         return self.calcular_subtotal() + self.calcular_envio() + self.calcular_iva()
 
+    # pide las tarifas actualizadas al servidor por socket
+    def pedir_tarifas_servidor(self, esperar=True):
+        if ClienteRed.conexion is None:
+            return False
+        self.evento_envios.clear()
+        try:
+            ClienteRed.dato_envia({'type': 'obtener_envios'})
+        except OSError:
+            return False
+        if esperar:
+            return self.evento_envios.wait(2)
+        return True
+
+    # guarda las tarifas que respondio el servidor
+    def procesar_respuesta_envios(self, dato):
+        if dato.get('ok'):
+            nuevas = {}
+            for item in dato.get('tarifas', []):
+                region = item.get('region')
+                if region:
+                    nuevas[region] = TarifaEnvio(region, item.get('costo', 0), item.get('dias_habiles', 0))
+            self.tarifas_envio = nuevas
+            self.monto_minimo_envio = dato.get('monto_minimo', 100000)
+            self.region_tienda = dato.get('region_tienda', "Maule")
+            self.envios_cargados = True
+            if not self.despacho.es_retiro() and self.despacho.direccion is not None:
+                self.despacho.tarifa = self.tarifas_envio.get(self.despacho.direccion.region)
+                self.despacho.monto_minimo = self.monto_minimo_envio
+        self.evento_envios.set()
+
+    def regiones_disponibles(self):
+        return list(self.tarifas_envio.keys())
+
     # manejo del despacho
     # el cliente retira en tienda asi que no paga envio
     def elegir_retiro(self):
         self.despacho = Despacho()
 
-    # revisa los datos y la region contra las tarifas de la base de datos
+    # revisa los datos y la region contra las tarifas recibidas del servidor
     # si algo falla deja el despacho como estaba y devuelve el motivo
     def elegir_despacho(self, destinatario, calle, comuna, region):
+        if not self.envios_cargados:
+            self.pedir_tarifas_servidor(esperar=True)
+        if not self.tarifas_envio:
+            return False, "No se pudo consultar las tarifas de envío en el servidor."
         direccion = Direccion(destinatario, calle, comuna, region)
-        try:
-            ok, motivo = direccion.validar(bd_envios.regiones_con_tarifa())
-            if not ok:
-                return False, motivo
-            tarifa = self._leer_tarifa(direccion.region)
-            monto_minimo = bd_envios.obtener_config()[0]
-        except Exception as e:
-            return False, f"No se pudo consultar las tarifas de envío: {e}"
+        ok, motivo = direccion.validar(self.regiones_disponibles())
+        if not ok:
+            return False, motivo
+        tarifa = self._leer_tarifa(direccion.region)
+        monto_minimo = self.monto_minimo_envio
         self.despacho = Despacho(Despacho.DOMICILIO, direccion, tarifa, monto_minimo)
         return True, ""
 
     # con solo la region ya se puede mostrar el envio y la fecha estimada
     # los demas campos se revisan recien al pagar
     def previsualizar_despacho(self, region):
-        try:
-            tarifa = self._leer_tarifa(region)
-            monto = bd_envios.obtener_config()[0]
-        except Exception:
-            return False
+        if not self.envios_cargados:
+            self.pedir_tarifas_servidor(esperar=True)
+        tarifa = self._leer_tarifa(region)
         if tarifa is None:
             return False
         anterior = self.despacho.direccion
         direccion = Direccion(anterior.destinatario if anterior else "", anterior.calle if anterior else "",
                               anterior.comuna if anterior else "", region)
-        self.despacho = Despacho(Despacho.DOMICILIO, direccion, tarifa, monto)
+        self.despacho = Despacho(Despacho.DOMICILIO, direccion, tarifa, self.monto_minimo_envio)
         return True
 
-    @staticmethod
-    def _leer_tarifa(region):
-        fila = bd_envios.obtener_tarifa(region)
-        return TarifaEnvio(fila[0], fila[1], fila[2]) if fila else None
+    def _leer_tarifa(self, region):
+        return self.tarifas_envio.get(region)
 
     # se llama justo antes de cobrar por si el admin cambio las tarifas mientras el cliente compraba
     def _revalidar_despacho(self):
@@ -119,11 +154,13 @@ class Carrito:
         d = self.despacho.direccion
         if d is None:
             return False, "Completa los datos de despacho."
-        ok, motivo = d.validar(bd_envios.regiones_con_tarifa())
+        if not self.pedir_tarifas_servidor(esperar=True) or not self.tarifas_envio:
+            return False, "No se pudo consultar las tarifas de envío en el servidor."
+        ok, motivo = d.validar(self.regiones_disponibles())
         if not ok:
             return False, motivo
         self.despacho.tarifa = self._leer_tarifa(d.region)
-        self.despacho.monto_minimo = bd_envios.obtener_config()[0]
+        self.despacho.monto_minimo = self.monto_minimo_envio
         return True, ""
     
     def vaciar_carrito(self):

@@ -23,9 +23,10 @@ ClienteRed.conectar_interfaz_reserva(carrito.procesar_respuesta_reservar)
 ClienteRed.conectar_interfaz_reponer(carrito.procesar_respuesta_eliminar)
 ClienteRed.conectar_interfaz_vaciar(carrito.procesar_respuesta_vaciar)
 ClienteRed.conectar_interfaz_venta(carrito.procesar_respuesta_venta)
+ClienteRed.conectar_interfaz_envios(carrito.procesar_respuesta_envios)
 
 def procesar_respuesta_deseos(tipo, ok, mensaje):
-    """Llega desde el hilo que escucha al servidor; muestra el resultado de agregar a deseos / suscribirse."""
+    '''Llega desde el hilo que escucha al servidor; muestra el resultado de agregar a deseos / suscribirse.'''
     titulo = "Lista de deseos" if tipo == 'agregar_deseo' else "Aviso de reposición"
     if ok:
         messagebox.showinfo(titulo, mensaje)
@@ -273,11 +274,11 @@ def mostrar_productos(Frame_productos):
 
 
 def guardar_producto(id_producto, nombre, precio, stock, categoria, Frame_productos):
-    """
+    '''
         Sirve para agregar y modificar los productos en la pestaña admin
         id_producto = None ; se agregara un producto
         id_producto = 5    ; se modifica producto con id 5 
-    """
+    '''
     precio_num = float(precio.get())        # Pasamos precio y stock a numeros
     stock_num = int(stock.get())
 
@@ -359,9 +360,9 @@ def agregar_producto_carrito(ProductoS, cantidad,usuarioA):
     carrito.agregar_producto(ProductoS,cantidad,usuarioA)
 
 def identificador_usuario():
-    """Con que se identifica al cliente en deseos, suscripciones y notificaciones.
+    '''Con que se identifica al cliente en deseos, suscripciones y notificaciones.
     El enunciado permite RUN o nombre de usuario. Los clientes registrados hoy no tienen RUT
-    (solo los admin), asi que se usa el RUT si existe y si no el nombre de usuario."""
+    (solo los admin), asi que se usa el RUT si existe y si no el nombre de usuario.'''
     fila = BD.buscar_usuario(usuario_actual)  # columnas: id, nombre, contrasena, rut, rol
     return fila[3] or fila[1]
 
@@ -546,13 +547,13 @@ cola_respuestas_lista = queue.Queue()   # puente entre el hilo de red y el hilo 
 revisando_cola = False
 
 def procesar_respuesta_lista(datos):
-    """Corre en el hilo que escucha al servidor: NO toca la interfaz, solo deja la respuesta en la cola.
-    (tkinter no es seguro entre hilos; la ventana la lee desde su propio hilo con after)."""
+    '''Corre en el hilo que escucha al servidor: NO toca la interfaz, solo deja la respuesta en la cola.
+    (tkinter no es seguro entre hilos; la ventana la lee desde su propio hilo con after).'''
     cola_respuestas_lista.put(datos)
 ClienteRed.conectar_interfaz_lista(procesar_respuesta_lista)
 
 def _revisar_cola_lista(raiz):
-    """Corre en el hilo de tkinter cada 200 ms mientras haya alguna ventana abierta."""
+    '''Corre en el hilo de tkinter cada 200 ms mientras haya alguna ventana abierta.'''
     global revisando_cola
     try:
         while True:

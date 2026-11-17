@@ -14,6 +14,7 @@ from datetime import datetime
 def ejecutar():
     bd_cupones.crear_tabla()    # asegura que exista la tabla de cupones
     bd_envios.crear_tabla()     # asegura que existan las tarifas de envio
+    bd_ventas.crear_tabla()     # agrega las columnas de despacho si ventas.db es antigua
 
     ventana = tk.Tk()
     ventana.title("MaulencitosMarketADMIN")
@@ -567,12 +568,13 @@ def ejecutar():
     tk.Label(frame_ventas, text="Haz click en un comprobante para ver sus productos", font=("Segoe UI", 10),
              anchor="w", justify="left", wraplength=340).grid(row=1, column=0, columnspan=2, sticky="ew", pady=(0, 8))
 
-    tabla_ventas = ttk.Treeview(frame_ventas, columns=("id", "cliente", "fecha"),
+    tabla_ventas = ttk.Treeview(frame_ventas, columns=("id", "cliente", "fecha", "entrega"),
                                 show="headings", style="Productos.Treeview", height=9)
     for col, (texto, ancho, ancla) in {
         "id":      ("N°", 50, "center"),
         "cliente": ("CLIENTE", 130, "w"),
-        "fecha":   ("FECHA", 140, "center"),
+        "fecha":   ("FECHA", 110, "center"),
+        "entrega": ("ENTREGA", 100, "center"),
     }.items():
         tabla_ventas.heading(col, text=texto)
         tabla_ventas.column(col, width=ancho, anchor=ancla)
@@ -605,6 +607,7 @@ def ejecutar():
     def refrescar_ventas():
         try:
             ventas = bd_ventas.listar_ventas()
+            modalidades = bd_ventas.modalidades_por_venta()
         except sqlite3.Error as e:
             messagebox.showerror("Error", f"No se pudieron leer las ventas: {e}", parent=ventana)
             return
@@ -613,7 +616,8 @@ def ejecutar():
         for i, (id_v, fecha_v, cliente_v, total_v) in enumerate(ventas):
             datos_ventas[id_v] = (fecha_v, cliente_v, total_v)
             tabla_ventas.insert("", "end", iid=str(id_v),
-                                values=(id_v, cliente_v, formatear_fecha(fecha_v)),
+                                values=(id_v, cliente_v, formatear_fecha(fecha_v),
+                                        "Despacho" if modalidades.get(id_v) == "Despacho a domicilio" else "Retiro"),
                                 tags=("par" if i % 2 == 0 else "impar",))
         aviso_ventas.config(text="" if ventas else "Todavía no hay ventas.")
 
@@ -623,6 +627,7 @@ def ejecutar():
         fecha_v, cliente_v, total_v = datos_ventas[id_venta]
         try:
             items = bd_ventas.items_de_venta(id_venta)
+            despacho = bd_ventas.obtener_despacho(id_venta) or {}
             stock_actual = {p[0]: p[3] for p in bd.mostrar_productos()}
         except sqlite3.Error as e:
             messagebox.showerror("Error", f"No se pudo leer el detalle de la venta: {e}", parent=ventana)
@@ -630,12 +635,21 @@ def ejecutar():
 
         detalle = tk.Toplevel(ventana)
         detalle.title(f"Comprobante N°{id_venta}")
-        detalle.geometry("780x470")
+        detalle.geometry("780x560")
         detalle.transient(ventana)
 
         tk.Label(detalle, text=f"Comprobante N°{id_venta}", bg="#dcdde1",
                  font=("Segoe UI", 12), pady=14).pack(fill="x")
-        tk.Label(detalle, text=f"Cliente: {cliente_v}\nFecha: {formatear_fecha(fecha_v)}",
+        costo_envio = despacho.get("costo_envio") or 0
+        texto_cabecera = f"Cliente: {cliente_v}\nFecha: {formatear_fecha(fecha_v)}\n"
+        texto_cabecera += f"Entrega: {despacho.get('modalidad') or 'Retiro en tienda'}"
+        if despacho.get("modalidad") == "Despacho a domicilio":
+            texto_cabecera += (f"\nRecibe: {despacho.get('destinatario')}"
+                               f"\nDirección: {despacho.get('direccion')}, {despacho.get('comuna')}, {despacho.get('region')}"
+                               f"\nCosto de envío: ${costo_envio:,.0f}")
+            if despacho.get("fecha_entrega"):
+                texto_cabecera += f"\nEntrega estimada: {formatear_fecha(despacho['fecha_entrega'])[:10]}"
+        tk.Label(detalle, text=texto_cabecera,
                  font=("Segoe UI", 10), justify="left", anchor="w").pack(fill="x", padx=20, pady=(12, 8))
 
         marco_tabla = tk.Frame(detalle)
@@ -674,13 +688,15 @@ def ejecutar():
 
         if items:
             subtotal = sum(item[4] for item in items)
-            # La venta guarda el total ya con descuento: de ahí se deduce el neto y el descuento del cupón
-            neto = round(total_v / 1.19)
+            # La venta guarda el total ya con descuento y envio: total = (neto + envio) * 1.19
+            base_iva = round(total_v / 1.19)            # neto mas envio
+            neto = base_iva - costo_envio               # subtotal con descuento y sin envio
             descuento = subtotal - neto
-            iva = total_v - neto
+            iva = total_v - base_iva
             resumen = f"Subtotal: ${subtotal:,.0f}\n"
             if descuento > 1:       # tolerancia de 1 peso por redondeo
                 resumen += f"Descuento cupón: -${descuento:,.0f}\nSubtotal neto: ${neto:,.0f}\n"
+            resumen += f"Envío: ${costo_envio:,.0f}\n"
             resumen += f"IVA (19%): ${iva:,.0f}"
         else:
             resumen = "Esta venta no tiene el detalle de productos guardado."

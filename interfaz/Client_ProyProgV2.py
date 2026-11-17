@@ -3,7 +3,7 @@ import json
 import threading
 import time
 from tkinter import messagebox
-HOST = "10.190.94.2"
+HOST = "192.168.1.112"
 PORT = 65433
 
 conexion=None
@@ -13,6 +13,7 @@ conexion_reserva=None
 conexion_reponer=None
 conexion_vaciar=None
 conexion_venta=None
+conexion_envios=None   # recibe las tarifas de envio desde el servidor
 conexion_deseos=None   # callback para las respuestas de lista de deseos y suscripcion
 conexion_lista=None    # callback con lo que devuelve el servidor para las ventanas de deseos/suscripciones/notificaciones
 conexion_ia=None  # falta conectar con la ventana del chat cuando este lista la interfaz
@@ -40,6 +41,10 @@ def conectar_interfaz_lista(conexion):
 def conectar_interfaz_venta(conexion):
     global conexion_venta
     conexion_venta = conexion
+
+def conectar_interfaz_envios(conexion):
+    global conexion_envios
+    conexion_envios = conexion
     
 def conectar():
     """utiliza las variables globales conexion y c para conectarse con el admin """
@@ -55,6 +60,8 @@ def conectar():
             c=True
             hilo_recibir=threading.Thread(target=recibir,args=(intento,),daemon=True)
             hilo_recibir.start()
+            # pide las tarifas apenas se conecta al servidor
+            enviar({'type': 'obtener_envios'})
         except OSError:
             intento.close()
             time.sleep(3)
@@ -112,6 +119,9 @@ def recibir(socket_conexion):
                 recibo_id=dato.get('recibo_id')
                 if conexion_venta is not None:
                     conexion_venta(ok, mensaje, recibo_id)
+            elif tipo=='obtener_envios':
+                if conexion_envios is not None:
+                    conexion_envios(dato)
             elif tipo in ('agregar_deseo','suscribir_reposicion'):
                 if conexion_deseos is not None:
                     conexion_deseos(tipo, dato.get('ok'), dato.get('mensaje'))
@@ -154,7 +164,10 @@ def dato_envia(dato):
                 'fecha':dato.get('fecha'),
                 'items':dato.get('items'),
                 'total':dato.get('total'),
+                'despacho':dato.get('despacho'),
                 'nombre_u':nombre_u})
+    elif tipo == 'obtener_envios':
+        enviar({'type': 'obtener_envios'})
     elif tipo == 'consulta_ia':
         enviar({'type': 'consulta_ia',
                 'pregunta': dato.get('pregunta'),

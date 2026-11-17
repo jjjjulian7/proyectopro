@@ -5,11 +5,12 @@ import sqlite3
 from datos import bd
 from datos import bd_carrito
 from datos import bd_ventas
+from datos import bd_envios
 from datos import bd_deseos
 from clases.asistente_ia import AsistenteIA
 
 asistente_ia = AsistenteIA()
-HOST = '10.190.94.2'
+HOST = '192.168.1.112'
 PORT = 65433
 def iniciar_servidor():
     server=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -31,6 +32,33 @@ def iniciar_servidor():
 def responder_cliente(socket_cliente,datos):
     mensaje=json.dumps(datos)+'\n'
     socket_cliente.sendall(mensaje.encode('utf-8'))
+
+# el despacho es opcional para no romper ventas antiguas pero si viene se revisa completo
+def despacho_valido(despacho):
+    if despacho is None:
+        return True
+    if not isinstance(despacho,dict):
+        return False
+    modalidad=despacho.get('modalidad')
+    costo=despacho.get('costo_envio')
+    if not isinstance(costo,(int,float)) or costo<0:
+        return False
+    if modalidad==bd_ventas.MODALIDAD_RETIRO:
+        return costo==0
+    if modalidad!='Despacho a domicilio':
+        return False
+    for campo in ('destinatario','direccion','comuna','region'):
+        valor=despacho.get(campo)
+        if not isinstance(valor,str) or not valor.strip():
+            return False
+    try:
+        tarifa = bd_envios.obtener_tarifa(despacho.get('region'))
+        if tarifa is None:
+            return False
+        # revisa que el costo sea gratis por monto minimo o coincida con la tarifa actual
+        return costo in (0, int(round(tarifa[1])))
+    except sqlite3.Error:
+        return False
 
 def venta_valida(mensaje):
     items=mensaje.get('items')
@@ -131,16 +159,38 @@ def procesar_solicitud(socket_cliente,mensaje):
         bd_carrito.vaciar_carrito_usuario(mensaje.get('nombre_u'))
         responder_cliente(socket_cliente,{'type':'vaciar_carrito', 'ok':exito, 'mensaje':'Carrito vaciado correctamente'})
     elif tipo=='registrar_venta':
-        if not venta_valida(mensaje):
+        if not venta_valida(mensaje) or not despacho_valido(mensaje.get('despacho')):
             responder_cliente(socket_cliente,{'type':'registrar_venta','ok':False,'mensaje':'Datos de la venta inválidos','recibo_id':None})
             return
         try:
-            recibo_id=bd_ventas.insertar_venta(mensaje.get('fecha'),mensaje.get('cliente'),mensaje.get('total'),mensaje.get('items'))
+            recibo_id=bd_ventas.insertar_venta(mensaje.get('fecha'),mensaje.get('cliente'),mensaje.get('total'),mensaje.get('items'),mensaje.get('despacho'))
             bd_carrito.marcar_pagado(mensaje.get('nombre_u'))
         except sqlite3.Error:
             responder_cliente(socket_cliente,{'type':'registrar_venta','ok':False,'mensaje':'No se pudo guardar la venta en el servidor','recibo_id':None})
             return
         responder_cliente(socket_cliente,{'type':'registrar_venta','ok':True,'mensaje':'Venta registrada correctamente','recibo_id':recibo_id})
+    elif tipo=='obtener_envios':
+        # manda al cliente las tarifas por region y el monto minimo desde el servidor
+        try:
+            tarifas = bd_envios.listar_tarifas()
+            monto_minimo, region_tienda = bd_envios.obtener_config()
+            lista_tarifas = [
+                {'region': r, 'costo': c, 'dias_habiles': d}
+                for r, c, d in tarifas
+            ]
+            responder_cliente(socket_cliente, {
+                'type': 'obtener_envios',
+                'ok': True,
+                'tarifas': lista_tarifas,
+                'monto_minimo': monto_minimo,
+                'region_tienda': region_tienda
+            })
+        except sqlite3.Error:
+            responder_cliente(socket_cliente, {
+                'type': 'obtener_envios',
+                'ok': False,
+                'mensaje': 'No se pudieron consultar las tarifas de envío'
+            })
     elif tipo=='agregar_deseo':
         # el servidor valida con los datos reales: el cliente solo dice QUIEN (rut) y QUE producto
         rut=mensaje.get('rut')
