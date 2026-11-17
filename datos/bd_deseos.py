@@ -45,7 +45,7 @@ def crear_tabla():
     conexion.close()
 
 def notificacion(id_producto,categoria_notificacion):
-    """Deja anotado en la lista de cada usuario que el producto cambio (p = precio, s = stock)."""
+   
     crear_tabla()
     conexion=conectar()
     try:
@@ -112,15 +112,23 @@ def _consultar(sql,params):
         conexion.close()
 
 def listar_deseos(rut):
-    """[(id_producto, precio guardado)] en el orden en que se agregaron."""
+    
     return _consultar("SELECT id_producto,precio_actualizado FROM lista WHERE rut=? ORDER BY rowid",(rut,))
 
 def listar_suscripciones(rut):
-    """[(id_producto,)] de los productos a los que el usuario pidio aviso de reposicion."""
+    
     return _consultar("SELECT id_producto FROM suscripciones WHERE rut=? ORDER BY rowid",(rut,))
 
+def suscritos_a_producto(id_producto):
+    
+    return [r[0] for r in _consultar("SELECT rut FROM suscripciones WHERE id_producto=? ORDER BY rowid",(id_producto,))]
+
+def ruts_con_deseo(id_producto):
+    
+    return [r[0] for r in _consultar("SELECT rut FROM lista WHERE id_producto=? ORDER BY rowid",(id_producto,))]
+
 def listar_notificaciones(rut):
-    """[(id_producto, mensaje)] la mas reciente primero."""
+    
     return _consultar("SELECT id_producto,notificacion FROM notificaciones WHERE rut=? ORDER BY rowid DESC",(rut,))
 
 def guardar_notificacion(rut,id_producto,mensaje):

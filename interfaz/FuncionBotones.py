@@ -73,6 +73,8 @@ def ventana_usuario(ventana,texto,IngresoClave):
             hilo_cliente.daemon = True
             hilo_cliente.start()
             usuario_actual = resultado[1]
+            ClienteRed.identificarse(identificador_usuario())   # el servidor asocia este socket con su rut
+            _iniciar_revision_avisos()
             ventana.destroy()
            
 
@@ -547,10 +549,48 @@ cola_respuestas_lista = queue.Queue()   # puente entre el hilo de red y el hilo 
 revisando_cola = False
 
 def procesar_respuesta_lista(datos):
-    '''Corre en el hilo que escucha al servidor: NO toca la interfaz, solo deja la respuesta en la cola.
-    (tkinter no es seguro entre hilos; la ventana la lee desde su propio hilo con after).'''
+
     cola_respuestas_lista.put(datos)
 ClienteRed.conectar_interfaz_lista(procesar_respuesta_lista)
+
+
+cola_avisos = queue.Queue()
+revisando_avisos = False
+
+def procesar_aviso(dato):
+
+    cola_avisos.put(dato)
+ClienteRed.conectar_interfaz_aviso(procesar_aviso)
+
+def _revisar_avisos(raiz):
+    
+    global revisando_avisos
+    hubo_avisos = False
+    try:
+        while True:
+            dato = cola_avisos.get_nowait()
+            hubo_avisos = True
+            titulo = "Producto repuesto" if dato.get("tipo") == "reposicion" else "Rebaja de precio"
+            messagebox.showinfo(titulo, dato.get("mensaje", "Hay novedades de un producto que sigues."))
+    except queue.Empty:
+        pass
+    if hubo_avisos and ventanas_lista:
+        # si tiene abiertas sus listas/notificaciones, se refrescan con el aviso nuevo (ya guardado en el servidor)
+        try:
+            ClienteRed.dato_envia({'type': 'mi_lista', 'rut': identificador_usuario()})
+        except OSError:
+            pass
+    if hay_usuario_autenticado():
+        raiz.after(500, lambda: _revisar_avisos(raiz))
+    else:
+        revisando_avisos = False
+
+def _iniciar_revision_avisos():
+    global revisando_avisos
+    if not revisando_avisos:
+        revisando_avisos = True
+        raiz = tk._default_root   # ventana principal de la tienda
+        raiz.after(500, lambda: _revisar_avisos(raiz))
 
 def _revisar_cola_lista(raiz):
     '''Corre en el hilo de tkinter cada 200 ms mientras haya alguna ventana abierta.'''

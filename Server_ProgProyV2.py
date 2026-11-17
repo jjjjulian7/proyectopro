@@ -12,6 +12,11 @@ from clases.asistente_ia import AsistenteIA
 asistente_ia = AsistenteIA()
 HOST = '192.168.1.112'
 PORT = 65433
+
+
+clientes_conectados = {}
+lock_clientes = threading.Lock()   
+lock_envio = threading.Lock()      
 def iniciar_servidor():
     server=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -31,7 +36,58 @@ def iniciar_servidor():
 #manda mensaje a cliente segun el tipo de dato que recibio antes, esto se filtar a travez de procesar solicitud
 def responder_cliente(socket_cliente,datos):
     mensaje=json.dumps(datos)+'\n'
-    socket_cliente.sendall(mensaje.encode('utf-8'))
+    with lock_envio:
+        socket_cliente.sendall(mensaje.encode('utf-8'))
+
+def _clp(valor):
+    return f"${valor:,.0f}".replace(",", ".")
+
+def _empujar_a_clientes(avisos):
+    
+    with lock_clientes:
+        destinos=[(rut,clientes_conectados.get(rut),datos) for rut,datos in avisos]
+    for rut,sock,datos in destinos:
+        if sock is None:
+            continue
+        try:
+            responder_cliente(sock,datos)
+        except OSError:
+            # socket roto: se saca del diccionario solo si sigue siendo el mismo
+            with lock_clientes:
+                if clientes_conectados.get(rut) is sock:
+                    del clientes_conectados[rut]
+
+def _avisar(ruts,id_producto,nombre,tipo,mensaje,extra=None):
+    
+    avisos=[]
+    for rut in ruts:
+        bd_deseos.guardar_notificacion(rut,id_producto,mensaje)
+        datos={'type':'aviso','tipo':tipo,'id_producto':id_producto,'nombre':nombre,'mensaje':mensaje}
+        if extra:
+            datos.update(extra)
+        avisos.append((rut,datos))
+    # el envio va en un hilo aparte: se llama desde el hilo de tkinter del admin y un cliente lento no debe congelarlo
+    if avisos:
+        threading.Thread(target=_empujar_a_clientes,args=(avisos,),daemon=True).start()
+    return len(avisos)
+
+def avisar_reposicion(id_producto):
+    
+    p=datos_producto(id_producto)
+    if p is None:
+        return 0
+    mensaje=f"¡Volvió a haber stock de {p['nombre']}! Disponibles: {p['stock']}."
+    return _avisar(bd_deseos.suscritos_a_producto(id_producto),id_producto,p['nombre'],'reposicion',mensaje,
+                   {'stock':p['stock'],'precio':p['precio']})
+
+def avisar_rebaja(id_producto,precio_anterior,precio_nuevo):
+    
+    p=datos_producto(id_producto)
+    if p is None:
+        return 0
+    mensaje=f"Rebaja en {p['nombre']}: antes {_clp(precio_anterior)}, ahora {_clp(precio_nuevo)}."
+    return _avisar(bd_deseos.ruts_con_deseo(id_producto),id_producto,p['nombre'],'rebaja',mensaje,
+                   {'precio_anterior':precio_anterior,'precio_nuevo':precio_nuevo})
 
 # el despacho es opcional para no romper ventas antiguas pero si viene se revisa completo
 def despacho_valido(despacho):
@@ -106,7 +162,16 @@ def armar_mi_lista(rut):
 #filta por el tipo de mensaje que respondio
 def procesar_solicitud(socket_cliente,mensaje):
     tipo=mensaje.get('type')
-    if tipo=='reservar_stock':
+    if tipo=='identificarse':
+        rut=mensaje.get('rut')
+        if not isinstance(rut,str) or not rut.strip():
+            responder_cliente(socket_cliente,{'type':'identificarse','ok':False,'mensaje':'Datos inválidos'})
+            return
+        with lock_clientes:
+            clientes_conectados[rut.strip()]=socket_cliente
+        print(f"[+] Cliente identificado: {rut.strip()}")
+        responder_cliente(socket_cliente,{'type':'identificarse','ok':True})
+    elif tipo=='reservar_stock':
         print(f"Servidor : Procesando solicitud de reservar stock {mensaje} \n" ) 
         id_producto=mensaje.get('id_producto')
         cantidad=mensaje.get('cantidad')
@@ -269,6 +334,10 @@ def atender_cliente(socket_cliente, addr):
     except OSError:
         pass
     finally:
+        with lock_clientes:
+
+            for rut in [r for r,sk in clientes_conectados.items() if sk is socket_cliente]:
+                del clientes_conectados[rut]
         socket_cliente.close()
         print(f"[-] Cliente desconectado: {addr}")
 if __name__ == "__main__": iniciar_servidor()

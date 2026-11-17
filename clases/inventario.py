@@ -1,6 +1,6 @@
 import datos.bd as bd
 from clases.producto import Producto
-import datos.bd_deseos  as bdd
+import Server_ProgProyV2 as servidor   # el servidor corre en este mismo programa (hilo lanzado por ventana_Ingreso_admin)
 
 class Inventario:
     def __init__(self):
@@ -71,16 +71,27 @@ class Inventario:
                 if not self.validar_producto(nombre, precio, stock, categoria): # busca el producto por id y valida los nuevos datos antes de actualizar
                     return False
 
-                if p.precio>precio:
-                    bdd.notificacion(id_producto,"p")
-                if p.stock<stock:
-                    bdd.notificacion(id_producto,'s')
+                # Se compara contra lo que hay en la BD y no contra p.stock/p.precio: los clientes reservan stock
+                # directo en la BD y la copia en memoria del admin puede estar desactualizada.
+                fila_anterior = bd.obtener_producto(id_producto)  # (id, nombre, precio, stock, categoria)
+                precio_anterior = fila_anterior[2] if fila_anterior else p.precio
+                stock_anterior = fila_anterior[3] if fila_anterior else p.stock
+
                 p.nombre = nombre #datos nuevos al producto
                 p.precio = precio
                 p.stock = stock
                 p.categoria = categoria
 
                 bd.actualizar_producto(p)
+
+                
+                try:
+                    if stock_anterior == 0 and stock > 0:
+                        servidor.avisar_reposicion(id_producto)
+                    if precio < precio_anterior:
+                        servidor.avisar_rebaja(id_producto, precio_anterior, precio)
+                except Exception as e:
+                    print(f"[!] No se pudieron enviar los avisos del producto {id_producto}: {e}")
                 return True
 
         return False
@@ -93,4 +104,3 @@ class Inventario:
                 bd.eliminar_producto(id_producto)
                 return True
         return False
-            

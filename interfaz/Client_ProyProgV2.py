@@ -13,10 +13,11 @@ conexion_reserva=None
 conexion_reponer=None
 conexion_vaciar=None
 conexion_venta=None
-conexion_envios=None   # recibe las tarifas de envio desde el servidor
-conexion_deseos=None   # callback para las respuestas de lista de deseos y suscripcion
-conexion_lista=None    # callback con lo que devuelve el servidor para las ventanas de deseos/suscripciones/notificaciones
-conexion_ia=None  # falta conectar con la ventana del chat cuando este lista la interfaz
+conexion_deseos=None   
+conexion_lista=None   
+conexion_ia=None  
+conexion_aviso=None    
+identificador=None     
 
 def conectar_interfaz_reserva(conexion):
     global conexion_reserva
@@ -38,6 +39,20 @@ def conectar_interfaz_lista(conexion):
     global conexion_lista
     conexion_lista = conexion
 
+def conectar_interfaz_aviso(conexion):
+    global conexion_aviso
+    conexion_aviso = conexion
+
+def identificarse(id_usuario):
+    
+    global identificador
+    identificador = id_usuario
+    if conexion is not None:
+        try:
+            enviar({'type':'identificarse','rut':identificador})
+        except OSError:
+            pass
+
 def conectar_interfaz_venta(conexion):
     global conexion_venta
     conexion_venta = conexion
@@ -47,7 +62,7 @@ def conectar_interfaz_envios(conexion):
     conexion_envios = conexion
     
 def conectar():
-    """utiliza las variables globales conexion y c para conectarse con el admin """
+    
     global conexion , c #se ocupa variables globales porque despues se ocupara el socket conexion para mandar la info
     while not c:
         intento=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -58,6 +73,11 @@ def conectar():
             print ("se conecto correctamente")
             conexion=intento
             c=True
+            if identificador is not None:   
+                try:
+                    enviar({'type':'identificarse','rut':identificador})
+                except OSError:
+                    pass
             hilo_recibir=threading.Thread(target=recibir,args=(intento,),daemon=True)
             hilo_recibir.start()
             # pide las tarifas apenas se conecta al servidor
@@ -128,6 +148,9 @@ def recibir(socket_conexion):
             elif tipo=='mi_lista':
                 if conexion_lista is not None:
                     conexion_lista(dato)
+            elif tipo=='aviso':
+                if conexion_aviso is not None:
+                    conexion_aviso(dato)
             elif tipo=='consulta_ia':
                 ok=dato.get('ok')
                 respuesta=dato.get('respuesta')
