@@ -1,18 +1,24 @@
 import http.client
 import json
+import os
+import sys
+
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from datos import bd
+from datos import bd_carrito
 
 # configuración
-API_KEY = ""  
+API_KEY = ""
 
 try:
-    archivo = open("api_key.txt", "r")
+    ruta_key = os.path.join(os.path.dirname(os.path.dirname(__file__)), "api_key.txt")
+    archivo = open(ruta_key, "r")
     API_KEY = archivo.read().strip()
     archivo.close()
 except:
     pass
 
-MODELO = "gemini-2.5-flash"
+MODELO = "gemini-4-hydrogen"
 HOST = "generativelanguage.googleapis.com"
 PATH = f"/v1/models/{MODELO}:generateContent?key={API_KEY}"
 
@@ -35,6 +41,28 @@ class AsistenteIA:
             texto_productos += f"- {p[1]} (Categoria: {p[4]}) Precio: ${p[2]} Stock: {p[3]}\n"
         return texto_productos
 
+    def obtener_carrito(self, nombre_usuario=None):
+        carritos = bd_carrito.listar_carritos()
+        # c[0] = id, #c[1] = nombre_usuario, #c[2] = fecha_creacion #c[3] = estado
+        carrito_id = None
+        for c in carritos:
+            if c[3] == "activo":
+                if nombre_usuario is None or c[1] == nombre_usuario:
+                    carrito_id = c[0]
+                    break
+
+        if carrito_id is None:
+            return "Carrito actual del cliente: Vacio.\n"
+
+        items = bd_carrito.items_de_carrito(carrito_id)
+        if not items:
+            return "Carrito actual del cliente: Vacio.\n"
+
+        texto_carrito = "Productos en el carrito del cliente:\n"
+        for i in items:
+            texto_carrito += f"- {i[1]} Cantidad: {i[2]} Precio: ${i[3]} Subtotal: ${i[4]}\n"
+        return texto_carrito
+
     def obtener_historial(self):
         if not self.historial:
             return ""
@@ -43,18 +71,19 @@ class AsistenteIA:
             texto_historial += f"Cliente: {m['pregunta']}\nAsistente: {m['respuesta']}\n"
         return texto_historial
 
-    def consultar(self, pregunta):
+    def consultar(self, pregunta, nombre_usuario=None):
         if not API_KEY:
             return False, "Error: Falta agregar la API key en api_key.txt"
 
         catalogo = self.obtener_catalogo()
+        carrito = self.obtener_carrito(nombre_usuario)
         historial = self.obtener_historial()
 
         body = {
             "contents": [
                 {
                     "parts": [
-                        {"text": f"Eres el asistente de nuestra tienda online. {catalogo}\n{historial}\nPregunta del cliente: {pregunta}"}
+                        {"text": f"Eres el asistente de nuestra tienda online, presentate ante el usuario primero antes de responder su pregunta, menciona que eres parte de la tienda Maulencitos Market, quiero respuestas especificas que solucionen la pregunta del cliente, y al final una pregunta abierta donde el cliente puede seguir la conversacion, no olvides revisar el carrito del cliente para ver que es lo que ya tiene lanzarle una pequeña recomendacion pero solo corta como veo que tienes esto si te interesa te reccomiendo tal cosa, solo hacer eso cuando el carrito no este vacio, si esta vacio solo concentrate en la pregunta, si lo q tiene en el carrito tiene q ver con lo que pregunta el cliente, hablale sobre tu recomendacion mas loq  tiene el carrito por ejemplo veo q tienes esto y ahi sigues. {catalogo}\n{carrito}\n{historial}\nPregunta del cliente: {pregunta}"}
                     ]
                 }
             ]
@@ -64,17 +93,18 @@ class AsistenteIA:
 
         try:
             # conexion con gemini
-            conn = http.client.HTTPSConnection(self.host, timeout=10)
+            conn = http.client.HTTPSConnection(self.host, timeout=3000)
             conn.request("POST", self.path, body=body_json, headers=self.headers)
 
-            # almacenar respuesta 
+            # almacenar respuesta
             response = conn.getresponse()
             data = response.read().decode("utf-8")
             conn.close()
-        except:
+        except Exception as e:
+            print("Error de conexion:", e)
             return False, "Error: No se pudo conectar con el servidor de Gemini"
 
-        # verificar de respuesta 
+        # verificar de respuesta
         if response.status == 200:
             response_data = json.loads(data)
             respuesta_texto = response_data["candidates"][0]["content"]["parts"][0]["text"]
@@ -86,3 +116,17 @@ class AsistenteIA:
             print(f"Error: {response.status} - {response.reason}")
             print(data)
             return False, f"Error: {response.status} - {response.reason}"
+
+    def limpiar_historial(self):
+        self.historial.clear()
+
+# codigo temporal para correr la ia en la consola y hacer las pruebas
+if __name__ == "__main__":
+    asistente = AsistenteIA()
+    while True:
+        pregunta = input("\nCliente: ")
+        if pregunta.lower() == "salir":
+            asistente.limpiar_historial()
+            break
+        ok, respuesta = asistente.consultar(pregunta)
+        print(f"\nAsistente:\n{respuesta}")

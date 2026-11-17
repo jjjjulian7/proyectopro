@@ -185,9 +185,10 @@ def procesar_solicitud(socket_cliente,mensaje):
                                           'suscripciones':suscripciones,'notificaciones':notificaciones})
     elif tipo=='consulta_ia':
         pregunta = mensaje.get('pregunta', '')
+        nombre_u = mensaje.get('nombre_u')
         print(f"Servidor : Consulta para asistente IA: {pregunta}")
         def responder_ia():
-            ok, texto_respuesta = asistente_ia.consultar(pregunta)
+            ok, texto_respuesta = asistente_ia.consultar(pregunta, nombre_u)
             responder_cliente(socket_cliente, {
                 'type': 'consulta_ia',
                 'ok': ok,
