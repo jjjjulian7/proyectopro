@@ -71,9 +71,24 @@ class AsistenteIA:
             texto_historial += f"Cliente: {m['pregunta']}\nAsistente: {m['respuesta']}\n"
         return texto_historial
 
+    def obtener_recomendados(self, respuesta_texto):
+        productos = bd.mostrar_productos()
+        recomendados = []
+        texto_minuscula = respuesta_texto.lower()
+        for p in productos:
+            # p[0]=id, p[1]=nombre, p[2]=precio, p[3]=stock, p[4]=categoria
+            if p[3] > 0 and p[1].lower() in texto_minuscula:
+                recomendados.append({
+                    "id": p[0],
+                    "nombre": p[1],
+                    "precio": p[2],
+                    "stock": p[3]
+                })
+        return recomendados
+
     def consultar(self, pregunta, nombre_usuario=None):
         if not API_KEY:
-            return False, "Error: Falta agregar la API key en api_key.txt"
+            return False, "Error: Falta agregar la API key en api_key.txt", []
 
         catalogo = self.obtener_catalogo()
         carrito = self.obtener_carrito(nombre_usuario)
@@ -83,7 +98,7 @@ class AsistenteIA:
             "contents": [
                 {
                     "parts": [
-                        {"text": f"Eres el asistente de nuestra tienda online, presentate ante el usuario primero antes de responder su pregunta, menciona que eres parte de la tienda Maulencitos Market, quiero respuestas especificas que solucionen la pregunta del cliente, y al final una pregunta abierta donde el cliente puede seguir la conversacion, no olvides revisar el carrito del cliente para ver que es lo que ya tiene lanzarle una pequeña recomendacion pero solo corta como veo que tienes esto si te interesa te reccomiendo tal cosa, solo hacer eso cuando el carrito no este vacio, si esta vacio solo concentrate en la pregunta, si lo q tiene en el carrito tiene q ver con lo que pregunta el cliente, hablale sobre tu recomendacion mas loq  tiene el carrito por ejemplo veo q tienes esto y ahi sigues. {catalogo}\n{carrito}\n{historial}\nPregunta del cliente: {pregunta}"}
+                        {"text": f"Eres el asistente de nuestra tienda online, presentate ante el usuario primero antes de responder su pregunta, menciona que eres parte de la tienda Maulencitos Market, quiero respuestas especificas que solucionen la pregunta del cliente, y al final una pregunta abierta donde el cliente puede seguir la conversacion, cuando recomiendes un producto escribe su nombre exacto tal como aparece en el catalogo, no olvides revisar el carrito del cliente para ver que es lo que ya tiene lanzarle una pequeña recomendacion pero solo corta como veo que tienes esto si te interesa te reccomiendo tal cosa, solo hacer eso cuando el carrito no este vacio, si esta vacio solo concentrate en la pregunta, si lo q tiene en el carrito tiene q ver con lo que pregunta el cliente, hablale sobre tu recomendacion mas loq  tiene el carrito por ejemplo veo q tienes esto y ahi sigues. {catalogo}\n{carrito}\n{historial}\nPregunta del cliente: {pregunta}"}
                     ]
                 }
             ]
@@ -102,20 +117,21 @@ class AsistenteIA:
             conn.close()
         except Exception as e:
             print("Error de conexion:", e)
-            return False, "Error: No se pudo conectar con el servidor de Gemini"
+            return False, "Error: No se pudo conectar con el servidor de Gemini", []
 
         # verificar de respuesta
         if response.status == 200:
             response_data = json.loads(data)
             respuesta_texto = response_data["candidates"][0]["content"]["parts"][0]["text"]
             self.historial.append({"pregunta": pregunta, "respuesta": respuesta_texto})
+            recomendados = self.obtener_recomendados(respuesta_texto)
             print("Respuesta de Gemini:")
             print(respuesta_texto)
-            return True, respuesta_texto
+            return True, respuesta_texto, recomendados
         else:
             print(f"Error: {response.status} - {response.reason}")
             print(data)
-            return False, f"Error: {response.status} - {response.reason}"
+            return False, f"Error: {response.status} - {response.reason}", []
 
     def limpiar_historial(self):
         self.historial.clear()
@@ -128,5 +144,7 @@ if __name__ == "__main__":
         if pregunta.lower() == "salir":
             asistente.limpiar_historial()
             break
-        ok, respuesta = asistente.consultar(pregunta)
+        ok, respuesta, recomendados = asistente.consultar(pregunta)
         print(f"\nAsistente:\n{respuesta}")
+        if recomendados:
+            print("\nProductos detectados para agregar al carrito:", recomendados)

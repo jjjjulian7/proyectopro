@@ -121,9 +121,10 @@ def recibir(socket_conexion):
             elif tipo=='consulta_ia':
                 ok=dato.get('ok')
                 respuesta=dato.get('respuesta')
+                recomendados=dato.get('recomendados', [])
                 print("Respuesta recibida del asistente IA:", respuesta)
                 if conexion_ia is not None:
-                    conexion_ia(ok, respuesta)
+                    conexion_ia(ok, respuesta, recomendados)
                 
 
 def dato_envia(dato):

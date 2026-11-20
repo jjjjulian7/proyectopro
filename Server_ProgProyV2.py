@@ -188,11 +188,12 @@ def procesar_solicitud(socket_cliente,mensaje):
         nombre_u = mensaje.get('nombre_u')
         print(f"Servidor : Consulta para asistente IA: {pregunta}")
         def responder_ia():
-            ok, texto_respuesta = asistente_ia.consultar(pregunta, nombre_u)
+            ok, texto_respuesta, recomendados = asistente_ia.consultar(pregunta, nombre_u)
             responder_cliente(socket_cliente, {
                 'type': 'consulta_ia',
                 'ok': ok,
-                'respuesta': texto_respuesta
+                'respuesta': texto_respuesta,
+                'recomendados': recomendados
             })
         hilo_ia = threading.Thread(target=responder_ia, daemon=True)
         hilo_ia.start()
