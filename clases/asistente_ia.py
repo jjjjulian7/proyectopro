@@ -33,12 +33,16 @@ class AsistenteIA:
             "Content-Type": "application/json"
         }
 
-    def obtener_catalogo(self):
-        productos = bd.mostrar_productos()
+    def obtener_catalogo(self, ids_carrito=None):
+        if ids_carrito is None:
+            ids_carrito = set()
+        productos = bd.productos_disponibles()
         texto_productos = "Productos disponibles en la tienda:\n"
         for p in productos:
             # p[0]=id, p[1]=nombre, p[2]=precio, p[3]=stock, p[4]=categoria
-            texto_productos += f"- {p[1]} (Categoria: {p[4]}) Precio: ${p[2]} Stock: {p[3]}\n"
+            # salta los que ya estan en el carrito para ahorrar texto
+            if p[0] not in ids_carrito:
+                texto_productos += f"- {p[1]} (Categoria: {p[4]}) Precio: ${p[2]} Stock: {p[3]}\n"
         return texto_productos
 
     def obtener_carrito(self, nombre_usuario=None):
@@ -52,16 +56,20 @@ class AsistenteIA:
                     break
 
         if carrito_id is None:
-            return "Carrito actual del cliente: Vacio.\n"
+            return "Carrito actual del cliente: Vacio.\n", set()
 
         items = bd_carrito.items_de_carrito(carrito_id)
         if not items:
-            return "Carrito actual del cliente: Vacio.\n"
+            return "Carrito actual del cliente: Vacio.\n", set()
 
+        ids_carrito = set()
         texto_carrito = "Productos en el carrito del cliente:\n"
         for i in items:
+            # i[0]=id_producto, i[1]=nombre, i[2]=cantidad, i[3]=precio, i[4]=subtotal
+            # guarda el id aunque el stock haya bajado a 0 al reservar
+            ids_carrito.add(i[0])
             texto_carrito += f"- {i[1]} Cantidad: {i[2]} Precio: ${i[3]} Subtotal: ${i[4]}\n"
-        return texto_carrito
+        return texto_carrito, ids_carrito
 
     def obtener_historial(self):
         if not self.historial:
@@ -71,13 +79,18 @@ class AsistenteIA:
             texto_historial += f"Cliente: {m['pregunta']}\nAsistente: {m['respuesta']}\n"
         return texto_historial
 
-    def obtener_recomendados(self, respuesta_texto):
-        productos = bd.mostrar_productos()
+    def obtener_recomendados(self, respuesta_texto, ids_carrito=None):
+        if ids_carrito is None:
+            ids_carrito = set()
+        productos = bd.productos_disponibles()
         recomendados = []
+        # evita meter el mismo id dos veces en la lista
+        ids_agregados = set()
         texto_minuscula = respuesta_texto.lower()
         for p in productos:
             # p[0]=id, p[1]=nombre, p[2]=precio, p[3]=stock, p[4]=categoria
-            if p[3] > 0 and p[1].lower() in texto_minuscula:
+            if p[0] not in ids_carrito and p[0] not in ids_agregados and p[1].lower() in texto_minuscula:
+                ids_agregados.add(p[0])
                 recomendados.append({
                     "id": p[0],
                     "nombre": p[1],
@@ -86,12 +99,38 @@ class AsistenteIA:
                 })
         return recomendados
 
+    def respaldo_destacados(self, ids_carrito=None):
+        # plan b si gemini falla o se demora mucho
+        if ids_carrito is None:
+            ids_carrito = set()
+        productos = bd.productos_destacados()
+        recomendados = []
+        mensaje = "Lo siento, no podemos atender tu pregunta en este momento por alta demanda. Inténtalo más tarde.\n"
+        for p in productos:
+            # elige los 3 con mas stock que no esten en el carrito
+            if p[0] not in ids_carrito:
+                recomendados.append({
+                    "id": p[0],
+                    "nombre": p[1],
+                    "precio": p[2],
+                    "stock": p[3]
+                })
+                if len(recomendados) == 3:
+                    break
+
+        if recomendados:
+            mensaje += "Si te interesa, estos son nuestros productos más destacados disponibles:\n"
+            for prod in recomendados:
+                mensaje += f"- {prod['nombre']} (${prod['precio']:,.0f} CLP - Stock: {prod['stock']})\n"
+        return mensaje, recomendados
+
     def consultar(self, pregunta, nombre_usuario=None):
+        carrito, ids_carrito = self.obtener_carrito(nombre_usuario)
+
         if not API_KEY:
             return False, "Error: Falta agregar la API key en api_key.txt", []
 
-        catalogo = self.obtener_catalogo()
-        carrito = self.obtener_carrito(nombre_usuario)
+        catalogo = self.obtener_catalogo(ids_carrito)
         historial = self.obtener_historial()
 
         body = {
@@ -107,8 +146,8 @@ class AsistenteIA:
         body_json = json.dumps(body)
 
         try:
-            # conexion con gemini
-            conn = http.client.HTTPSConnection(self.host, timeout=3000)
+            # conexion con gemini, si tarda mas de 20s salta al respaldo
+            conn = http.client.HTTPSConnection(self.host, timeout=20)
             conn.request("POST", self.path, body=body_json, headers=self.headers)
 
             # almacenar respuesta
@@ -117,21 +156,23 @@ class AsistenteIA:
             conn.close()
         except Exception as e:
             print("Error de conexion:", e)
-            return False, "Error: No se pudo conectar con el servidor de Gemini", []
+            mensaje_respaldo, recomendados = self.respaldo_destacados(ids_carrito)
+            return False, mensaje_respaldo, recomendados
 
         # verificar de respuesta
         if response.status == 200:
             response_data = json.loads(data)
             respuesta_texto = response_data["candidates"][0]["content"]["parts"][0]["text"]
             self.historial.append({"pregunta": pregunta, "respuesta": respuesta_texto})
-            recomendados = self.obtener_recomendados(respuesta_texto)
+            recomendados = self.obtener_recomendados(respuesta_texto, ids_carrito)
             print("Respuesta de Gemini:")
             print(respuesta_texto)
             return True, respuesta_texto, recomendados
         else:
             print(f"Error: {response.status} - {response.reason}")
             print(data)
-            return False, f"Error: {response.status} - {response.reason}", []
+            mensaje_respaldo, recomendados = self.respaldo_destacados(ids_carrito)
+            return False, mensaje_respaldo, recomendados
 
     def limpiar_historial(self):
         self.historial.clear()
