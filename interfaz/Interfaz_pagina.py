@@ -6,6 +6,7 @@ from . import gestor_imagenes
 from . import pruebacuadro
 from clases import inventario
 from . import abrir_carrito
+from . import ventana_chat
 from interfaz import Client_ProyProgV2 as ClienteRed
 
 def ejecutar():
@@ -26,7 +27,7 @@ def ejecutar():
     # Logo
     imagen_logo = gestor_imagenes.cargar_foto("logo_maulen")
     logo = tk.Label(barra, image=imagen_logo, background="#7422A8")
-    logo.image = imagen_logo # TRUCO VITAL: Evita que la foto se ponga blanca
+    logo.image = imagen_logo 
     logo.grid(row=0, column=0, padx=(100, 0), pady=20, sticky="w")
 
     # Buscador
@@ -34,7 +35,7 @@ def ejecutar():
     buscador.grid(row=0, column=1, sticky="ew", ipady=10, pady=18)
 
     frame_derecho = tk.Frame(barra, bg="#7422A8")
-    frame_derecho.grid(row=0, column=2, sticky="e", padx=(0, 100))
+    frame_derecho.grid(row=0, column=2, sticky="e", padx=(0, 20))
 
     usuario=None
 
@@ -55,6 +56,16 @@ def ejecutar():
     lbl_carrito.image = img_carrito
     lbl_carrito.grid(row=0, column=2, padx=10)
     lbl_carrito.bind("<Button-1>", lambda event: abrir_carrito.abrir_carrito(F.carrito))
+
+    # Icono del chat con el asistente IA, abre una ventana nueva
+    separador_chat = tk.Frame(frame_derecho, bg="white", width=1, height=30)
+    separador_chat.grid(row=0, column=3, padx=15)
+
+    img_chat = gestor_imagenes.cargar_foto("asistente_icono")
+    lbl_chat = tk.Label(frame_derecho, image=img_chat, background="#7422A8", cursor="hand2")
+    lbl_chat.image = img_chat
+    lbl_chat.grid(row=0, column=4, padx=10)
+    lbl_chat.bind("<Button-1>", lambda event: ventana_chat.abrir_chat())
 
     #frame general
     contenido=tk.Frame(ventana,bg="#F7F7F7")

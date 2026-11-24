@@ -1,5 +1,6 @@
 import http.client
 import json
+import ssl
 from datos import bd
 
 # configuración
@@ -12,9 +13,12 @@ try:
 except:
     pass
 
-MODELO = "gemini-2.5-flash"
+if not API_KEY:
+    print("AVISO: no se encontro api_key.txt (o esta vacio), se busca en la carpeta desde donde se ejecuta el servidor")
+
+MODELO = "gemini-3.8-flash"
 HOST = "generativelanguage.googleapis.com"
-PATH = f"/v1/models/{MODELO}:generateContent?key={API_KEY}"
+PATH = f"/v1beta/models/{MODELO}:generateContent?key={API_KEY}"
 
 
 class AsistenteIA:
@@ -50,23 +54,45 @@ class AsistenteIA:
         
         body_json = json.dumps(body)
 
-        # conexion con gemini
-        conn = http.client.HTTPSConnection(self.host)
-        conn.request("POST", self.path, body=body_json, headers=self.headers)
+        # si esta instalado certifi se usan sus certificados (el python de msys2 no trae los suyos)
+        try:
+            import certifi
+            contexto = ssl.create_default_context(cafile=certifi.where())
+        except ImportError:
+            contexto = ssl.create_default_context()
 
-        # almacenar respuesta 
-        response = conn.getresponse()
-        data = response.read().decode("utf-8")
-        conn.close()
+        # conexion con gemini, si algo falla se devuelve el error para que le llegue al chat y no se quede esperando
+        try:
+            conn = http.client.HTTPSConnection(self.host, timeout=30, context=contexto)
+            conn.request("POST", self.path, body=body_json, headers=self.headers)
+
+            # almacenar respuesta 
+            response = conn.getresponse()
+            data = response.read().decode("utf-8")
+            conn.close()
+        except ssl.SSLCertVerificationError:
+            print("Error: python no tiene certificados para conectarse a Google (instalar certifi o ca-certificates)")
+            return False, "Error: Python no tiene certificados SSL instalados para conectarse a Google."
+        except (OSError, http.client.HTTPException) as e:
+            print(f"Error de conexion con gemini: {e}")
+            return False, f"Error de conexión con Gemini: {e}"
 
         # verificar de respuesta 
         if response.status == 200:
             response_data = json.loads(data)
-            respuesta_texto = response_data["candidates"][0]["content"]["parts"][0]["text"]
+            # los modelos nuevos pueden devolver varias partes, se juntan todas las de texto
+            partes = response_data["candidates"][0]["content"]["parts"]
+            respuesta_texto = "".join(parte.get("text", "") for parte in partes if not parte.get("thought"))
             print("Respuesta de Gemini:")
             print(respuesta_texto)
             return True, respuesta_texto
         else:
             print(f"Error: {response.status} - {response.reason}")
             print(data)
-            return False, f"Error: {response.status} - {response.reason}"
+            # google manda el motivo del error dentro del json, se lo pasamos al chat para saber que paso
+            motivo = ""
+            try:
+                motivo = json.loads(data)["error"]["message"]
+            except (ValueError, KeyError, TypeError):
+                pass
+            return False, f"Error: {response.status} - {response.reason}\n{motivo}"

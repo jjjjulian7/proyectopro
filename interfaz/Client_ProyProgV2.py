@@ -43,6 +43,10 @@ def conectar_interfaz_aviso(conexion):
     global conexion_aviso
     conexion_aviso = conexion
 
+def conectar_interfaz_ia(conexion):
+    global conexion_ia
+    conexion_ia = conexion
+
 def identificarse(id_usuario):
     
     global identificador
