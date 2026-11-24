@@ -3,6 +3,7 @@ from tkinter import messagebox
 from tkinter import ttk
 from clases.usuario import usuario
 from clases.producto import Producto
+from clases.ListaDeseos import Suscripcion
 from clases.inventario import Inventario as I
 from clases.carrito import Carrito as C
 from datos import bd_usuarios as BD
@@ -19,7 +20,20 @@ import queue
 inventario=I()
 usuario_actual = None
 carrito = C()
-ClienteRed.conectar_interfaz_reserva(carrito.procesar_respuesta_reservar)
+
+pendientes_mover = set()   # ids que el usuario pidio mover desde su lista de deseos al carrito
+
+def _tras_reserva(ok, mensaje, id_producto, cantidad, nombre, precio):
+    '''Respuesta del servidor a reservar_stock. Si venia de "mover al carrito" y salio bien, lo saca de la lista de deseos.'''
+    carrito.procesar_respuesta_reservar(ok, mensaje, id_producto, cantidad, nombre, precio)
+    if id_producto in pendientes_mover:
+        pendientes_mover.discard(id_producto)
+        if ok:
+            try:
+                ClienteRed.dato_envia({'type':'quitar_deseo','rut':identificador_usuario(),'id_producto':id_producto})
+            except OSError:
+                pass
+ClienteRed.conectar_interfaz_reserva(_tras_reserva)
 ClienteRed.conectar_interfaz_reponer(carrito.procesar_respuesta_eliminar)
 ClienteRed.conectar_interfaz_vaciar(carrito.procesar_respuesta_vaciar)
 ClienteRed.conectar_interfaz_venta(carrito.procesar_respuesta_venta)
@@ -198,7 +212,7 @@ def mostrar_productos(Frame_productos):
     if not hasattr(Frame_productos, "tabla"):
         aplicar_estilo_tabla(Frame_productos)
 
-        columnas = ("id", "nombre", "precio", "stock", "categoria", "editar", "borrar") #asignamos el orden de las columnas
+        columnas = ("id", "nombre", "precio", "stock", "categoria", "esperando", "editar", "borrar") #asignamos el orden de las columnas
         tabla = ttk.Treeview(
             Frame_productos,
             columns=columnas,
@@ -213,6 +227,7 @@ def mostrar_productos(Frame_productos):
             "precio":    ("PRECIO", 110, "e"),         # "e" = east = derecha 
             "stock":     ("STOCK", 80, "center"),
             "categoria": ("CATEGORÍA", 160, "w"),
+            "esperando": ("ESPERANDO", 150, "w"),    # clientes suscritos al aviso de reposicion
             "editar":    ("", 50, "center"),
             "borrar":    ("", 50, "center"),
         }
@@ -231,17 +246,17 @@ def mostrar_productos(Frame_productos):
                 return  # Si no se hizo click en una celda, no hacemos nada
 
             fila = tabla.identify_row(event.y)  #iid de la fila = ID del producto
-            columna = tabla.identify_column(event.x)  # "#6" = editar y "#7" = borrar
+            columna = tabla.identify_column(event.x)  # "#7" = editar y "#8" = borrar
             if not fila:
                 return  # Si no se hizo click en una fila, no hacemos nada
 
             id_producto = int(fila) # convertimos el iid a int
 
-            if columna == "#6":  # columna editar
+            if columna == "#7":  # columna editar
                 if hasattr(Frame_productos, "al_editar"):
                     Frame_productos.al_editar(id_producto)
                 
-            elif columna == "#7":  # columna borrar
+            elif columna == "#8":  # columna borrar
                 producto = inventario.buscar_producto(1, id_producto) 
                 nombre = producto.nombre if producto else id_producto 
 
@@ -261,18 +276,41 @@ def mostrar_productos(Frame_productos):
         tabla.pack(side="left", fill="both", expand=True)
         Frame_productos.tabla = tabla
 
+        # los clientes se suscriben y los stocks cambian mientras el admin tiene la ventana abierta:
+        # cada 3 s se revisa y solo se redibuja si algo cambio
+        def auto_refrescar():
+            if not tabla.winfo_exists():
+                return
+            try:
+                if _filas_tabla_admin() != getattr(Frame_productos, "ultimas_filas", None):
+                    mostrar_productos(Frame_productos)
+            except Exception as e:
+                print(f"[!] No se pudo refrescar la tabla de productos: {e}")
+            tabla.after(3000, auto_refrescar)
+        tabla.after(3000, auto_refrescar)
+
     tabla = Frame_productos.tabla
     tabla.delete(*tabla.get_children())
 
-    # enumerate() entrega (posicion, elemento)
-    # usamos la posicion para saber si la fila es par o impar
-    for i, producto in enumerate(bd.mostrar_productos()):
-        etiquetas = ["par" if i % 2 == 0 else "impar"]       # lista con la etiqueta de fondo 
-        
-        if int(producto[3]) == 0:
-            etiquetas.append("sin_stock")
+    filas = _filas_tabla_admin()
+    Frame_productos.ultimas_filas = filas
+    for i, (iid, valores, etiquetas) in enumerate(filas):
+        tabla.insert("", "end", iid=iid, values=valores, tags=("par" if i % 2 == 0 else "impar",) + etiquetas)   # tags debe ser una tupla
 
-        tabla.insert("", "end", iid=str(producto[0]), values=producto + (ICONO_EDITAR, ICONO_BORRAR), tags=tuple(etiquetas))   # tags debe ser una tupla
+def _texto_esperando(n):
+    if n == 0:
+        return ""
+    return "1 cliente esperando" if n == 1 else f"{n} clientes esperando"
+
+def _filas_tabla_admin():
+    '''Filas (iid, valores, etiquetas) de la tabla de productos del admin, con el conteo de suscriptores de cada uno.'''
+    esperando = Suscripcion.contar_por_producto()
+    filas = []
+    for producto in bd.mostrar_productos():    # producto = (id, nombre, precio, stock, categoria)
+        etiquetas = ("sin_stock",) if int(producto[3]) == 0 else ()
+        valores = tuple(producto) + (_texto_esperando(esperando.get(producto[0], 0)), ICONO_EDITAR, ICONO_BORRAR)
+        filas.append((str(producto[0]), valores, etiquetas))
+    return filas
 
 
 def guardar_producto(id_producto, nombre, precio, stock, categoria, Frame_productos):
@@ -361,10 +399,27 @@ def ingresar_log(usuario):
 def agregar_producto_carrito(ProductoS, cantidad,usuarioA):
     carrito.agregar_producto(ProductoS,cantidad,usuarioA)
 
+def agregar_al_carrito_validado(id_producto, nombre, precio, categoria, stock, cantidad=1, descontar_carrito=True):
+
+    if not validar_sesion():
+        return False
+    if not isinstance(cantidad, int) or cantidad <= 0:
+        messagebox.showerror("Error", "Ingresa una cantidad valida")
+        return False
+    if stock is None or stock <= 0:
+        messagebox.showwarning("Sin stock", f"'{nombre}' está agotado por ahora.")
+        return False
+    en_carrito = sum(i["cantidad"] for i in carrito.items if i["id"] == id_producto) if descontar_carrito else 0
+    if cantidad + en_carrito > stock:
+        messagebox.showerror("Error", "No hay stock suficiente")
+        return False
+    producto = Producto(nombre, precio, stock, categoria)
+    producto.id = id_producto
+    agregar_producto_carrito(producto, cantidad, usuario_actual)
+    return True
+
 def identificador_usuario():
-    '''Con que se identifica al cliente en deseos, suscripciones y notificaciones.
-    El enunciado permite RUN o nombre de usuario. Los clientes registrados hoy no tienen RUT
-    (solo los admin), asi que se usa el RUT si existe y si no el nombre de usuario.'''
+    
     fila = BD.buscar_usuario(usuario_actual)  # columnas: id, nombre, contrasena, rut, rol
     return fila[3] or fila[1]
 
@@ -373,8 +428,7 @@ def agregar_a_deseos(id_producto, precio):
         messagebox.showwarning("Inicio de sesión requerido","Debes iniciar sesión para usar la lista de deseos.")
         return
     rut = identificador_usuario()
-    # ya no se escribe en la BD desde el cliente: se manda al servidor por el socket y el responde por procesar_respuesta_deseos
-    # (el precio no se envia: el servidor usa el precio real del producto)
+    
     try:
         ClienteRed.dato_envia({'type':'agregar_deseo','rut':rut,'id_producto':id_producto})
     except OSError:
@@ -487,12 +541,8 @@ def lista_deseos(ventana):
     Notificacion.bind("<Button-1>",lambda event:elegir(Notificaciones))
 
 
-# ---------------------------------------------------------------
-# Ventanas del cliente: lista de deseos, suscripciones y notificaciones.
-# Los datos NO se leen de la BD aqui: se piden al servidor por el socket (mensaje 'mi_lista')
-# y cuando llega la respuesta se rellenan todas las ventanas que estan abiertas.
-# ---------------------------------------------------------------
-ventanas_lista = {}   # clave ('deseos','suscripciones','notificaciones') -> (ventana, tabla)
+
+ventanas_lista = {}   
 
 def _clp(valor):
     return f"${valor:,.0f}".replace(",", ".") if valor is not None else "-"
@@ -518,7 +568,7 @@ def _filas_suscripciones(datos):
 def _filas_notificaciones(datos):
     return [((n["id"], n["nombre"], n["mensaje"]), []) for n in datos.get("notificaciones", [])]
 
-# clave -> (titulo ventana, columnas {id: (texto, ancho, ancla)}, funcion que arma las filas, texto si esta vacia)
+
 CONFIG_VENTANAS = {
     "deseos": ("Mi lista de deseos",
                {"id": ("ID", 50, "center"), "nombre": ("NOMBRE", 260, "w"),
@@ -545,6 +595,22 @@ def _rellenar_ventana(clave, datos):
         tabla.insert("", "end", values=valores, tags=["par" if i % 2 == 0 else "impar"] + etiquetas)
     etiqueta_vacia.config(text="" if filas else texto_vacio)
 
+productos_deseos = {}   # ultimo estado de la lista de deseos recibido del servidor, por id de producto
+
+def mover_deseo_al_carrito(tabla):
+
+    seleccion = tabla.selection()
+    if not seleccion:
+        messagebox.showinfo("Lista de deseos", "Selecciona un producto de la lista.")
+        return
+    p = productos_deseos.get(int(tabla.item(seleccion[0], "values")[0]))
+    if p is None:
+        return
+    pendientes_mover.add(p["id"])      # se marca antes de enviar: la respuesta llega por otro hilo
+    if not agregar_al_carrito_validado(p["id"], p["nombre"], p["precio"], p["categoria"], p["stock"],
+                                       1, descontar_carrito=False):
+        pendientes_mover.discard(p["id"])
+
 cola_respuestas_lista = queue.Queue()   # puente entre el hilo de red y el hilo de tkinter
 revisando_cola = False
 
@@ -562,6 +628,34 @@ def procesar_aviso(dato):
     cola_avisos.put(dato)
 ClienteRed.conectar_interfaz_aviso(procesar_aviso)
 
+def _mostrar_aviso(dato, raiz):
+    
+    titulo = "Producto repuesto" if dato.get("tipo") == "reposicion" else "Rebaja de precio"
+    v = tk.Toplevel(raiz)
+    v.title(titulo)
+    v.configure(bg="white")
+    v.resizable(False, False)
+    tk.Label(v, text=titulo, font=("Arial", 13, "bold"), bg="white", fg="#4a2a85").pack(padx=28, pady=(18, 4))
+    tk.Label(v, text=dato.get("mensaje", "Hay novedades de un producto que sigues."),
+             bg="white", wraplength=340, justify="center").pack(padx=28, pady=(0, 14))
+    botones = tk.Frame(v, bg="white")
+    botones.pack(pady=(0, 18))
+
+    stock = dato.get("stock")
+    ofrecer = (dato.get("id_producto") is not None and dato.get("precio") is not None
+               and isinstance(stock, int) and stock > 0)
+    def agregar():
+        
+        if agregar_al_carrito_validado(dato["id_producto"], dato.get("nombre"), dato["precio"],
+                                       dato.get("categoria"), stock, 1, descontar_carrito=False):
+            v.destroy()
+    if ofrecer:
+        tk.Button(botones, text="Agregar al carrito", font=("Arial", 10, "bold"), bg="#7422A8", fg="white",
+                  cursor="hand2", command=agregar).pack(side="left", padx=6)
+    tk.Button(botones, text="Cerrar", font=("Arial", 10), cursor="hand2", command=v.destroy).pack(side="left", padx=6)
+    v.lift()
+    v.focus_force()
+
 def _revisar_avisos(raiz):
     
     global revisando_avisos
@@ -570,12 +664,10 @@ def _revisar_avisos(raiz):
         while True:
             dato = cola_avisos.get_nowait()
             hubo_avisos = True
-            titulo = "Producto repuesto" if dato.get("tipo") == "reposicion" else "Rebaja de precio"
-            messagebox.showinfo(titulo, dato.get("mensaje", "Hay novedades de un producto que sigues."))
+            _mostrar_aviso(dato, raiz)
     except queue.Empty:
         pass
     if hubo_avisos and ventanas_lista:
-        # si tiene abiertas sus listas/notificaciones, se refrescan con el aviso nuevo (ya guardado en el servidor)
         try:
             ClienteRed.dato_envia({'type': 'mi_lista', 'rut': identificador_usuario()})
         except OSError:
@@ -593,7 +685,7 @@ def _iniciar_revision_avisos():
         raiz.after(500, lambda: _revisar_avisos(raiz))
 
 def _revisar_cola_lista(raiz):
-    '''Corre en el hilo de tkinter cada 200 ms mientras haya alguna ventana abierta.'''
+   
     global revisando_cola
     try:
         while True:
@@ -601,6 +693,8 @@ def _revisar_cola_lista(raiz):
             if not datos.get("ok"):
                 messagebox.showwarning("Mis listas", datos.get("mensaje", "No se pudo cargar la información."))
                 continue
+            productos_deseos.clear()
+            productos_deseos.update({p["id"]: p for p in datos.get("deseos", [])})
             for clave in list(ventanas_lista):
                 if ventanas_lista[clave][0].winfo_exists():
                     _rellenar_ventana(clave, datos)
@@ -627,6 +721,14 @@ def abrir_ventana_lista(clave):
         tk.Label(v, text=titulo, font=("Arial", 14, "bold"), bg="white").pack(pady=(12, 4))
         etiqueta_vacia = tk.Label(v, text="Cargando...", bg="white", fg="#666666")
         etiqueta_vacia.pack()
+        if clave == "deseos":
+            barra = tk.Frame(v, bg="white")
+            barra.pack(side="bottom", fill="x", padx=20, pady=(0, 12))
+            boton_mover = tk.Button(barra, text="Mover al carrito", font=("Arial", 10, "bold"), bg="#7422A8", fg="white",
+                                    cursor="hand2")
+            boton_mover.pack(side="right")
+            tk.Label(barra, text="Selecciona un producto (o haz doble clic) para pasarlo al carrito.",
+                     bg="white", fg="#666666").pack(side="left")
         marco = tk.Frame(v)
         marco.pack(fill="both", expand=True, padx=20, pady=12)
         aplicar_estilo_tabla(marco)
@@ -643,6 +745,9 @@ def abrir_ventana_lista(clave):
         tabla.configure(yscrollcommand=scroll.set)
         scroll.pack(side="right", fill="y")
         tabla.pack(side="left", fill="both", expand=True)
+        if clave == "deseos":
+            boton_mover.config(command=lambda: mover_deseo_al_carrito(tabla))
+            tabla.bind("<Double-1>", lambda e: mover_deseo_al_carrito(tabla))
         ventanas_lista[clave] = (v, tabla, etiqueta_vacia)
         v.bind("<Destroy>", lambda e: ventanas_lista.pop(clave, None) if e.widget is v else None)
     global revisando_cola

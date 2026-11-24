@@ -201,3 +201,7 @@ def dato_envia(dato):
                 'id_producto': dato.get('id_producto')})
     elif tipo == 'mi_lista':
         enviar({'type': 'mi_lista', 'rut': dato.get('rut')})
+    elif tipo == 'quitar_deseo':
+        enviar({'type': 'quitar_deseo',
+                'rut': dato.get('rut'),
+                'id_producto': dato.get('id_producto')})

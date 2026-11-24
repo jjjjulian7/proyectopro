@@ -40,20 +40,8 @@ def crear_cuadradito(contenedor_padre, gestor, ruta_imagen, nombre, categoria, p
 
         cantidad = int(cantidad_texto)
 
-        # cuántas unidades de este producto ya están en el carrito
-        en_carrito = 0
-        for i in F.carrito.items:
-            if i["id"] == id_producto:
-                en_carrito = i["cantidad"]
 
-        # si lo que ya tiene más lo nuevo supera el stock, se rechaza
-        if cantidad + en_carrito > stock_actual:
-            tk.messagebox.showerror("Error", "No hay stock suficiente")
-            return
-
-        producto_seleccionado = Producto(nombre, precio, stock_actual, categoria)
-        producto_seleccionado.id = id_producto
-        F.agregar_producto_carrito(producto_seleccionado, cantidad,F.usuario_actual)
+        F.agregar_al_carrito_validado(id_producto, nombre, precio, categoria, stock_actual, cantidad)
 
     acciones = tk.Frame(marco, bg="white")
     acciones.pack(fill="x", padx=10)
