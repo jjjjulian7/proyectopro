@@ -3,7 +3,7 @@ import json
 import threading
 import time
 from tkinter import messagebox
-HOST = "10.190.94.2"
+HOST = "192.168.1.112"
 PORT = 65433
 
 conexion=None
@@ -13,9 +13,11 @@ conexion_reserva=None
 conexion_reponer=None
 conexion_vaciar=None
 conexion_venta=None
-conexion_deseos=None   # callback para las respuestas de lista de deseos y suscripcion
-conexion_lista=None    # callback con lo que devuelve el servidor para las ventanas de deseos/suscripciones/notificaciones
-conexion_ia=None  # falta conectar con la ventana del chat cuando este lista la interfaz
+conexion_deseos=None   
+conexion_lista=None   
+conexion_ia=None  
+conexion_aviso=None    
+identificador=None     
 
 def conectar_interfaz_reserva(conexion):
     global conexion_reserva
@@ -37,12 +39,34 @@ def conectar_interfaz_lista(conexion):
     global conexion_lista
     conexion_lista = conexion
 
+def conectar_interfaz_aviso(conexion):
+    global conexion_aviso
+    conexion_aviso = conexion
+
+def conectar_interfaz_ia(conexion):
+    global conexion_ia
+    conexion_ia = conexion
+
+def identificarse(id_usuario):
+    
+    global identificador
+    identificador = id_usuario
+    if conexion is not None:
+        try:
+            enviar({'type':'identificarse','rut':identificador})
+        except OSError:
+            pass
+
 def conectar_interfaz_venta(conexion):
     global conexion_venta
     conexion_venta = conexion
+
+def conectar_interfaz_envios(conexion):
+    global conexion_envios
+    conexion_envios = conexion
     
 def conectar():
-    """utiliza las variables globales conexion y c para conectarse con el admin """
+    
     global conexion , c #se ocupa variables globales porque despues se ocupara el socket conexion para mandar la info
     while not c:
         intento=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -53,8 +77,15 @@ def conectar():
             print ("se conecto correctamente")
             conexion=intento
             c=True
+            if identificador is not None:   
+                try:
+                    enviar({'type':'identificarse','rut':identificador})
+                except OSError:
+                    pass
             hilo_recibir=threading.Thread(target=recibir,args=(intento,),daemon=True)
             hilo_recibir.start()
+            # pide las tarifas apenas se conecta al servidor
+            enviar({'type': 'obtener_envios'})
         except OSError:
             intento.close()
             time.sleep(3)
@@ -112,12 +143,18 @@ def recibir(socket_conexion):
                 recibo_id=dato.get('recibo_id')
                 if conexion_venta is not None:
                     conexion_venta(ok, mensaje, recibo_id)
+            elif tipo=='obtener_envios':
+                if conexion_envios is not None:
+                    conexion_envios(dato)
             elif tipo in ('agregar_deseo','suscribir_reposicion'):
                 if conexion_deseos is not None:
                     conexion_deseos(tipo, dato.get('ok'), dato.get('mensaje'))
             elif tipo=='mi_lista':
                 if conexion_lista is not None:
                     conexion_lista(dato)
+            elif tipo=='aviso':
+                if conexion_aviso is not None:
+                    conexion_aviso(dato)
             elif tipo=='consulta_ia':
                 ok=dato.get('ok')
                 respuesta=dato.get('respuesta')
@@ -155,7 +192,10 @@ def dato_envia(dato):
                 'fecha':dato.get('fecha'),
                 'items':dato.get('items'),
                 'total':dato.get('total'),
+                'despacho':dato.get('despacho'),
                 'nombre_u':nombre_u})
+    elif tipo == 'obtener_envios':
+        enviar({'type': 'obtener_envios'})
     elif tipo == 'consulta_ia':
         enviar({'type': 'consulta_ia',
                 'pregunta': dato.get('pregunta'),
@@ -166,3 +206,7 @@ def dato_envia(dato):
                 'id_producto': dato.get('id_producto')})
     elif tipo == 'mi_lista':
         enviar({'type': 'mi_lista', 'rut': dato.get('rut')})
+    elif tipo == 'quitar_deseo':
+        enviar({'type': 'quitar_deseo',
+                'rut': dato.get('rut'),
+                'id_producto': dato.get('id_producto')})

@@ -12,9 +12,9 @@ REGIONES = [
 ]
 
 # Valores Iniciales, el adimn las puede cambiar luego en su ventana
-COSTO_REGION_ORIGEN = 4000
-COSTO_METROPOLITANA = 6000
-COSTO_RESTO = 8000
+COSTO_REGION_ORIGEN = 4990      # valores del enunciado del hito 3
+COSTO_METROPOLITANA = 5990
+COSTO_RESTO = 7990
 
 DIAS_REGION_ORIGEN = 2
 DIAS_RESTO = 5
@@ -31,7 +31,7 @@ def crear_tabla():
     cursor.execute('''                              
         CREATE TABLE IF NOT EXISTS envios (
             region TEXT PRIMARY KEY,
-            costo REAL NOT NULL (costo >= 0),
+            costo REAL NOT NULL CHECK (costo >= 0),
             dias_habiles INTEGER NOT NULL CHECK (dias_habiles >= 0)
         )
     ''')
@@ -40,8 +40,8 @@ def crear_tabla():
     cursor.execute('''                              
         CREATE TABLE IF NOT EXISTS config_envio( 
             id INTEGER PRIMARY KEY CHECK (id = 1),
-            monto_minimo REAL NOT NULL DEFAULT '100000',
-            region_tienda TEXT NOT NUL DEFAULT 'Maule'
+            monto_minimo REAL NOT NULL DEFAULT '100000' CHECK (monto_minimo >= 0),
+            region_tienda TEXT NOT NULL DEFAULT 'Maule'
                    
         )
     ''')    #  Garantiza que solo haya una fila en la tabla 
@@ -62,13 +62,24 @@ def crear_tabla():
     cursor.execute("INSERT OR IGNORE INTO config_envio (id, monto_minimo, region_tienda) VALUES (1, ?, ?)",
                    (MONTO_MINIMO_INICIAL, REGION_ORIGEN_INICIAL))
  
-
     conexion.commit()
     conexion.close()
 
 
 # FUNCIONES TABLA ENVIOS:
 def guardar_tarifa(region, costo, dias_habiles):  # actualiza la tarifa de una region
+    if region not in REGIONES:  # Validamos los datos ingresados
+        raise ValueError("Selecciona una region valida")
+    try:
+        costo = int(str(costo).strip())
+        dias_habiles = int(str(dias_habiles).strip())
+    except ValueError:
+        raise ValueError("Ingrese numero enteros")
+    if costo < 0:   
+        raise ValueError("El costo no puede ser negativo")
+    if dias_habiles<0:
+        raise ValueError("Los dias habiles no pueden ser negativos")
+    
     crear_tabla()
     conexion = conectar()
     cursor = conexion.cursor()
@@ -85,7 +96,7 @@ def listar_tarifas():                           # Devuelve las tuplas, ordenadas
     cursor = conexion.cursor()
     cursor.execute("SELECT region, costo, dias_habiles FROM envios ORDER BY region")
     filas = cursor.fetchall()
-    conexion.close
+    conexion.close()
     return filas
 
 
@@ -93,18 +104,42 @@ def obtener_tarifa(region):                     # Devuelve la tupla de una regio
     crear_tabla()
     conexion = conectar()
     cursor = conexion.cursor()
-    cursor.execute("SELECT region, costo, dias_habiles FROM envios WHERE region = ?", (region,))
-    fila = cursor.fetchone()
+    fila = cursor.execute("SELECT region, costo, dias_habiles FROM envios WHERE region = ?", (region,)).fetchone()
     conexion.close()
     return fila
 
 
+# lista con los nombres de las regiones que tienen tarifa
+def regiones_con_tarifa():
+    return [fila[0] for fila in listar_tarifas()]
+
+
 # FUNCIONES TABLA CONFIG:
-def insertar_monto(monto):
+# devuelve (monto_minimo, region_tienda)
+def obtener_config():
+    crear_tabla()
     conexion = conectar()
     cursor = conexion.cursor()
+    fila = cursor.execute("SELECT monto_minimo, region_tienda FROM config_envio WHERE id = 1").fetchone()
+    conexion.close()
+    return fila
 
-    cursor.execute('''
-        INSERT OR REPLACE INTO config_envio (id, monto_minimo) 
-    ''')
 
+# monto desde el cual el envio sale gratis y region donde esta la tienda
+def guardar_config(monto_minimo, region_tienda):
+    try:
+        monto_minimo = int(str(monto_minimo).strip())
+    except ValueError:
+        raise ValueError("El monto minimo debe ser un numero entero")
+    if monto_minimo < 0:
+        raise ValueError("El monto minimo no puede ser negativo")
+    if region_tienda not in REGIONES:
+        raise ValueError("Selecciona la region de la tienda")
+
+    crear_tabla()
+    conexion = conectar()
+    cursor = conexion.cursor()
+    cursor.execute("INSERT OR REPLACE INTO config_envio (id, monto_minimo, region_tienda) VALUES (1, ?, ?)",
+                   (monto_minimo, region_tienda))
+    conexion.commit()
+    conexion.close()

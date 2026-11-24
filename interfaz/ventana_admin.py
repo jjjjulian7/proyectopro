@@ -7,11 +7,14 @@ from datos import bd
 from datos import bd_carrito
 from datos import bd_ventas
 from datos import bd_cupones
+from datos import bd_envios
 from datetime import datetime
 
 
 def ejecutar():
     bd_cupones.crear_tabla()    # asegura que exista la tabla de cupones
+    bd_envios.crear_tabla()     # asegura que existan las tarifas de envio
+    bd_ventas.crear_tabla()     # agrega las columnas de despacho si ventas.db es antigua
 
     ventana = tk.Tk()
     ventana.title("MaulencitosMarketADMIN")
@@ -64,6 +67,8 @@ def ejecutar():
     lista_F.append(frame_ventas)
     frame_cupones = tk.Frame(Frame_contenido)
     lista_F.append(frame_cupones)
+    frame_envios = tk.Frame(Frame_contenido)
+    lista_F.append(frame_envios)
 
     def mostrar_seccion(frame):
         F.mostrar_frame(frame, lista_F)
@@ -244,6 +249,121 @@ def ejecutar():
     boton_guardar_cupon.grid(row=11, column=0, sticky="w", pady=(16, 0))
 
 
+    # Frame de tarifas de envio el admin las define y el carrito del cliente las lee de la bd
+    frame_envios.grid_columnconfigure(0, weight=1)
+    frame_envios.grid_columnconfigure(1, weight=1)
+
+    tk.Label(frame_envios, text="Tarifas de envío", bg="#dcdde1", font=("Segoe UI", 12),
+             pady=14).grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 10))
+    tk.Label(frame_envios, text="Haz click en una región para editar su tarifa", font=("Segoe UI", 10),
+             anchor="w").grid(row=1, column=0, columnspan=2, sticky="ew", pady=(0, 6))
+
+    tabla_tarifas = ttk.Treeview(frame_envios, columns=("region", "costo", "dias"),
+                                 show="headings", style="Productos.Treeview", height=8)
+    for col, (texto, ancho, ancla) in {
+        "region": ("REGIÓN", 170, "w"),
+        "costo":  ("COSTO", 80, "e"),
+        "dias":   ("DÍAS HÁB.", 70, "center"),
+    }.items():
+        tabla_tarifas.heading(col, text=texto)
+        tabla_tarifas.column(col, width=ancho, anchor=ancla)
+    tabla_tarifas.tag_configure("par", background="#ffffff")
+    tabla_tarifas.tag_configure("impar", background="#e0e0e0")
+    tabla_tarifas.grid(row=2, column=0, columnspan=2, sticky="ew")
+
+    tk.Label(frame_envios, text="Costo de envío (CLP)", font=("Segoe UI", 10), anchor="w").grid(row=3, column=0, sticky="ew", pady=(10, 2))
+    tk.Label(frame_envios, text="Días hábiles", font=("Segoe UI", 10), anchor="w").grid(row=3, column=1, sticky="ew", pady=(10, 2), padx=(10, 0))
+    entrada_costo_envio = tk.Entry(frame_envios, width=12, relief="flat", highlightthickness=1,
+                                   highlightbackground="#ced4da", highlightcolor="#0d6efd")
+    entrada_costo_envio.grid(row=4, column=0, sticky="ew", ipady=6)
+    entrada_dias_envio = tk.Entry(frame_envios, width=12, relief="flat", highlightthickness=1,
+                                  highlightbackground="#ced4da", highlightcolor="#0d6efd")
+    entrada_dias_envio.grid(row=4, column=1, sticky="ew", ipady=6, padx=(10, 0))
+
+    etiqueta_region_envio = tk.Label(frame_envios, text="Región: (ninguna seleccionada)", font=("Segoe UI", 10), anchor="w")
+    etiqueta_region_envio.grid(row=5, column=0, columnspan=2, sticky="ew", pady=(6, 0))
+    region_editando = {"nombre": None}  # diccionario para poder cambiarlo desde las funciones de abajo
+
+    def refrescar_tarifas():
+        tabla_tarifas.delete(*tabla_tarifas.get_children())
+        try:
+            for i, (region_t, costo_t, dias_t) in enumerate(bd_envios.listar_tarifas()):
+                tabla_tarifas.insert("", "end", iid=region_t,
+                                     values=(region_t, f"${costo_t:,.0f}", dias_t),
+                                     tags=("par" if i % 2 == 0 else "impar",))
+            monto_minimo, region_tienda = bd_envios.obtener_config()
+        except sqlite3.Error as e:
+            messagebox.showerror("Error", f"No se pudieron leer las tarifas: {e}", parent=ventana)
+            return
+        entrada_monto_gratis.delete(0, tk.END)
+        entrada_monto_gratis.insert(0, str(int(monto_minimo)))
+        selector_region_tienda.set(region_tienda)
+
+    # al hacer click en una region se copian sus valores a los campos de edicion
+    def al_elegir_tarifa(event=None):
+        seleccion = tabla_tarifas.selection()
+        if not seleccion:
+            return
+        region_t = seleccion[0]
+        fila = bd_envios.obtener_tarifa(region_t)
+        if fila is None:
+            return
+        region_editando["nombre"] = region_t
+        etiqueta_region_envio.config(text=f"Región: {region_t}")
+        entrada_costo_envio.delete(0, tk.END)
+        entrada_costo_envio.insert(0, str(int(fila[1])))
+        entrada_dias_envio.delete(0, tk.END)
+        entrada_dias_envio.insert(0, str(fila[2]))
+
+    tabla_tarifas.bind("<<TreeviewSelect>>", al_elegir_tarifa)
+
+    def guardar_tarifa_admin():
+        if region_editando["nombre"] is None:
+            messagebox.showwarning("Envíos", "Selecciona primero una región de la tabla.", parent=ventana)
+            return
+        try:
+            bd_envios.guardar_tarifa(region_editando["nombre"], entrada_costo_envio.get(), entrada_dias_envio.get())
+        except ValueError as e:
+            messagebox.showwarning("Envíos", str(e), parent=ventana)
+            return
+        except sqlite3.Error as e:
+            messagebox.showerror("Error", f"No se pudo guardar la tarifa: {e}", parent=ventana)
+            return
+        refrescar_tarifas()
+        messagebox.showinfo("Envíos", f"Tarifa de {region_editando['nombre']} actualizada.", parent=ventana)
+
+    tk.Button(frame_envios, text="Guardar tarifa", command=guardar_tarifa_admin,
+              bg="#0d6efd", fg="white", activebackground="#0d6efd", activeforeground="white",
+              relief="flat", bd=0, font=("Segoe UI", 10), padx=14, pady=6).grid(row=6, column=0, sticky="w", pady=(10, 0))
+
+    tk.Label(frame_envios, text="Envío gratis desde (CLP)", font=("Segoe UI", 10), anchor="w").grid(row=7, column=0, sticky="ew", pady=(18, 2))
+    tk.Label(frame_envios, text="Región de la tienda", font=("Segoe UI", 10), anchor="w").grid(row=7, column=1, sticky="ew", pady=(18, 2), padx=(10, 0))
+    entrada_monto_gratis = tk.Entry(frame_envios, width=12, relief="flat", highlightthickness=1,
+                                    highlightbackground="#ced4da", highlightcolor="#0d6efd")
+    entrada_monto_gratis.grid(row=8, column=0, sticky="ew", ipady=6)
+    selector_region_tienda = ttk.Combobox(frame_envios, state="readonly", font=("Segoe UI", 10), values=bd_envios.REGIONES)
+    selector_region_tienda.grid(row=8, column=1, sticky="ew", padx=(10, 0))
+
+    def guardar_config_admin():
+        try:
+            bd_envios.guardar_config(entrada_monto_gratis.get(), selector_region_tienda.get())
+        except ValueError as e:
+            messagebox.showwarning("Envíos", str(e), parent=ventana)
+            return
+        except sqlite3.Error as e:
+            messagebox.showerror("Error", f"No se pudo guardar la configuración: {e}", parent=ventana)
+            return
+        messagebox.showinfo("Envíos", "Configuración de envío guardada.", parent=ventana)
+
+    tk.Button(frame_envios, text="Guardar configuración", command=guardar_config_admin,
+              bg="#6c757d", fg="white", activebackground="#6c757d", activeforeground="white",
+              relief="flat", bd=0, font=("Segoe UI", 10), padx=14, pady=6).grid(row=9, column=0, sticky="w", pady=(10, 0))
+
+    def abrir_envios():
+        mostrar_seccion(frame_envios)
+        refrescar_tarifas()
+
+
     # Frame de estadísticas por categoría
     Frame_estadisticas.grid_columnconfigure(0, weight=1)        # la columna se estira al ancho del panel
 
@@ -350,8 +470,13 @@ def ejecutar():
     boton_ventas = tk.Button(Frame_botones, text="Ventas", command=lambda: abrir_ventas())
     boton_carritos.grid(column=6, row=1)
     boton_ventas.grid(column=7, row=1)
-    boton_cupones = tk.Button(Frame_botones, text="Cupones", command=lambda: mostrar_seccion(frame_cupones))
-    boton_cupones.grid(column=8, row=1, sticky="w")
+    # cupones y envios van juntos en la columna 8 para no mover el resto de la barra
+    frame_cupones_envios = tk.Frame(Frame_botones, bg="#f1f3f5")
+    frame_cupones_envios.grid(column=8, row=1, sticky="w")
+    boton_cupones = tk.Button(frame_cupones_envios, text="Cupones", command=lambda: mostrar_seccion(frame_cupones))
+    boton_cupones.pack(side="left")
+    boton_envios = tk.Button(frame_cupones_envios, text="Envíos", command=lambda: abrir_envios())
+    boton_envios.pack(side="left")
 
     # Frame de carritos (solo lectura)
     frame_carritos.grid_columnconfigure(0, weight=1)        # la columna se estira al ancho del panel
@@ -443,12 +568,13 @@ def ejecutar():
     tk.Label(frame_ventas, text="Haz click en un comprobante para ver sus productos", font=("Segoe UI", 10),
              anchor="w", justify="left", wraplength=340).grid(row=1, column=0, columnspan=2, sticky="ew", pady=(0, 8))
 
-    tabla_ventas = ttk.Treeview(frame_ventas, columns=("id", "cliente", "fecha"),
+    tabla_ventas = ttk.Treeview(frame_ventas, columns=("id", "cliente", "fecha", "entrega"),
                                 show="headings", style="Productos.Treeview", height=9)
     for col, (texto, ancho, ancla) in {
         "id":      ("N°", 50, "center"),
         "cliente": ("CLIENTE", 130, "w"),
-        "fecha":   ("FECHA", 140, "center"),
+        "fecha":   ("FECHA", 110, "center"),
+        "entrega": ("ENTREGA", 100, "center"),
     }.items():
         tabla_ventas.heading(col, text=texto)
         tabla_ventas.column(col, width=ancho, anchor=ancla)
@@ -481,6 +607,7 @@ def ejecutar():
     def refrescar_ventas():
         try:
             ventas = bd_ventas.listar_ventas()
+            modalidades = bd_ventas.modalidades_por_venta()
         except sqlite3.Error as e:
             messagebox.showerror("Error", f"No se pudieron leer las ventas: {e}", parent=ventana)
             return
@@ -489,7 +616,8 @@ def ejecutar():
         for i, (id_v, fecha_v, cliente_v, total_v) in enumerate(ventas):
             datos_ventas[id_v] = (fecha_v, cliente_v, total_v)
             tabla_ventas.insert("", "end", iid=str(id_v),
-                                values=(id_v, cliente_v, formatear_fecha(fecha_v)),
+                                values=(id_v, cliente_v, formatear_fecha(fecha_v),
+                                        "Despacho" if modalidades.get(id_v) == "Despacho a domicilio" else "Retiro"),
                                 tags=("par" if i % 2 == 0 else "impar",))
         aviso_ventas.config(text="" if ventas else "Todavía no hay ventas.")
 
@@ -499,6 +627,7 @@ def ejecutar():
         fecha_v, cliente_v, total_v = datos_ventas[id_venta]
         try:
             items = bd_ventas.items_de_venta(id_venta)
+            despacho = bd_ventas.obtener_despacho(id_venta) or {}
             stock_actual = {p[0]: p[3] for p in bd.mostrar_productos()}
         except sqlite3.Error as e:
             messagebox.showerror("Error", f"No se pudo leer el detalle de la venta: {e}", parent=ventana)
@@ -506,12 +635,21 @@ def ejecutar():
 
         detalle = tk.Toplevel(ventana)
         detalle.title(f"Comprobante N°{id_venta}")
-        detalle.geometry("780x470")
+        detalle.geometry("780x560")
         detalle.transient(ventana)
 
         tk.Label(detalle, text=f"Comprobante N°{id_venta}", bg="#dcdde1",
                  font=("Segoe UI", 12), pady=14).pack(fill="x")
-        tk.Label(detalle, text=f"Cliente: {cliente_v}\nFecha: {formatear_fecha(fecha_v)}",
+        costo_envio = despacho.get("costo_envio") or 0
+        texto_cabecera = f"Cliente: {cliente_v}\nFecha: {formatear_fecha(fecha_v)}\n"
+        texto_cabecera += f"Entrega: {despacho.get('modalidad') or 'Retiro en tienda'}"
+        if despacho.get("modalidad") == "Despacho a domicilio":
+            texto_cabecera += (f"\nRecibe: {despacho.get('destinatario')}"
+                               f"\nDirección: {despacho.get('direccion')}, {despacho.get('comuna')}, {despacho.get('region')}"
+                               f"\nCosto de envío: ${costo_envio:,.0f}")
+            if despacho.get("fecha_entrega"):
+                texto_cabecera += f"\nEntrega estimada: {formatear_fecha(despacho['fecha_entrega'])[:10]}"
+        tk.Label(detalle, text=texto_cabecera,
                  font=("Segoe UI", 10), justify="left", anchor="w").pack(fill="x", padx=20, pady=(12, 8))
 
         marco_tabla = tk.Frame(detalle)
@@ -550,13 +688,15 @@ def ejecutar():
 
         if items:
             subtotal = sum(item[4] for item in items)
-            # La venta guarda el total ya con descuento: de ahí se deduce el neto y el descuento del cupón
-            neto = round(total_v / 1.19)
+            # La venta guarda el total ya con descuento y envio: total = (neto + envio) * 1.19
+            base_iva = round(total_v / 1.19)            # neto mas envio
+            neto = base_iva - costo_envio               # subtotal con descuento y sin envio
             descuento = subtotal - neto
-            iva = total_v - neto
+            iva = total_v - base_iva
             resumen = f"Subtotal: ${subtotal:,.0f}\n"
             if descuento > 1:       # tolerancia de 1 peso por redondeo
                 resumen += f"Descuento cupón: -${descuento:,.0f}\nSubtotal neto: ${neto:,.0f}\n"
+            resumen += f"Envío: ${costo_envio:,.0f}\n"
             resumen += f"IVA (19%): ${iva:,.0f}"
         else:
             resumen = "Esta venta no tiene el detalle de productos guardado."
@@ -580,7 +720,7 @@ def ejecutar():
 
         # ---------- estilo de la barra superior ----------
 
-    botones_barra = (boton_ingreso, boton_estadisticas, boton_admin, boton_vaciar, boton_carritos, boton_ventas, boton_cupones)
+    botones_barra = (boton_ingreso, boton_estadisticas, boton_admin, boton_vaciar, boton_carritos, boton_ventas, boton_cupones, boton_envios)
 
     # El for repite lo mismo con cada botón.
     for b in botones_barra:

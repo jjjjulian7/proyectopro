@@ -3,6 +3,8 @@ from interfaz import Client_ProyProgV2 as ClienteRed
 from tkinter import messagebox
 from clases.Venta import venta 
 from datos import bd_cupones
+from clases.envio import Despacho, TarifaEnvio
+from clases.direccion import Direccion
 
 class Carrito:
     def __init__(self):
@@ -10,10 +12,17 @@ class Carrito:
         self.cupon = 0.0
         self.tipo_cupon = "porcentaje"
         self.codigo_cupon = None
+        self.despacho = Despacho()  # por defecto retiro en tienda sin costo de envio
         self.usuario=None
         self.funcion_dibujar_tabla = None  # Inicializamos la función como None
         self.evento_venta = threading.Event()
         self.respuesta_venta = None
+        # tarifas y configuracion que llegan desde el servidor
+        self.tarifas_envio = {}
+        self.monto_minimo_envio = 100000
+        self.region_tienda = "Maule"
+        self.evento_envios = threading.Event()
+        self.envios_cargados = False
     
     def agregar_producto(self, producto, cantidad,usuario):
         print(f"Usuario : Agregando producto {producto.nombre}, Cantidad: {cantidad}" )
@@ -43,7 +52,7 @@ class Carrito:
         else:
             messagebox.showwarning("Error al agregar producto", mensaje)
         
-    # funciones matemáticas para calcular el subtotal, iva y total del carrito        
+    # funciones matematicas para calcular el subtotal el envio el iva y el total del carrito
     def calcular_subtotal(self):
         subtotal = 0
         for item in self.items:
@@ -53,13 +62,106 @@ class Carrito:
         else:
             subtotal = subtotal * (1 - self.cupon)
         return subtotal
+
+    # si es retiro o el subtotal llega al monto minimo el envio sale gratis
+    def calcular_envio(self):
+        return self.despacho.calcular_costo(self.calcular_subtotal())
     
+    # el iva ahora se calcula sobre el subtotal mas el envio
     def calcular_iva(self):
-        subtotal = self.calcular_subtotal()
-        return subtotal * 0.19  # 19% de IVA
+        base = self.calcular_subtotal() + self.calcular_envio()
+        return base * 0.19  # 19% de IVA
     
+    # al total se le suma el envio
     def calcular_total(self):
-        return self.calcular_subtotal() + self.calcular_iva()    
+        return self.calcular_subtotal() + self.calcular_envio() + self.calcular_iva()
+
+    # pide las tarifas actualizadas al servidor por socket
+    def pedir_tarifas_servidor(self, esperar=True):
+        if ClienteRed.conexion is None:
+            return False
+        self.evento_envios.clear()
+        try:
+            ClienteRed.dato_envia({'type': 'obtener_envios'})
+        except OSError:
+            return False
+        if esperar:
+            return self.evento_envios.wait(2)
+        return True
+
+    # guarda las tarifas que respondio el servidor
+    def procesar_respuesta_envios(self, dato):
+        if dato.get('ok'):
+            nuevas = {}
+            for item in dato.get('tarifas', []):
+                region = item.get('region')
+                if region:
+                    nuevas[region] = TarifaEnvio(region, item.get('costo', 0), item.get('dias_habiles', 0))
+            self.tarifas_envio = nuevas
+            self.monto_minimo_envio = dato.get('monto_minimo', 100000)
+            self.region_tienda = dato.get('region_tienda', "Maule")
+            self.envios_cargados = True
+            if not self.despacho.es_retiro() and self.despacho.direccion is not None:
+                self.despacho.tarifa = self.tarifas_envio.get(self.despacho.direccion.region)
+                self.despacho.monto_minimo = self.monto_minimo_envio
+        self.evento_envios.set()
+
+    def regiones_disponibles(self):
+        return list(self.tarifas_envio.keys())
+
+    # manejo del despacho
+    # el cliente retira en tienda asi que no paga envio
+    def elegir_retiro(self):
+        self.despacho = Despacho()
+
+    # revisa los datos y la region contra las tarifas recibidas del servidor
+    # si algo falla deja el despacho como estaba y devuelve el motivo
+    def elegir_despacho(self, destinatario, calle, comuna, region):
+        if not self.envios_cargados:
+            self.pedir_tarifas_servidor(esperar=True)
+        if not self.tarifas_envio:
+            return False, "No se pudo consultar las tarifas de envío en el servidor."
+        direccion = Direccion(destinatario, calle, comuna, region)
+        ok, motivo = direccion.validar(self.regiones_disponibles())
+        if not ok:
+            return False, motivo
+        tarifa = self._leer_tarifa(direccion.region)
+        monto_minimo = self.monto_minimo_envio
+        self.despacho = Despacho(Despacho.DOMICILIO, direccion, tarifa, monto_minimo)
+        return True, ""
+
+    # con solo la region ya se puede mostrar el envio y la fecha estimada
+    # los demas campos se revisan recien al pagar
+    def previsualizar_despacho(self, region):
+        if not self.envios_cargados:
+            self.pedir_tarifas_servidor(esperar=True)
+        tarifa = self._leer_tarifa(region)
+        if tarifa is None:
+            return False
+        anterior = self.despacho.direccion
+        direccion = Direccion(anterior.destinatario if anterior else "", anterior.calle if anterior else "",
+                              anterior.comuna if anterior else "", region)
+        self.despacho = Despacho(Despacho.DOMICILIO, direccion, tarifa, self.monto_minimo_envio)
+        return True
+
+    def _leer_tarifa(self, region):
+        return self.tarifas_envio.get(region)
+
+    # se llama justo antes de cobrar por si el admin cambio las tarifas mientras el cliente compraba
+    def _revalidar_despacho(self):
+        if self.despacho.es_retiro():
+            return True, ""
+        d = self.despacho.direccion
+        if d is None:
+            return False, "Completa los datos de despacho."
+        if not self.pedir_tarifas_servidor(esperar=True) or not self.tarifas_envio:
+            return False, "No se pudo consultar las tarifas de envío en el servidor."
+        ok, motivo = d.validar(self.regiones_disponibles())
+        if not ok:
+            return False, motivo
+        self.despacho.tarifa = self._leer_tarifa(d.region)
+        self.despacho.monto_minimo = self.monto_minimo_envio
+        return True, ""
     
     def vaciar_carrito(self):
         print("Usuario : Enviando solicitud al servidor para vaciar carrito")
@@ -120,13 +222,29 @@ class Carrito:
     def procesar_compra(self, cliente):
         if not self.items:
             return False, "El carrito está vacío", None
-        nueva_venta = venta(cliente, self.items, self.calcular_subtotal(), self.calcular_iva(), self.calcular_total())
+
+        # revisa que el despacho este bien antes de cobrar
+        try:
+            despacho_ok, motivo = self._revalidar_despacho()
+        except Exception as e:
+            despacho_ok, motivo = False, f"No se pudo consultar las tarifas de envío: {e}"
+        if not despacho_ok:
+            if self.funcion_dibujar_tabla is not None:
+                self.funcion_dibujar_tabla()
+            return False, motivo, None
+        costo_envio = self.calcular_envio()
+        datos_despacho = self.despacho.a_diccionario(costo_envio)
+
+        # la venta ahora guarda tambien el despacho y el costo de envio
+        nueva_venta = venta(cliente, self.items, self.calcular_subtotal(), self.calcular_iva(), self.calcular_total(),
+                            datos_despacho, costo_envio)
         self.respuesta_venta = None
         self.evento_venta.clear()
         if ClienteRed.conexion is None:
             return False, "No hay conexión con el servidor", None
         try:
-            ClienteRed.dato_envia({'type': 'registrar_venta', 'cliente': cliente, 'fecha': nueva_venta.fecha, 'items': nueva_venta.items, 'total': nueva_venta.total, 'nombre_u': self.usuario})
+            # se manda tambien el despacho al servidor
+            ClienteRed.dato_envia({'type': 'registrar_venta', 'cliente': cliente, 'fecha': nueva_venta.fecha, 'items': nueva_venta.items, 'total': nueva_venta.total, 'despacho': datos_despacho, 'nombre_u': self.usuario})
         except OSError:
             return False, "No se pudo enviar la venta al servidor", None
         if not self.evento_venta.wait(5):
@@ -143,6 +261,7 @@ class Carrito:
         self.items.clear()  # vacia el carrito.
         self.cupon = 0.0
         self.codigo_cupon = None
+        self.despacho = Despacho()  # la proxima compra parte con retiro en tienda
         if self.funcion_dibujar_tabla is not None:
             self.funcion_dibujar_tabla()
         return True, f"Recibo N°{nueva_venta.recibo_id}", ruta
