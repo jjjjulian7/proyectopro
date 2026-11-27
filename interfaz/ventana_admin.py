@@ -8,6 +8,9 @@ from datos import bd_carrito
 from datos import bd_ventas
 from datos import bd_cupones
 from datos import bd_envios
+from datos import bd_pedidos
+from clases.pedido import EstadoPedido, FlujoPedido, PanelPedidos
+import Server_ProgProyV2 as servidor   # el servidor corre en este mismo programa (para avisar a los clientes)
 from datetime import datetime
 
 
@@ -15,6 +18,7 @@ def ejecutar():
     bd_cupones.crear_tabla()    # asegura que exista la tabla de cupones
     bd_envios.crear_tabla()     # asegura que existan las tarifas de envio
     bd_ventas.crear_tabla()     # agrega las columnas de despacho si ventas.db es antigua
+    bd_pedidos.crear_tabla()    # asegura que exista la tabla de pedidos
 
     ventana = tk.Tk()
     ventana.title("MaulencitosMarketADMIN")
@@ -69,6 +73,8 @@ def ejecutar():
     lista_F.append(frame_cupones)
     frame_envios = tk.Frame(Frame_contenido)
     lista_F.append(frame_envios)
+    frame_pedidos = tk.Frame(Frame_contenido)
+    lista_F.append(frame_pedidos)
 
     def mostrar_seccion(frame):
         F.mostrar_frame(frame, lista_F)
@@ -477,6 +483,8 @@ def ejecutar():
     boton_cupones.pack(side="left")
     boton_envios = tk.Button(frame_cupones_envios, text="Envíos", command=lambda: abrir_envios())
     boton_envios.pack(side="left")
+    boton_pedidos = tk.Button(frame_cupones_envios, text="Pedidos", command=lambda: abrir_pedidos())
+    boton_pedidos.pack(side="left")
 
     # Frame de carritos (solo lectura)
     frame_carritos.grid_columnconfigure(0, weight=1)        # la columna se estira al ancho del panel
@@ -718,9 +726,172 @@ def ejecutar():
         mostrar_seccion(frame_ventas)
         refrescar_ventas()
 
-        # ---------- estilo de la barra superior ----------
 
-    botones_barra = (boton_ingreso, boton_estadisticas, boton_admin, boton_vaciar, boton_carritos, boton_ventas, boton_cupones, boton_envios)
+    # ---------- Panel de pedidos (seguimiento) ----------
+    frame_pedidos.grid_columnconfigure(0, weight=1)
+
+    tk.Label(frame_pedidos, text="Pedidos", bg="#dcdde1", font=("Segoe UI", 12), pady=14).grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 10))
+    resumen_pedidos = tk.Label(frame_pedidos, anchor="w", justify="left", font=("Segoe UI", 10), wraplength=340)
+    resumen_pedidos.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(0, 8))
+
+    tabla_pedidos = ttk.Treeview(frame_pedidos, columns=("cliente", "fecha"), show="tree headings",
+                                 style="Productos.Treeview", height=11, selectmode="browse")
+    tabla_pedidos.heading("#0", text="PEDIDO")
+    tabla_pedidos.column("#0", width=140, anchor="w")
+    tabla_pedidos.heading("cliente", text="CLIENTE")
+    tabla_pedidos.column("cliente", width=110, anchor="w")
+    tabla_pedidos.heading("fecha", text="FECHA")
+    tabla_pedidos.column("fecha", width=110, anchor="center")
+    tabla_pedidos.tag_configure("grupo", background="#dcdde1", font=("Segoe UI", 10, "bold"))
+    tabla_pedidos.tag_configure("par", background="#ffffff")
+    tabla_pedidos.tag_configure("impar", background="#e0e0e0")
+    tabla_pedidos.tag_configure("cancelado", foreground="#e8283c")
+    tabla_pedidos.grid(row=2, column=0, sticky="ew")
+
+    scroll_pedidos = ttk.Scrollbar(frame_pedidos, orient="vertical", command=tabla_pedidos.yview)
+    tabla_pedidos.configure(yscrollcommand=scroll_pedidos.set)
+    scroll_pedidos.grid(row=2, column=1, sticky="ns")
+
+    aviso_pedidos = tk.Label(frame_pedidos, anchor="w", font=("Segoe UI", 10))
+    aviso_pedidos.grid(row=4, column=0, columnspan=2, sticky="ew", pady=(8, 0))
+
+    ultimos_pedidos = {}    # ultimo contenido dibujado, para no redibujar si nada cambio
+
+    def refrescar_pedidos(forzar=True):
+        try:
+            grupos = bd_pedidos.listar_por_estado()
+        except sqlite3.Error as e:
+            if forzar:
+                messagebox.showerror("Error", f"No se pudieron leer los pedidos: {e}", parent=ventana)
+            return
+        if not forzar and grupos == ultimos_pedidos.get("grupos"):
+            return
+        ultimos_pedidos["grupos"] = grupos
+        seleccionado = tabla_pedidos.selection()
+        tabla_pedidos.delete(*tabla_pedidos.get_children())
+        for estado, pedidos in grupos.items():
+            grupo_id = f"estado:{estado}"
+            tabla_pedidos.insert("", "end", iid=grupo_id, text=f"{estado} ({len(pedidos)})",
+                                 values=("", ""), open=bool(pedidos), tags=("grupo",))
+            for i, (numero, venta_id, cliente_p, fecha_p) in enumerate(pedidos):
+                etiquetas = ["par" if i % 2 == 0 else "impar"]
+                if estado == EstadoPedido.CANCELADO:
+                    etiquetas.append("cancelado")
+                tabla_pedidos.insert(grupo_id, "end", iid=str(numero), text=f"N°{numero}",
+                                     values=(cliente_p or "", formatear_fecha(fecha_p)), tags=tuple(etiquetas))
+        for iid in seleccionado:
+            if tabla_pedidos.exists(iid):
+                tabla_pedidos.selection_set(iid)
+        resumen_pedidos.config(text=f"Total: {PanelPedidos.total(grupos)} pedidos  |  En curso: {PanelPedidos.activos(grupos)}")
+        aviso_pedidos.config(text="" if PanelPedidos.total(grupos) else "Todavía no hay pedidos.")
+
+    def numero_pedido_seleccionado():
+        seleccion = tabla_pedidos.selection()
+        if not seleccion or not seleccion[0].isdigit():   # las filas de grupo tienen iid "estado:..."
+            messagebox.showinfo("Pedidos", "Selecciona un pedido de la lista.", parent=ventana)
+            return None
+        return int(seleccion[0])
+
+    def avisar_cliente_pedido(numero):
+        try:
+            servidor.avisar_estado_pedido(numero)
+        except Exception as e:
+            print(f"[!] No se pudo avisar al cliente del pedido {numero}: {e}")
+
+    def avanzar_pedido():
+        numero = numero_pedido_seleccionado()
+        if numero is None:
+            return
+        try:
+            ok, mensaje = bd_pedidos.avanzar_estado(numero)
+        except sqlite3.Error as e:
+            messagebox.showerror("Error", f"No se pudo cambiar el estado: {e}", parent=ventana)
+            return
+        if not ok:
+            messagebox.showwarning("Pedidos", mensaje, parent=ventana)
+            return
+        avisar_cliente_pedido(numero)
+        refrescar_pedidos()
+
+    def cancelar_pedido_admin():
+        numero = numero_pedido_seleccionado()
+        if numero is None:
+            return
+        fila = bd_pedidos.obtener_pedido(numero)
+        if fila is None:
+            messagebox.showwarning("Pedidos", "El pedido ya no existe.", parent=ventana)
+            refrescar_pedidos()
+            return
+        if not FlujoPedido.es_cancelable(fila[3]):
+            messagebox.showwarning("Pedidos", f"No se puede cancelar un pedido en estado {fila[3]}.", parent=ventana)
+            return
+        if not messagebox.askyesno("Confirmación", f"¿Cancelar el pedido N°{numero}? El stock de sus productos volverá al inventario.", parent=ventana):
+            return
+        try:
+            # productos que estaban agotados: si recuperan stock hay que avisar a quienes esperan reposicion
+            agotados = set()
+            for id_p, _n, _c, _pr, _s in bd_ventas.items_de_venta(fila[1]):
+                producto_bd = bd.obtener_producto(id_p)
+                if producto_bd is not None and producto_bd[3] == 0:
+                    agotados.add(id_p)
+            ok, mensaje = bd_pedidos.cancelar_pedido(numero)
+        except sqlite3.Error as e:
+            messagebox.showerror("Error", f"No se pudo cancelar el pedido: {e}", parent=ventana)
+            return
+        if not ok:
+            messagebox.showwarning("Pedidos", mensaje, parent=ventana)
+            refrescar_pedidos()
+            return
+        F.inventario.productos = F.I().productos    # el stock restaurado debe verse en el inventario
+        F.mostrar_productos(Frame_producto)
+        for id_p in agotados:
+            try:
+                servidor.avisar_reposicion(id_p)
+            except Exception as e:
+                print(f"[!] No se pudo avisar la reposición del producto {id_p}: {e}")
+        avisar_cliente_pedido(numero)
+        refrescar_pedidos()
+        messagebox.showinfo("Pedidos", mensaje, parent=ventana)
+
+    def ver_detalle_pedido():
+        numero = numero_pedido_seleccionado()
+        if numero is None:
+            return
+        try:
+            messagebox.showinfo(f"Pedido N°{numero}", bd_pedidos.detalle_pedido(numero), parent=ventana)
+        except sqlite3.Error as e:
+            messagebox.showerror("Error", f"No se pudo leer el pedido: {e}", parent=ventana)
+
+    botones_pedidos = tk.Frame(frame_pedidos)
+    botones_pedidos.grid(row=3, column=0, columnspan=2, sticky="w")
+    for texto, comando, color in (("Avanzar estado", avanzar_pedido, "#0d6efd"),
+                                  ("Cancelar pedido", cancelar_pedido_admin, "#dc3545"),
+                                  ("Ver detalle", ver_detalle_pedido, "#6c757d"),
+                                  ("Actualizar", refrescar_pedidos, "#6c757d")):
+        tk.Button(botones_pedidos, text=texto, command=comando, bg=color, fg="white",
+                  activebackground=color, activeforeground="white", relief="flat", bd=0,
+                  font=("Segoe UI", 10), padx=10, pady=6).pack(side="left", padx=(0, 6), pady=(10, 0))
+
+    def auto_refrescar_pedidos():
+        # los clientes compran mientras el admin tiene la ventana abierta: cada 3 s se revisa si hay cambios
+        try:
+            if not frame_pedidos.winfo_exists():
+                return
+            if frame_pedidos.winfo_ismapped():
+                refrescar_pedidos(forzar=False)
+            ventana.after(3000, auto_refrescar_pedidos)
+        except tk.TclError:
+            pass
+
+    def abrir_pedidos():
+        mostrar_seccion(frame_pedidos)
+        refrescar_pedidos()
+
+    ventana.after(3000, auto_refrescar_pedidos)
+
+
+
+    botones_barra = (boton_ingreso, boton_estadisticas, boton_admin, boton_vaciar, boton_carritos, boton_ventas, boton_cupones, boton_envios, boton_pedidos)
 
     # El for repite lo mismo con cada botón.
     for b in botones_barra:

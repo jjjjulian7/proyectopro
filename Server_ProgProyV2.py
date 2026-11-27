@@ -6,6 +6,8 @@ from datos import bd
 from datos import bd_carrito
 from datos import bd_ventas
 from datos import bd_envios
+from datos import bd_pedidos
+from datos import bd_usuarios
 from clases.ListaDeseos import ListaDeseos, Suscripcion, Notificacion
 from clases.asistente_ia import AsistenteIA
 
@@ -73,6 +75,21 @@ def _avisar(ruts,id_producto,nombre,tipo,mensaje,extra=None):
     if avisos:
         threading.Thread(target=_empujar_a_clientes,args=(avisos,),daemon=True).start()
     return len(avisos)
+
+def avisar_estado_pedido(numero):
+    """Avisa por socket al cliente dueño del pedido que su estado cambió (si está conectado)."""
+    fila=bd_pedidos.obtener_pedido(numero)   # (numero, venta_id, cliente, estado, fecha)
+    if fila is None or not fila[2]:
+        return 0
+    usuario=bd_usuarios.buscar_usuario(fila[2])   # columnas: id, nombre, contrasena, rut, rol
+    if usuario is None:
+        return 0
+    rut=usuario[3] or usuario[1]
+    datos={'type':'aviso','tipo':'pedido','numero':numero,'estado':fila[3],
+           'mensaje':f"Tu pedido N°{numero} ahora está: {fila[3]}."}
+    # en un hilo aparte para no congelar la ventana del admin
+    threading.Thread(target=_empujar_a_clientes,args=([(rut,datos)],),daemon=True).start()
+    return 1
 
 def avisar_reposicion(id_producto):
     
@@ -233,6 +250,11 @@ def procesar_solicitud(socket_cliente,mensaje):
         try:
             recibo_id=bd_ventas.insertar_venta(mensaje.get('fecha'),mensaje.get('cliente'),mensaje.get('total'),mensaje.get('items'),mensaje.get('despacho'))
             bd_carrito.marcar_pagado(mensaje.get('nombre_u'))
+            # cada venta confirmada genera un pedido en estado Pendiente
+            try:
+                bd_pedidos.crear_pedido(recibo_id,mensaje.get('cliente'))
+            except sqlite3.Error as e:
+                print(f"[!] No se pudo crear el pedido de la venta {recibo_id}: {e}")
         except sqlite3.Error:
             responder_cliente(socket_cliente,{'type':'registrar_venta','ok':False,'mensaje':'No se pudo guardar la venta en el servidor','recibo_id':None})
             return

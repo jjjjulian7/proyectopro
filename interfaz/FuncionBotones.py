@@ -631,6 +631,8 @@ ClienteRed.conectar_interfaz_aviso(procesar_aviso)
 def _mostrar_aviso(dato, raiz):
     
     titulo = "Producto repuesto" if dato.get("tipo") == "reposicion" else "Rebaja de precio"
+    if dato.get("tipo") == "pedido":
+        titulo = "Estado de tu pedido"
     v = tk.Toplevel(raiz)
     v.title(titulo)
     v.configure(bg="white")
