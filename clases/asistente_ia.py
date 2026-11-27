@@ -1,7 +1,9 @@
 import http.client
 import json
 import os
+import ssl
 import sys
+import time
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from datos import bd
@@ -18,9 +20,10 @@ try:
 except:
     pass
 
-MODELO = "gemini-4-hydrogen"
+MODELO = "gemini-3.8-flash"
+MODELOS_DISPONIBLES = ("gemini-3.8-flash", "gemini-3.6-flash")
 HOST = "generativelanguage.googleapis.com"
-PATH = f"/v1/models/{MODELO}:generateContent?key={API_KEY}"
+PATH = f"/v1beta/models/{MODELO}:generateContent?key={API_KEY}"
 
 
 class AsistenteIA:
@@ -40,7 +43,6 @@ class AsistenteIA:
         texto_productos = "Productos disponibles en la tienda:\n"
         for p in productos:
             # p[0]=id, p[1]=nombre, p[2]=precio, p[3]=stock, p[4]=categoria
-            # salta los que ya estan en el carrito para ahorrar texto
             if p[0] not in ids_carrito:
                 texto_productos += f"- {p[1]} (Categoria: {p[4]}) Precio: ${p[2]} Stock: {p[3]}\n"
         return texto_productos
@@ -66,7 +68,6 @@ class AsistenteIA:
         texto_carrito = "Productos en el carrito del cliente:\n"
         for i in items:
             # i[0]=id_producto, i[1]=nombre, i[2]=cantidad, i[3]=precio, i[4]=subtotal
-            # guarda el id aunque el stock haya bajado a 0 al reservar
             ids_carrito.add(i[0])
             texto_carrito += f"- {i[1]} Cantidad: {i[2]} Precio: ${i[3]} Subtotal: ${i[4]}\n"
         return texto_carrito, ids_carrito
@@ -84,7 +85,6 @@ class AsistenteIA:
             ids_carrito = set()
         productos = bd.productos_disponibles()
         recomendados = []
-        # evita meter el mismo id dos veces en la lista
         ids_agregados = set()
         texto_minuscula = respuesta_texto.lower()
         for p in productos:
@@ -100,14 +100,12 @@ class AsistenteIA:
         return recomendados
 
     def respaldo_destacados(self, ids_carrito=None):
-        # plan b si gemini falla o se demora mucho
         if ids_carrito is None:
             ids_carrito = set()
         productos = bd.productos_destacados()
         recomendados = []
         mensaje = "Lo siento, no podemos atender tu pregunta en este momento por alta demanda. Inténtalo más tarde.\n"
         for p in productos:
-            # elige los 3 con mas stock que no esten en el carrito
             if p[0] not in ids_carrito:
                 recomendados.append({
                     "id": p[0],
@@ -133,11 +131,29 @@ class AsistenteIA:
         catalogo = self.obtener_catalogo(ids_carrito)
         historial = self.obtener_historial()
 
+        if not self.historial:
+            regla_saludo = "Al inicio de esta respuesta, saluda y preséntate brevemente como el asistente de Maulencitos Market."
+        else:
+            regla_saludo = "Ya te presentaste en mensajes anteriores, así que no vuelvas a saludar ni presentarte; ve directo al punto."
+
+        prompt = (
+            f"Eres el asistente virtual de la tienda online Maulencitos Market (tienda de tecnología y computación). {regla_saludo} "
+            "Responde ÚNICAMENTE sobre productos, precios, stock y compras de esta tienda usando solo el catálogo y carrito entregados, sin inventar productos ni precios. "
+            "Si el cliente hace una pregunta fuera de tema o sobre cosas que no vendemos (por ejemplo comida como un kilo de pollo, chistes, tareas o productos inexistentes), indícale amablemente que solo puedes ayudarlo con los productos tecnológicos de Maulencitos Market y sugiérele alternativas disponibles del catálogo. "
+            "Responde de forma clara y específica para resolver la pregunta del cliente. "
+            "Cuando recomiendes un producto, escribe su nombre exacto tal como aparece en el catálogo. "
+            "Revisa el carrito del cliente: si está vacío, concéntrate solo en responder su pregunta. "
+            "Si el carrito tiene productos y se relacionan con la pregunta, conecta tu recomendación con lo que ya lleva (por ejemplo: 'Veo que ya tienes X, te recomiendo complementarlo con Y'); "
+            "si no tienen relación directa, agrega al final una recomendación breve de un producto del catálogo que complemente su carrito. "
+            "Termina siempre con una pregunta abierta corta sobre la tienda para que el cliente pueda seguir la conversación.\n\n"
+            f"{catalogo}\n{carrito}\n{historial}\nPregunta del cliente: {pregunta}"
+        )
+
         body = {
             "contents": [
                 {
                     "parts": [
-                        {"text": f"Eres el asistente de nuestra tienda online, presentate ante el usuario primero antes de responder su pregunta, menciona que eres parte de la tienda Maulencitos Market, quiero respuestas especificas que solucionen la pregunta del cliente, y al final una pregunta abierta donde el cliente puede seguir la conversacion, cuando recomiendes un producto escribe su nombre exacto tal como aparece en el catalogo, no olvides revisar el carrito del cliente para ver que es lo que ya tiene lanzarle una pequeña recomendacion pero solo corta como veo que tienes esto si te interesa te reccomiendo tal cosa, solo hacer eso cuando el carrito no este vacio, si esta vacio solo concentrate en la pregunta, si lo q tiene en el carrito tiene q ver con lo que pregunta el cliente, hablale sobre tu recomendacion mas loq  tiene el carrito por ejemplo veo q tienes esto y ahi sigues. {catalogo}\n{carrito}\n{historial}\nPregunta del cliente: {pregunta}"}
+                        {"text": prompt}
                     ]
                 }
             ]
@@ -146,33 +162,45 @@ class AsistenteIA:
         body_json = json.dumps(body)
 
         try:
-            # conexion con gemini, si tarda mas de 20s salta al respaldo
-            conn = http.client.HTTPSConnection(self.host, timeout=20)
-            conn.request("POST", self.path, body=body_json, headers=self.headers)
+            import certifi
+            contexto = ssl.create_default_context(cafile=certifi.where())
+        except ImportError:
+            contexto = ssl.create_default_context()
 
-            # almacenar respuesta
-            response = conn.getresponse()
-            data = response.read().decode("utf-8")
-            conn.close()
-        except Exception as e:
-            print("Error de conexion:", e)
-            mensaje_respaldo, recomendados = self.respaldo_destacados(ids_carrito)
-            return False, mensaje_respaldo, recomendados
+        for intento, modelo_actual in enumerate(MODELOS_DISPONIBLES):
+            path = f"/v1beta/models/{modelo_actual}:generateContent?key={API_KEY}"
+            try:
+                conn = http.client.HTTPSConnection(self.host, timeout=20, context=contexto)
+                conn.request("POST", path, body=body_json, headers=self.headers)
+                response = conn.getresponse()
+                data = response.read().decode("utf-8")
+                conn.close()
+            except Exception as e:
+                print(f"Error de conexion ({modelo_actual}):", e)
+                if intento == 0:
+                    time.sleep(1)
+                continue
 
-        # verificar de respuesta
-        if response.status == 200:
-            response_data = json.loads(data)
-            respuesta_texto = response_data["candidates"][0]["content"]["parts"][0]["text"]
-            self.historial.append({"pregunta": pregunta, "respuesta": respuesta_texto})
-            recomendados = self.obtener_recomendados(respuesta_texto, ids_carrito)
-            print("Respuesta de Gemini:")
-            print(respuesta_texto)
-            return True, respuesta_texto, recomendados
-        else:
-            print(f"Error: {response.status} - {response.reason}")
-            print(data)
-            mensaje_respaldo, recomendados = self.respaldo_destacados(ids_carrito)
-            return False, mensaje_respaldo, recomendados
+            if response.status == 200:
+                response_data = json.loads(data)
+                partes = response_data["candidates"][0]["content"]["parts"]
+                respuesta_texto = "".join(parte.get("text", "") for parte in partes if not parte.get("thought"))
+                if respuesta_texto.strip():
+                    self.historial.append({"pregunta": pregunta, "respuesta": respuesta_texto})
+                    recomendados = self.obtener_recomendados(respuesta_texto, ids_carrito)
+                    print("Respuesta de Gemini:")
+                    print(respuesta_texto)
+                    return True, respuesta_texto, recomendados
+            else:
+                print(f"Error ({modelo_actual}): {response.status} - {response.reason}")
+                print(data)
+                if response.status in (400, 403):
+                    break
+                if intento == 0:
+                    time.sleep(1)
+
+        mensaje_respaldo, recomendados = self.respaldo_destacados(ids_carrito)
+        return False, mensaje_respaldo, recomendados
 
     def limpiar_historial(self):
         self.historial.clear()

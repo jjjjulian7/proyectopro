@@ -13,7 +13,7 @@ FUENTE = ("Segoe UI", 10)
 ventana_chat = None                 # vive fuera de la funcion para recordar si el chat ya esta abierto
 cola_respuestas_ia = queue.Queue()  # puente entre el hilo de red y el hilo de tkinter
 
-def procesar_respuesta_ia(ok, respuesta):
+def procesar_respuesta_ia(ok, respuesta, recomendados=None):
     '''Llega desde el hilo que escucha al servidor, solo la deja en la cola (tkinter no se toca desde otro hilo).'''
     cola_respuestas_ia.put((ok, respuesta))
 ClienteRed.conectar_interfaz_ia(procesar_respuesta_ia)

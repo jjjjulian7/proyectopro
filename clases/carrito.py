@@ -1,4 +1,5 @@
 import threading
+from types import SimpleNamespace
 from interfaz import Client_ProyProgV2 as ClienteRed
 from tkinter import messagebox
 from clases.Venta import venta 
@@ -14,6 +15,7 @@ class Carrito:
         self.codigo_cupon = None
         self.despacho = Despacho()  # por defecto retiro en tienda sin costo de envio
         self.usuario=None
+        self.expirado = False
         self.funcion_dibujar_tabla = None  # Inicializamos la función como None
         self.evento_venta = threading.Event()
         self.respuesta_venta = None
@@ -27,11 +29,40 @@ class Carrito:
     def agregar_producto(self, producto, cantidad,usuario):
         print(f"Usuario : Agregando producto {producto.nombre}, Cantidad: {cantidad}" )
         self.usuario=usuario
+        self.expirado = False
         ClienteRed.dato_envia({'type' : 'reservar_stock',
                                'id_producto' : producto.id,
                                'cantidad' : cantidad,
                                'nombre': producto.nombre,
                                 'nombre_u':usuario}) #llama a la funcion reservar_stock de bd.py para reservar el stock del producto
+
+    def agregar_recomendado(self, id_producto, recomendados, usuario=None):
+        if self.expirado:
+            self.items.clear()
+            self.cupon = 0.0
+            self.codigo_cupon = None
+            self.despacho = Despacho()
+            self.expirado = False
+
+        encontrado = None
+        for prod in recomendados:
+            if prod["id"] == id_producto:
+                encontrado = prod
+                break
+
+        if encontrado is None or encontrado.get("stock", 0) <= 0:
+            return False
+
+        for item in self.items:
+            if str(item["id"]) == str(id_producto):
+                recomendados.remove(encontrado)
+                return False
+
+        usuario_final = usuario if usuario is not None else self.usuario
+        producto_obj = SimpleNamespace(id=encontrado["id"], nombre=encontrado["nombre"])
+        self.agregar_producto(producto_obj, 1, usuario_final)
+        recomendados.remove(encontrado)
+        return True
         
     def procesar_respuesta_reservar(self, ok, mensaje, id_producto, cantidad, nombre, precio):
         if ok:

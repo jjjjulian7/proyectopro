@@ -206,7 +206,6 @@ def obtener_producto(id_producto):
 
 
 def productos_disponibles():
-    # trae directo desde sqlite solo los que tienen stock
     conexion = conectar()
     try:
         cursor = conexion.cursor()
@@ -217,7 +216,6 @@ def productos_disponibles():
 
 
 def productos_destacados():
-    # ordena de mayor a menor stock para el respaldo si falla la ia
     conexion = conectar()
     try:
         cursor = conexion.cursor()

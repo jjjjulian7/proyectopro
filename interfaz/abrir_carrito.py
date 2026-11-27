@@ -49,6 +49,7 @@ def abrir_carrito(carrito, event=None):
         if carrito.items:
             messagebox.showinfo("Tiempo Agotado", "El carrito ha expirado por inactividad.", parent=ventana)
             carrito.vaciar_carrito()
+        carrito.expirado = True
         ventana.destroy()
     def descontar_tiempo():
         minutos = ventana.tiempo_restante // 60
@@ -61,6 +62,7 @@ def abrir_carrito(carrito, event=None):
             ventana.timer = ventana.after(1000, descontar_tiempo)
     
     def iniciar_resetear_timer(event=None):
+        carrito.expirado = False
         ventana.tiempo_restante = segundos_restantes
         if ventana.timer is not None:
             ventana.after_cancel(ventana.timer)
